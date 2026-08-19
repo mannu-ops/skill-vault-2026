@@ -1,0 +1,1987 @@
+import { useEffect, useState, useMemo, type ReactNode } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { Toaster } from '@/components/ui/toaster';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { AnimationProvider } from '@/components/animation-provider';
+import { AnimatedButton } from '@/components/animated-button';
+import { AnimatedCard } from '@/components/animated-card';
+import { fadeInUp, containerAnimation, listItemAnimation } from '@/lib/animations';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  X,
+  ArrowUpRight,
+  LockKeyhole,
+  Terminal,
+  Layers3,
+  GitBranch,
+  Database,
+  Server,
+  Sparkles,
+  ShieldCheck,
+  Play,
+  CircleCheck,
+  Braces,
+  Search,
+  BookOpen,
+  Clock,
+  Award,
+  BookMarked,
+  ArrowLeft,
+  Share2,
+  CheckCircle2,
+  ShoppingBag,
+  User,
+  LogOut,
+  LogIn,
+  UserPlus,
+  ShoppingCart
+} from 'lucide-react';
+import { Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
+import { COURSES, type Course, type CourseModule } from './data/courses';
+import { getApiUrl } from './config';
+import { AuthModal } from './components/auth-modal';
+import { CartDrawer } from './components/cart-drawer';
+import { CheckoutPage } from './pages/checkout-page';
+import { PaymentSuccessPage } from './pages/payment-success-page';
+import { PaymentFailedPage } from './pages/payment-failed-page';
+import { PurchasesPage } from './pages/purchases-page';
+
+const queryClient = new QueryClient();
+
+type PaymentState = 'idle' | 'loading' | 'setup' | 'success' | 'cancelled' | 'pending';
+
+const CATEGORIES = [
+  'All Products',
+  'Course',
+  'Software',
+  'Game',
+  'Notes',
+  'Hacks',
+  'Blog'
+] as const;
+
+function getCourseIcon(iconName: string) {
+  switch (iconName) {
+    case 'Server': return Server;
+    case 'Sparkles': return Sparkles;
+    case 'Layers3': return Layers3;
+    case 'GitBranch': return GitBranch;
+    case 'ShieldCheck': return ShieldCheck;
+    case 'Terminal':
+    default: return Terminal;
+  }
+}
+
+function getThemeClasses(themeColor: Course['themeColor']) {
+  switch (themeColor) {
+    case 'cyan':
+      return {
+        badge: 'border-cyan-400/30 bg-cyan-400/10 text-cyan-200',
+        accentText: 'text-cyan-300',
+        borderHover: 'hover:border-cyan-400/40',
+        buttonBg: 'bg-cyan-300 text-slate-950 hover:bg-cyan-200',
+        pill: 'bg-cyan-400/10 text-cyan-300 border-cyan-400/20',
+      };
+    case 'emerald':
+      return {
+        badge: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200',
+        accentText: 'text-emerald-300',
+        borderHover: 'hover:border-emerald-400/40',
+        buttonBg: 'bg-emerald-300 text-slate-950 hover:bg-emerald-200',
+        pill: 'bg-emerald-400/10 text-emerald-300 border-emerald-400/20',
+      };
+    case 'amber':
+      return {
+        badge: 'border-amber-400/30 bg-amber-400/10 text-amber-200',
+        accentText: 'text-amber-300',
+        borderHover: 'hover:border-amber-400/40',
+        buttonBg: 'bg-amber-300 text-slate-950 hover:bg-amber-200',
+        pill: 'bg-amber-400/10 text-amber-300 border-amber-400/20',
+      };
+    case 'rose':
+      return {
+        badge: 'border-rose-400/30 bg-rose-400/10 text-rose-200',
+        accentText: 'text-rose-300',
+        borderHover: 'hover:border-rose-400/40',
+        buttonBg: 'bg-rose-300 text-slate-950 hover:bg-rose-200',
+        pill: 'bg-rose-400/10 text-rose-300 border-rose-400/20',
+      };
+    case 'indigo':
+      return {
+        badge: 'border-indigo-400/30 bg-indigo-400/10 text-indigo-200',
+        accentText: 'text-indigo-300',
+        borderHover: 'hover:border-indigo-400/40',
+        buttonBg: 'bg-indigo-300 text-slate-950 hover:bg-indigo-200',
+        pill: 'bg-indigo-400/10 text-indigo-300 border-indigo-400/20',
+      };
+    case 'violet':
+    default:
+      return {
+        badge: 'border-violet-400/30 bg-violet-400/10 text-violet-200',
+        accentText: 'text-violet-300',
+        borderHover: 'hover:border-violet-400/40',
+        buttonBg: 'bg-violet-300 text-slate-950 hover:bg-violet-200',
+        pill: 'bg-violet-400/10 text-violet-300 border-violet-400/20',
+      };
+  }
+}
+
+function smoothScrollTo(targetSelector: string) {
+  const headerOffset = 75;
+  let targetY = 0;
+
+  if (targetSelector !== '#top') {
+    const el = document.querySelector(targetSelector);
+    if (el) {
+      targetY = el.getBoundingClientRect().top + window.pageYOffset - headerOffset;
+    }
+  }
+
+  const startY = window.pageYOffset;
+  const distance = targetY - startY;
+  if (Math.abs(distance) < 5) return;
+
+  const duration = 650;
+  let startTime: number | null = null;
+
+  function step(currentTime: number) {
+    if (startTime === null) startTime = currentTime;
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // easeInOutCubic for ultra smooth motion
+    const ease = progress < 0.5
+      ? 4 * progress * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+    window.scrollTo(0, startY + distance * ease);
+
+    if (elapsed < duration) {
+      window.requestAnimationFrame(step);
+    }
+  }
+
+  window.requestAnimationFrame(step);
+}
+
+function Brand({ onClick }: { onClick?: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-testid="button-brand"
+      className="group flex items-center gap-2 text-left cursor-pointer shrink-0 transition-opacity hover:opacity-90"
+    >
+      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white font-black text-xs sm:text-sm shadow-md">
+        SV
+      </div>
+      <span className="font-display font-black tracking-tight text-sm sm:text-base text-white">
+        SKILL<span className="text-violet-400">VAULT</span>
+      </span>
+    </button>
+  );
+}
+
+function CheckoutButton({
+  course,
+  courseId,
+  onAddToCart,
+  label = 'Buy Now',
+  className = ''
+}: {
+  course?: Course;
+  courseId?: string;
+  onAddToCart?: (course: Course) => void;
+  label?: string;
+  onState?: (state: PaymentState) => void;
+  className?: string;
+}) {
+  const [, setLocation] = useLocation();
+
+  const handleCheckout = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (course && onAddToCart) {
+      onAddToCart(course);
+    }
+    const targetId = course?.id || courseId;
+    if (targetId) {
+      setLocation(`/checkout?courseId=${encodeURIComponent(targetId)}`);
+    } else {
+      setLocation('/checkout');
+    }
+  };
+
+  return (
+    <motion.button
+      type="button"
+      onClick={handleCheckout}
+      data-testid={`button-checkout-${course?.id || courseId || 'default'}`}
+      className={`glow-button inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-violet-300 px-4 text-xs sm:text-sm font-bold text-slate-950 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-wait disabled:opacity-70 cursor-pointer w-full ${className}`}
+      whileHover={{ scale: 1.05, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.2 }}
+    >
+      {label} <ArrowUpRight size={15} className="shrink-0" />
+    </motion.button>
+  );
+}
+
+function AuthNoticeBanner({ message, onClose }: { message: string; onClose: () => void }) {
+  if (!message) return null;
+  const isLogout = message.toLowerCase().includes('logged out');
+
+  return (
+    <div className="fixed top-20 right-5 z-50 animate-in fade-in slide-in-from-top-4 duration-300 max-w-md">
+      <div className={`bg-slate-900/95 border rounded-2xl p-4 shadow-2xl backdrop-blur-xl flex items-center gap-3 ${isLogout
+          ? 'border-amber-500/40 shadow-amber-950/40'
+          : 'border-emerald-500/40 shadow-emerald-950/40'
+        }`}>
+        <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${isLogout
+            ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
+            : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+          }`}>
+          <CheckCircle2 className="w-5 h-5" />
+        </div>
+        <div className="flex-1">
+          <h4 className="text-xs font-bold text-white">
+            {isLogout ? 'Account Logged Out' : 'Authentication Status'}
+          </h4>
+          <p className={`text-xs mt-0.5 ${isLogout ? 'text-amber-300' : 'text-emerald-300'}`}>
+            {message}
+          </p>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function useAuth() {
+  const [token, setToken] = useState<string>(() => localStorage.getItem('sv_user_token') || '');
+  const [user, setUser] = useState<any>(() => {
+    try {
+      const raw = localStorage.getItem('sv_user_data');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
+  const [isPurchasesModalOpen, setIsPurchasesModalOpen] = useState(false);
+
+  const fetchProfile = async (authToken = token, targetEmail = user?.email, silent = false) => {
+    if (!authToken && !targetEmail) return;
+    if (!silent) setLoading(true);
+    try {
+      const headers: Record<string, string> = {};
+      if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+      const emailQuery = targetEmail ? `?email=${encodeURIComponent(targetEmail)}` : '';
+      const res = await fetch(getApiUrl(`/api/auth/me${emailQuery}`), { headers });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setUser(data.user);
+          localStorage.setItem('sv_user_data', JSON.stringify(data.user));
+        }
+        if (Array.isArray(data.purchases)) {
+          setPurchases(data.purchases);
+        }
+      } else if (res.status === 401 && authToken) {
+        logout();
+      }
+    } catch (e) {
+      console.error('Failed to fetch user profile:', e);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token || user?.email) fetchProfile(token, user?.email, true);
+  }, [token, user?.email]);
+
+  useEffect(() => {
+    if (isPurchasesModalOpen) {
+      fetchProfile(token, user?.email, true);
+    }
+  }, [isPurchasesModalOpen]);
+
+  const [authNotice, setAuthNotice] = useState('');
+
+  const loginSuccess = (userData: any, userToken: string) => {
+    setUser(userData);
+    setToken(userToken);
+    localStorage.setItem('sv_user_token', userToken);
+    localStorage.setItem('sv_user_data', JSON.stringify(userData));
+    fetchProfile(userToken);
+    setAuthNotice(`🎉 Welcome back, ${userData.name || userData.email.split('@')[0]}! Logged in successfully.`);
+    setTimeout(() => setAuthNotice(''), 4500);
+  };
+
+  const logout = () => {
+    const prevName = user?.name || user?.email?.split('@')[0] || '';
+    setUser(null);
+    setToken('');
+    setPurchases([]);
+    localStorage.removeItem('sv_user_token');
+    localStorage.removeItem('sv_user_data');
+    setAuthNotice(`👋 Logged out successfully! See you soon${prevName ? ', ' + prevName : ''}.`);
+    setTimeout(() => setAuthNotice(''), 4000);
+    try {
+      for (let i = 0; i < 15; i++) {
+        window.history.pushState(null, '', '/');
+      }
+      window.onpopstate = function () {
+        window.history.forward();
+      };
+    } catch (e) { }
+    window.location.replace('/');
+  };
+
+  const openAuth = (mode: 'login' | 'signup' = 'login') => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  return {
+    user,
+    token,
+    purchases,
+    loading,
+    isAuthModalOpen,
+    setIsAuthModalOpen,
+    authModalMode,
+    isPurchasesModalOpen,
+    setIsPurchasesModalOpen,
+    authNotice,
+    setAuthNotice,
+    openAuth,
+    logout,
+    loginSuccess,
+    fetchProfile,
+  };
+}
+
+function useCart(user?: any, availableCourses?: Course[]) {
+  const userId = user?.id || user?.email || 'guest';
+  const storageKey = `sv_cart_items_${userId}`;
+
+  const [cartItems, setCartItems] = useState<Course[]>(() => {
+    try {
+      const userRaw = localStorage.getItem(storageKey);
+      if (userRaw) return JSON.parse(userRaw);
+
+      if (user?.cart && Array.isArray(user.cart) && user.cart.length > 0) {
+        return user.cart;
+      }
+
+      const guestRaw = localStorage.getItem('sv_cart_items');
+      return guestRaw ? JSON.parse(guestRaw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  useEffect(() => {
+    if (user?.id) {
+      const userRaw = localStorage.getItem(storageKey);
+      if (userRaw) {
+        try {
+          const parsed = JSON.parse(userRaw);
+          const guestRaw = localStorage.getItem('sv_cart_items');
+          const guestItems: Course[] = guestRaw ? JSON.parse(guestRaw) : [];
+
+          if (parsed.length === 0 && guestItems.length > 0) {
+            setCartItems(guestItems);
+            localStorage.setItem(storageKey, JSON.stringify(guestItems));
+          } else {
+            setCartItems(parsed);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      } else if (user?.cart && Array.isArray(user.cart)) {
+        setCartItems(user.cart);
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(user.cart));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (Array.isArray(availableCourses) && availableCourses.length > 0 && cartItems.length > 0) {
+      const activeIds = new Set(availableCourses.map((c) => c && c.id));
+      const validCart = cartItems.filter((item) => item && activeIds.has(item.id));
+      if (validCart.length !== cartItems.length) {
+        setCartItems(validCart);
+      }
+    }
+  }, [availableCourses, cartItems.length]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(cartItems));
+      if (!user?.id) {
+        localStorage.setItem('sv_cart_items', JSON.stringify(cartItems));
+      }
+    } catch (e) {
+      console.error('Failed to save cart items:', e);
+    }
+
+    const token = localStorage.getItem('sv_user_token');
+    if (user?.id && token) {
+      const timer = setTimeout(() => {
+        fetch(getApiUrl('/api/cart'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ cartItems })
+        }).catch((err) => console.warn('Failed to sync cart to DB:', err));
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [cartItems, storageKey, user?.id]);
+
+  const addToCart = (course: Course) => {
+    setCartItems((prev) => {
+      if (prev.some((c) => c.id === course.id)) return prev;
+      return [...prev, course];
+    });
+  };
+
+  const removeFromCart = (courseId: string) => {
+    setCartItems((prev) => prev.filter((c) => c.id !== courseId));
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+    try {
+      localStorage.setItem(storageKey, '[]');
+      localStorage.setItem('sv_cart_items', '[]');
+    } catch (e) {
+      console.error('Failed to clear local cart:', e);
+    }
+  };
+
+  const isInCart = (courseId: string) => {
+    return cartItems.some((c) => c.id === courseId);
+  };
+
+  return {
+    cartItems,
+    isCartOpen,
+    setIsCartOpen,
+    addToCart,
+    removeFromCart,
+    clearCart,
+    isInCart,
+  };
+}
+
+function Header({
+  menuOpen,
+  setMenuOpen,
+  onSelectCategory,
+  user,
+  onOpenAuthModal,
+  onLogout,
+  onOpenMyPurchases,
+  cartCount,
+  onOpenCart,
+}: {
+  menuOpen: boolean;
+  setMenuOpen: (value: boolean) => void;
+  onSelectCategory?: (category: string) => void;
+  user: any;
+  onOpenAuthModal: (mode: 'login' | 'signup') => void;
+  onLogout: () => void;
+  onOpenMyPurchases: () => void;
+  cartCount: number;
+  onOpenCart: () => void;
+}) {
+  const [location, setLocation] = useLocation();
+  const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
+  const close = () => {
+    setMenuOpen(false);
+    setMoreDropdownOpen(false);
+  };
+
+  const navTo = (targetId: string, category?: string) => {
+    close();
+    if (category) onSelectCategory?.(category);
+
+    const isHomePage = location === '/' || location === '';
+
+    if (isHomePage) {
+      smoothScrollTo(targetId);
+    } else {
+      setLocation('/');
+      setTimeout(() => {
+        smoothScrollTo(targetId);
+      }, 150);
+    }
+  };
+
+  return (
+    <header className="fixed inset-x-0 top-0 z-40 border-b border-slate-800/60 bg-[#090a10]/80 backdrop-blur-xl">
+      <div className="site-shell flex h-[68px] items-center justify-between">
+        <Brand onClick={() => navTo('#top')} />
+
+        <nav className="hidden items-center gap-6 md:flex">
+          <button
+            type="button"
+            onClick={() => navTo('#catalog', 'All Products')}
+            className="nav-link text-xs font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+          >
+            All Products
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navTo('#catalog', 'Course')}
+            className="nav-link text-xs font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+          >
+            Courses
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navTo('#catalog', 'Software')}
+            className="nav-link text-xs font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+          >
+            Software
+          </button>
+
+          {/* MORE DROPDOWN */}
+          <div
+            className="relative"
+            onMouseEnter={() => setMoreDropdownOpen(true)}
+            onMouseLeave={() => setMoreDropdownOpen(false)}
+          >
+            <button
+              type="button"
+              onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
+              className="nav-link inline-flex items-center gap-1 text-xs font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors py-2"
+            >
+              More <ChevronDown size={13} className={`transition-transform duration-200 ${moreDropdownOpen ? 'rotate-180 text-violet-300' : ''}`} />
+            </button>
+
+            {moreDropdownOpen && (
+              <div className="absolute left-0 top-full pt-1.5 w-44 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="rounded-xl border border-slate-800 bg-[#0c0e17]/95 p-1.5 shadow-2xl shadow-violet-950/60 backdrop-blur-xl">
+                  <button
+                    type="button"
+                    onClick={() => navTo('#catalog', 'All Products')}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                  >
+                    <span>🔥</span> All Products
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navTo('#catalog', 'Notes')}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                  >
+                    <span>📚</span> Notes / PDFs
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navTo('#catalog', 'Hacks')}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                  >
+                    <span>⚡</span> Hacks & Tools
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navTo('#catalog', 'Game')}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                  >
+                    <span>🎮</span> Games
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navTo('#catalog', 'Blog')}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                  >
+                    <span>📝</span> Blogs
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { close(); setLocation('/admin'); }}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-violet-400 hover:bg-slate-800/80 hover:text-violet-300 transition-colors text-left border-t border-slate-800/70 mt-1 pt-2"
+                  >
+                    <span>🔐</span> Admin Panel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => navTo('#why-us')}
+            className="nav-link text-xs font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+          >
+            Why Us
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navTo('#faq')}
+            className="nav-link text-xs font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+          >
+            FAQ
+          </button>
+        </nav>
+
+        <div className="flex items-center gap-2">
+          {/* Shopping Cart Header Button (Visible on Mobile & Desktop) */}
+          <motion.button
+            type="button"
+            onClick={onOpenCart}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative p-2 text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:border-violet-500/40 rounded-xl transition-colors cursor-pointer transform-gpu"
+            title="View Shopping Cart"
+          >
+            <ShoppingCart className="w-4.5 h-4.5 text-violet-400" />
+            <AnimatePresence mode="wait">
+              {cartCount > 0 && (
+                <motion.span
+                  key={cartCount}
+                  initial={{ scale: 0.4, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.4, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                  className="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-lg border border-slate-950"
+                >
+                  {cartCount}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.button>
+
+
+
+          {/* Desktop Auth Section */}
+          <div className="hidden items-center gap-2.5 md:flex ml-1">
+            {!user ? (
+              <>
+                <motion.button
+                  type="button"
+                  onClick={() => onOpenAuthModal('login')}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="text-xs font-semibold text-slate-300 hover:text-white px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 transform-gpu"
+                >
+                  <LogIn className="w-3.5 h-3.5" /> Log In
+                </motion.button>
+                <motion.button
+                  type="button"
+                  onClick={() => onOpenAuthModal('signup')}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white px-3.5 py-1.5 rounded-lg shadow-lg shadow-violet-600/20 transition-all cursor-pointer flex items-center gap-1.5 transform-gpu"
+                >
+                  <UserPlus className="w-3.5 h-3.5" /> Sign Up
+                </motion.button>
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLocation('/purchases')}
+                  className="text-xs font-semibold text-slate-200 bg-slate-900 border border-slate-800 hover:border-violet-500/50 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ShoppingBag className="w-3.5 h-3.5 text-violet-400" /> My Purchases
+                </button>
+                <div className="flex items-center gap-2 border-l border-slate-800 pl-2">
+                  <span className="text-xs font-bold text-violet-300 bg-violet-500/10 border border-violet-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <User className="w-3 h-3" /> {user.name || user.email.split('@')[0]}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    title="Logout"
+                    className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-900 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Hamburger Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen(!menuOpen)}
+            data-testid="button-mobile-menu"
+            className="grid size-10 place-items-center rounded-xl border border-slate-800 bg-slate-900/80 text-slate-300 md:hidden cursor-pointer"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+          >
+            {menuOpen ? <X size={19} /> : <Menu size={19} />}
+          </button>
+        </div>
+      </div>
+
+      {menuOpen && (
+        <div className="border-t border-slate-800 bg-[#0b0d14] px-5 py-4 md:hidden">
+          <div className="site-shell flex flex-col gap-1">
+
+            <button type="button" onClick={() => navTo('#catalog', 'All Products')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+              <span>🔥 All Products</span>
+            </button>
+            <button type="button" onClick={() => navTo('#catalog', 'Course')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+              <span>🎓 Courses</span>
+            </button>
+            <button type="button" onClick={() => navTo('#catalog', 'Software')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+              <span>💻 Software</span>
+            </button>
+            <button type="button" onClick={() => navTo('#catalog', 'Notes')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+              <span>📚 Notes / PDFs</span>
+            </button>
+            <button type="button" onClick={() => navTo('#catalog', 'Hacks')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+              <span>⚡ Hacks & Tools</span>
+            </button>
+            <button type="button" onClick={() => navTo('#catalog', 'Game')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+              <span>🎮 Games</span>
+            </button>
+            <button type="button" onClick={() => navTo('#why-us')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+              <span>⭐ Why Us</span>
+            </button>
+            <button type="button" onClick={() => navTo('#faq')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+              <span>❓ FAQ</span>
+            </button>
+            {!user ? (
+              <div className="flex gap-2 pt-3 border-t border-slate-800 mt-2">
+                <button
+                  type="button"
+                  onClick={() => { close(); onOpenAuthModal('login'); }}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-200 bg-slate-900 border border-slate-800 rounded-lg text-center cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span>🔑</span> Log In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { close(); onOpenAuthModal('signup'); }}
+                  className="flex-1 py-2.5 text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-lg text-center cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span>✨</span> Sign Up
+                </button>
+              </div>
+            ) : (
+              <div className="pt-3 border-t border-slate-800 mt-2 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => { close(); setLocation('/purchases'); }}
+                  className="w-full py-2.5 text-xs font-semibold text-slate-200 bg-slate-900 border border-slate-800 rounded-lg text-center cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>🛍️</span> My Purchases
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { close(); onLogout(); }}
+                  className="w-full py-2 text-xs font-semibold text-red-400 text-center cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span>🚪</span> Logout ({user.name || user.email})
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}
+
+function PaymentNotice({ state, setState }: { state: PaymentState; setState: (state: PaymentState) => void }) {
+  if (state === 'idle' || state === 'loading') return null;
+  const content = {
+    setup: ['Checkout is being configured.', 'Add RAZORPAY_PAYMENT_LINK_URL to server environment to enable live Razorpay payments.'],
+    success: ['Payment confirmed!', 'Your Skill Vault course access is being delivered to your email inbox.'],
+    cancelled: ['Checkout cancelled.', 'No charges were made. Select any course when you are ready.'],
+    pending: ['Processing payment...', 'Waiting for payment confirmation. Check your inbox.'],
+  }[state];
+  return (
+    <div className="fixed inset-x-3 bottom-4 z-50 mx-auto max-w-lg rounded-xl border border-violet-300/30 bg-[#151322] p-4 shadow-2xl shadow-violet-950/40" role="status" data-testid={`status-payment-${state}`}>
+      <div className="flex gap-3">
+        <div className="mt-0.5 text-violet-300">{state === 'success' ? <CircleCheck size={18} /> : <LockKeyhole size={18} />}</div>
+        <div className="flex-1">
+          <p className="text-sm font-bold text-slate-100">{content[0]}</p>
+          <p className="mt-1 text-xs leading-5 text-slate-400">{content[1]}</p>
+        </div>
+        <button type="button" onClick={() => setState('idle')} data-testid="button-dismiss-payment" className="self-start text-slate-500 hover:text-slate-200" aria-label="Dismiss">
+          <X size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function getCategoryDetails(category: string, id: string) {
+  const cat = category.toLowerCase();
+  const cId = id.toLowerCase();
+
+  if (cat.includes('full stack') || cId.includes('mern')) {
+    return {
+      badge: 'Best Seller',
+      themeColor: 'violet' as const,
+      iconName: 'Terminal',
+      duration: '12 Modules • 48 Hours',
+      modulesCount: 12,
+      skills: ['JavaScript', 'React.js', 'Node.js', 'Express.js', 'MongoDB', 'REST APIs', 'Git', 'Deployment'],
+      modules: [
+        { number: '01', title: 'Web Development Fundamentals', detail: 'Understand browsers, servers, command line, and web architecture.', lessons: '4 Lessons' },
+        { number: '02', title: 'HTML5 & Responsive CSS', detail: 'Build modern grid layouts, flexbox, and responsive UI components.', lessons: '5 Lessons' },
+        { number: '03', title: 'Modern JavaScript (ES6+)', detail: 'Master async/await, closures, DOM manipulation, and promises.', lessons: '6 Lessons' },
+        { number: '04', title: 'React.js Core & Hooks', detail: 'Build dynamic interfaces, custom hooks, and manage app state.', lessons: '7 Lessons' },
+        { number: '05', title: 'Node.js & Server Fundamentals', detail: 'Build event-driven backend scripts and filesystem operations.', lessons: '4 Lessons' },
+        { number: '06', title: 'Express.js Framework & Middleware', detail: 'Design modular REST APIs, route parameters, and error handling.', lessons: '5 Lessons' },
+        { number: '07', title: 'MongoDB & Database Storage', detail: 'Schema design, indexes, aggregations, and persistent storage.', lessons: '6 Lessons' },
+        { number: '08', title: 'Full Stack MERN Capstone Project', detail: 'Combine frontend and backend into a production SaaS application.', lessons: '8 Lessons' },
+      ],
+      projects: [
+        { title: 'Interactive React Dashboard', description: 'Dynamic analytics dashboard with charts.', tags: ['React', 'Tailwind'] },
+        { title: 'RESTful E-Commerce API', description: 'Backend API with auth and cart routes.', tags: ['Node.js', 'MongoDB'] },
+        { title: 'Full Stack SaaS Web Application', description: 'Production MERN app with user auth.', tags: ['MERN', 'REST API'] }
+      ]
+    };
+  } else if (cat.includes('devops') || cat.includes('cloud') || cId.includes('devops')) {
+    return {
+      badge: 'High Demand',
+      themeColor: 'cyan' as const,
+      iconName: 'Server',
+      duration: '10 Modules • 42 Hours',
+      modulesCount: 10,
+      skills: ['Docker', 'Kubernetes', 'AWS', 'GitHub Actions', 'Terraform', 'Nginx', 'Prometheus', 'Grafana'],
+      modules: [
+        { number: '01', title: 'Linux Administration & Shell Automation', detail: 'Process management and bash scripts.', lessons: '5 Lessons' },
+        { number: '02', title: 'Docker Containers & Multi-Stage Builds', detail: 'Dockerfile optimization and Docker Compose.', lessons: '6 Lessons' },
+        { number: '03', title: 'Kubernetes Orchestration & Clusters', detail: 'Deployments, services, and ingress controllers.', lessons: '7 Lessons' },
+        { number: '04', title: 'CI/CD Pipelines with GitHub Actions', detail: 'Automated test, build, and deploy workflows.', lessons: '5 Lessons' },
+        { number: '05', title: 'Infrastructure as Code with Terraform', detail: 'Declarative cloud provisioning.', lessons: '6 Lessons' }
+      ],
+      projects: [
+        { title: 'Dockerized Microservices Environment', description: 'Multi-container orchestration setup.', tags: ['Docker', 'Redis'] },
+        { title: 'Production K8s Deployment Pipeline', description: 'Automated CI/CD cluster deployment.', tags: ['Kubernetes', 'AWS'] }
+      ]
+    };
+  } else if (cat.includes('ai') || cat.includes('data') || cId.includes('ai')) {
+    return {
+      badge: 'Trending',
+      themeColor: 'emerald' as const,
+      iconName: 'Sparkles',
+      duration: '14 Modules • 56 Hours',
+      modulesCount: 14,
+      skills: ['Python', 'PyTorch', 'Pandas & NumPy', 'Scikit-Learn', 'LLMs & Prompting', 'LangChain', 'Vector DBs', 'RAG'],
+      modules: [
+        { number: '01', title: 'Python for Data Science & AI', detail: 'NumPy vector operations and Pandas DataFrames.', lessons: '6 Lessons' },
+        { number: '02', title: 'Neural Networks with PyTorch', detail: 'Tensors, backpropagation, and training loops.', lessons: '7 Lessons' },
+        { number: '03', title: 'LLMs & Retrieval-Augmented Generation', detail: 'Vector databases, Pinecone, and RAG pipelines.', lessons: '6 Lessons' }
+      ],
+      projects: [
+        { title: 'Predictive ML Analytics Model', description: 'Customer churn prediction model.', tags: ['Python', 'Scikit-Learn'] },
+        { title: 'Enterprise RAG Knowledge Assistant', description: 'AI assistant querying private PDFs.', tags: ['LangChain', 'LLMs'] }
+      ]
+    };
+  } else if (cat.includes('mobile') || cId.includes('mobile')) {
+    return {
+      badge: 'Popular',
+      themeColor: 'amber' as const,
+      iconName: 'Layers3',
+      duration: '10 Modules • 36 Hours',
+      modulesCount: 10,
+      skills: ['React Native', 'Expo', 'TypeScript', 'Expo Router', 'NativeWind', 'AsyncStorage', 'Push Notifications'],
+      modules: [
+        { number: '01', title: 'React Native & Expo Workflow', detail: 'Development builds and mobile UI layout.', lessons: '4 Lessons' },
+        { number: '02', title: 'Mobile Navigation & Deep Links', detail: 'Stack, tab bars, and Expo Router.', lessons: '5 Lessons' },
+        { number: '03', title: 'Device APIs & Storage', detail: 'Camera, GPS, and local persistence.', lessons: '6 Lessons' }
+      ],
+      projects: [
+        { title: 'Cross-Platform Fitness App', description: 'Workout tracker with charts.', tags: ['React Native', 'Expo'] }
+      ]
+    };
+  } else if (cat.includes('system') || cId.includes('system')) {
+    return {
+      badge: 'Advanced',
+      themeColor: 'indigo' as const,
+      iconName: 'GitBranch',
+      duration: '9 Modules • 32 Hours',
+      modulesCount: 9,
+      skills: ['Microservices', 'System Design', 'Redis Caching', 'Kafka', 'DB Sharding', 'CDN', 'Rate Limiting'],
+      modules: [
+        { number: '01', title: 'System Design Foundations & CAP Theorem', detail: 'Latency, throughput, and availability.', lessons: '4 Lessons' },
+        { number: '02', title: 'Load Balancing & Caching with Redis', detail: 'Cache invalidation and reverse proxies.', lessons: '5 Lessons' },
+        { number: '03', title: 'Database Sharding & Microservices', detail: 'Partitioning keys and message queues.', lessons: '6 Lessons' }
+      ],
+      projects: [
+        { title: 'High-Throughput Rate Limiter', description: 'Redis-backed rate limiter for 50k req/sec.', tags: ['Redis', 'System Design'] }
+      ]
+    };
+  } else {
+    return {
+      badge: 'Essential',
+      themeColor: 'rose' as const,
+      iconName: 'ShieldCheck',
+      duration: '10 Modules • 38 Hours',
+      modulesCount: 10,
+      skills: ['Ethical Hacking', 'OWASP Top 10', 'Wireshark', 'Burp Suite', 'Nmap', 'Penetration Testing'],
+      modules: [
+        { number: '01', title: 'Network Reconnaissance with Nmap', detail: 'Port scanning and packet analysis.', lessons: '5 Lessons' },
+        { number: '02', title: 'OWASP Top 10 Exploitation', detail: 'SQL Injection and XSS mitigation.', lessons: '5 Lessons' },
+        { number: '03', title: 'API Security & Burp Suite', detail: 'Session hijacking and security audits.', lessons: '6 Lessons' }
+      ],
+      projects: [
+        { title: 'Web Vulnerability Assessment', description: 'Security audit against OWASP top 10.', tags: ['Burp Suite', 'OWASP'] }
+      ]
+    };
+  }
+}
+
+function useLiveCourses(): { courses: Course[]; loading: boolean } {
+  const [liveCourses, setLiveCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        let res = await fetch(getApiUrl('/api/products')).catch(() => null);
+        if (!res || !res.ok) {
+          res = await fetch(getApiUrl('/api/courses')).catch(() => null);
+        }
+        if (!res || !res.ok) return;
+        const data = await res.json();
+        const rawList = Array.isArray(data) ? data : (data.products || data.courses || []);
+
+        if (rawList && rawList.length > 0) {
+          const coursesFromDb: Course[] = rawList.map((dbCourse: any) => {
+            const meta = getCategoryDetails(dbCourse.category || '', dbCourse.id || '');
+            const parsedModules = dbCourse.modules && Array.isArray(dbCourse.modules) && dbCourse.modules.length > 0
+              ? dbCourse.modules.map((m: any, idx: number) => ({
+                number: String(idx + 1).padStart(2, '0'),
+                title: typeof m === 'string' ? m : m.title,
+                detail: m.detail || 'Practical hands-on lab & security testing module.',
+                lessons: m.lessons || '1 Lesson'
+              }))
+              : meta.modules;
+
+            const parsedFaqs = dbCourse.faqs && Array.isArray(dbCourse.faqs) && dbCourse.faqs.length > 0
+              ? dbCourse.faqs.map((f: any) => Array.isArray(f) ? f : [f.question, f.answer] as [string, string])
+              : [
+                ['Is this course beginner-friendly?', 'Yes, it starts from fundamentals and progresses step-by-step to advanced concepts.'],
+                ['How long do I get access?', 'You get lifetime access to all course materials and Google Drive updates.'],
+                ['How do I access course materials?', 'Course access links are delivered directly to your email inbox immediately after purchase.']
+              ];
+
+            const pInr = Number(dbCourse.priceInr ?? dbCourse.price_inr ?? 0);
+            const origInr = Number(dbCourse.originalPriceInr ?? dbCourse.original_price_inr ?? pInr * 3);
+
+            return {
+              id: dbCourse.id,
+              title: dbCourse.title,
+              subtitle: dbCourse.subtitle || '',
+              description: dbCourse.description || '',
+              category: (dbCourse.category as any) || 'Course',
+              level: 'Beginner to Advanced',
+              price: pInr.toLocaleString('en-IN'),
+              originalPrice: origInr.toLocaleString('en-IN'),
+              duration: dbCourse.duration || `${parsedModules.length} Modules • Lifetime Access`,
+              modulesCount: parsedModules.length,
+              iconName: meta.iconName,
+              themeColor: meta.themeColor,
+              badge: meta.badge,
+              skills: (dbCourse.features && Array.isArray(dbCourse.features) && dbCourse.features.length > 0) ? dbCourse.features : meta.skills,
+              modules: parsedModules,
+              projects: meta.projects,
+              faqs: parsedFaqs,
+              bonus: dbCourse.bonus || undefined,
+              testimonials: (dbCourse.testimonials && Array.isArray(dbCourse.testimonials)) ? dbCourse.testimonials : undefined,
+              imageUrl: dbCourse.imageUrl || dbCourse.image_url || undefined,
+            };
+          });
+          setLiveCourses(coursesFromDb);
+        }
+      } catch (err) {
+        console.error('Failed to fetch live database courses:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCourses();
+  }, []);
+
+  return { courses: liveCourses, loading };
+}
+
+{/* DEDICATED COURSE DETAIL PAGE */ }
+function CourseDetailPage() {
+  const params = useParams<{ id: string }>();
+  const [, setLocation] = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [paymentState, setPaymentState] = useState<PaymentState>('idle');
+  const [openModule, setOpenModule] = useState<number>(0);
+  const [openFaq, setOpenFaq] = useState<number>(0);
+  const { courses: allCourses, loading } = useLiveCourses();
+  const auth = useAuth();
+  const cart = useCart(auth.user, allCourses);
+
+  const course = useMemo(() => {
+    return allCourses.find((c) => c.id === params.id);
+  }, [allCourses, params.id]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const queryState = new URLSearchParams(window.location.search).get('payment');
+    if (queryState === 'success' || queryState === 'pending') setPaymentState('pending');
+    if (queryState === 'cancelled') setPaymentState('cancelled');
+  }, [params.id]);
+
+  if (loading && !course) {
+    return (
+      <main className="grid min-h-[100dvh] place-items-center bg-[#090a10] px-6 text-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xs font-mono text-slate-400">Loading course curriculum...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!course) {
+    return (
+      <main className="grid min-h-[100dvh] place-items-center bg-[#090a10] px-6 text-center">
+        <div>
+          <p className="eyebrow">Course Not Found</p>
+          <h1 className="mt-4 font-display text-4xl font-semibold text-slate-100">Course does not exist</h1>
+          <button
+            type="button"
+            onClick={() => setLocation('/')}
+            className="mt-6 rounded-lg bg-violet-300 px-5 py-2.5 text-sm font-bold text-slate-950"
+          >
+            Return to All Courses
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  const IconComponent = getCourseIcon(course.iconName);
+  const theme = getThemeClasses(course.themeColor);
+
+  return (
+    <div className="site-page min-h-[100dvh] bg-[#090a10]">
+      <Header
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+        user={auth.user}
+        onOpenAuthModal={auth.openAuth}
+        onLogout={auth.logout}
+        onOpenMyPurchases={() => auth.setIsPurchasesModalOpen(true)}
+        cartCount={cart.cartItems.length}
+        onOpenCart={() => cart.setIsCartOpen(true)}
+      />
+
+      <main className="pt-24 pb-24">
+        {/* COURSE BREADCRUMB & TOP HEADER */}
+        <section className="border-b border-slate-800/80 bg-[#0c0e17] py-10 sm:py-14">
+          <div className="site-shell max-w-5xl">
+            <button
+              type="button"
+              onClick={() => setLocation('/')}
+              className="inline-flex items-center gap-2 rounded-md border border-slate-800 bg-slate-900/80 px-3 py-1.5 font-mono-custom text-xs text-slate-400 hover:border-slate-700 hover:text-white transition mb-6 cursor-pointer"
+            >
+              <ArrowLeft size={14} /> Back to All Courses
+            </button>
+
+            {/* FULL WIDTH RESPONSIVE IMAGE DIRECTLY ABOVE TITLE */}
+            {course.imageUrl && (
+              <div className="w-full overflow-hidden rounded-2xl border border-slate-700/80 bg-[#07080e] p-1.5 mb-8 shadow-2xl shadow-violet-950/40 flex items-center justify-center">
+                <img
+                  src={course.imageUrl}
+                  alt={course.title}
+                  className="w-full h-auto max-h-[550px] object-contain rounded-xl bg-[#07080e] mx-auto block"
+                />
+              </div>
+            )}
+
+            <div>
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${theme.badge}`}>
+                  <IconComponent size={14} /> {course.category}
+                </span>
+                {course.badge && (
+                  <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 font-mono-custom text-xs text-violet-300">
+                    {course.badge}
+                  </span>
+                )}
+                <span className="font-mono-custom text-xs text-slate-500">{course.level}</span>
+              </div>
+
+              <h1 className="font-display text-3xl sm:text-5xl font-semibold tracking-tight text-slate-100">
+                {course.title}
+              </h1>
+              <p className="mt-3 text-base sm:text-lg text-slate-400 leading-relaxed max-w-3xl">
+                {course.subtitle}
+              </p>
+
+              <div className="mt-6 flex flex-wrap items-center gap-6 font-mono-custom text-xs text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Clock size={14} className={theme.accentText} /> {course.duration}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <BookOpen size={14} className={theme.accentText} /> {course.modulesCount} Complete Modules
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck size={14} className={theme.accentText} /> Instant Email Delivery
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* MAIN DETAILS & STICKY BUY BOX GRID */}
+        <section className="py-12 sm:py-16">
+          <div className="site-shell grid gap-12 lg:grid-cols-[1fr_360px]">
+            {/* LEFT COLUMN: ABOUT, SYLLABUS, PROJECTS, FAQS */}
+            <div className="space-y-12">
+              {/* Overview */}
+              <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-6 sm:p-8">
+                <h2 className="font-display text-xl font-semibold text-slate-100 mb-4">About This Course</h2>
+                <p className="text-sm sm:text-base leading-relaxed text-slate-300">
+                  {course.description}
+                </p>
+
+                <h3 className="font-mono-custom text-xs uppercase tracking-wider text-slate-500 mt-8 mb-3">Key Technologies & Skills You Will Master</h3>
+                <div className="flex flex-wrap gap-2">
+                  {course.skills.map((skill) => (
+                    <span key={skill} className="rounded-lg border border-slate-800 bg-slate-900/90 px-3 py-1.5 font-mono-custom text-xs text-slate-200">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Syllabus / Modules */}
+              <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-6 sm:p-8">
+                <div className="flex items-center justify-between border-b border-slate-800/80 pb-4 mb-6">
+                  <div>
+                    <p className="eyebrow">Course Content</p>
+                    <h2 className="font-display text-2xl font-semibold text-slate-100">Complete Android Security & APK Mastery</h2>
+                  </div>
+                  <span className="font-mono-custom text-xs text-slate-500">{course.modulesCount} In-Depth Lessons</span>
+                </div>
+
+                <div className="divide-y divide-slate-800/80">
+                  {course.modules.map((mod: CourseModule, idx: number) => (
+                    <div key={mod.number} className="py-3">
+                      <button
+                        type="button"
+                        onClick={() => setOpenModule(openModule === idx ? -1 : idx)}
+                        className="flex w-full items-center justify-between py-3 text-left transition hover:text-violet-300 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <span className={`font-mono-custom text-xs font-bold ${theme.accentText}`}>
+                            {mod.number}
+                          </span>
+                          <span className="font-display text-base font-semibold text-slate-200">
+                            {mod.title}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="inline-flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900/90 px-2.5 py-1 font-mono-custom text-[11px] text-slate-400">
+                            <LockKeyhole size={12} className="text-amber-400" /> Locked
+                          </span>
+                          <ChevronDown size={18} className={`text-slate-500 transition-transform ${openModule === idx ? 'rotate-180' : ''}`} />
+                        </div>
+                      </button>
+                      {openModule === idx && (
+                        <div className="pb-4 pl-9 text-sm leading-relaxed text-slate-400">
+                          {mod.detail}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+
+
+              {/* Bonus Included */}
+              {course.bonus && (
+                <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-6 sm:p-8">
+                  <div className="flex items-center gap-2 text-amber-300 font-mono-custom text-xs font-bold uppercase tracking-wider mb-2">
+                    🎁 Special Bonus Included
+                  </div>
+                  <p className="text-sm sm:text-base font-semibold text-slate-100 leading-relaxed">
+                    {course.bonus}
+                  </p>
+                </div>
+              )}
+
+              {/* Testimonials */}
+              {course.testimonials && course.testimonials.length > 0 && (
+                <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-6 sm:p-8">
+                  <p className="eyebrow">Student Reviews</p>
+                  <h2 className="font-display text-2xl font-semibold text-slate-100 mb-6">What Learners Say</h2>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {course.testimonials.map((t) => (
+                      <div key={t.name} className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 flex flex-col justify-between">
+                        <p className="text-xs sm:text-sm text-slate-300 italic leading-relaxed">"{t.comment}"</p>
+                        <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                          <span className="font-display text-xs font-semibold text-slate-100">{t.name}</span>
+                          <span className="text-amber-400 text-xs font-mono-custom">★★★★★</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Course-Specific FAQs */}
+              {course.faqs && course.faqs.length > 0 && (
+                <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-6 sm:p-8">
+                  <h2 className="font-display text-xl font-semibold text-slate-100 mb-4">Course FAQ</h2>
+                  <div className="divide-y divide-slate-800 border-y border-slate-800">
+                    {course.faqs.map(([q, a], idx) => (
+                      <div key={q}>
+                        <button
+                          type="button"
+                          onClick={() => setOpenFaq(openFaq === idx ? -1 : idx)}
+                          className="flex w-full items-center justify-between py-4 text-left text-sm font-semibold text-slate-200 hover:text-violet-300 transition-colors cursor-pointer"
+                        >
+                          <span>{q}</span>
+                          <ChevronDown size={17} className={`text-slate-500 transition-transform duration-300 ${openFaq === idx ? 'rotate-180 text-violet-400' : ''}`} />
+                        </button>
+                        <AnimatePresence initial={false}>
+                          {openFaq === idx && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                              className="overflow-hidden transform-gpu"
+                            >
+                              <p className="pb-4 text-xs sm:text-sm leading-relaxed text-slate-400">{a}</p>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* RIGHT COLUMN: STICKY PRICING & BUY CARD */}
+            <div className="lg:sticky lg:top-24 lg:self-start">
+              <div className="rounded-2xl border border-violet-400/30 bg-[#0c0e18] p-6 sm:p-7 shadow-2xl shadow-violet-950/30">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono-custom text-xs uppercase text-violet-300">Enrollment Open</span>
+                  <span className="rounded-full bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-0.5 font-mono-custom text-[10px] text-emerald-300">
+                    Instant Access
+                  </span>
+                </div>
+
+                <div className="mt-5 flex items-baseline gap-2.5">
+                  <span className="font-display text-4xl font-bold text-slate-100">₹{course.price}</span>
+                  <span className="font-mono-custom text-sm text-slate-500 line-through">₹{course.originalPrice}</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-400">One-time payment • Lifetime course access</p>
+
+                <div className="my-6 h-px bg-slate-800/80" />
+
+                <div className="space-y-3 text-xs text-slate-300 mb-6">
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 size={15} className="text-cyan-300 shrink-0" />
+                    <span>Complete {course.modulesCount} modules syllabus</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 size={15} className="text-cyan-300 shrink-0" />
+                    <span>Hands-on capstone projects & source code</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 size={15} className="text-cyan-300 shrink-0" />
+                    <span>Lifetime access to course updates</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 size={15} className="text-cyan-300 shrink-0" />
+                    <span>Verified Razorpay secure checkout</span>
+                  </div>
+                </div>
+
+                <div className="w-full flex flex-col gap-3">
+                  {/* Primary Buy Now Button */}
+                  <div className="w-full">
+                    <CheckoutButton course={course} courseId={course.id} onAddToCart={cart.addToCart} label="Buy Now & Get Access" onState={setPaymentState} />
+                  </div>
+
+                  {/* Secondary Add to Cart Button Below */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (cart.isInCart(course.id)) {
+                        cart.removeFromCart(course.id);
+                      } else {
+                        cart.addToCart(course);
+                      }
+                    }}
+                    className={`w-full py-3.5 px-4 rounded-xl border font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${cart.isInCart(course.id)
+                        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
+                        : 'border-slate-800 bg-slate-900/90 text-slate-200 hover:border-violet-500/50 hover:bg-slate-800'
+                      }`}
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    {cart.isInCart(course.id) ? 'Added to Cart (Click to Remove)' : 'Add to Cart'}
+                  </button>
+                </div>
+
+                <p className="mt-4 text-center font-mono-custom text-[10px] text-slate-500">
+                  <LockKeyhole size={11} className="inline mr-1" /> 256-bit SSL encrypted checkout
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* MOBILE STICKY BOTTOM BUY BAR */}
+        <div className="fixed bottom-0 inset-x-0 z-50 flex items-center justify-between gap-3 border-t border-slate-800/90 bg-[#090b14]/95 px-4 py-3 backdrop-blur-md lg:hidden shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+          <div className="flex flex-col shrink-0">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-display text-xl font-bold text-slate-100">₹{course.price}</span>
+              <span className="font-mono-custom text-xs text-slate-500 line-through">₹{course.originalPrice}</span>
+            </div>
+            <span className="font-mono-custom text-[10px] text-emerald-400 flex items-center gap-1">
+              <ShieldCheck size={11} /> Instant Access
+            </span>
+          </div>
+          <div className="flex-1 max-w-[170px] sm:max-w-xs">
+            <CheckoutButton course={course} courseId={course.id} onAddToCart={cart.addToCart} label="Get Access" onState={setPaymentState} className="text-xs sm:text-sm px-4 py-2.5 min-h-10 font-bold" />
+          </div>
+        </div>
+      </main>
+
+      <footer className="border-t border-slate-800/70 py-8 pb-24 lg:pb-8 bg-[#08090e]">
+        <div className="site-shell flex flex-col sm:flex-row items-center justify-between gap-4 font-mono-custom text-xs text-slate-500">
+          <Brand onClick={() => setLocation('/')} />
+          <p>© 2026 SKILL VAULT STORE • ALL RIGHTS RESERVED</p>
+        </div>
+      </footer>
+
+      <PaymentNotice state={paymentState} setState={setPaymentState} />
+      <AnimatePresence mode="wait">
+        {auth.isAuthModalOpen && (
+          <AuthModal
+            isOpen={auth.isAuthModalOpen}
+            onClose={() => auth.setIsAuthModalOpen(false)}
+            onSuccess={auth.loginSuccess}
+            initialMode={auth.authModalMode}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence mode="wait">
+        {cart.isCartOpen && (
+          <CartDrawer
+            isOpen={cart.isCartOpen}
+            onClose={() => cart.setIsCartOpen(false)}
+            items={cart.cartItems}
+            onRemoveItem={cart.removeFromCart}
+            onClearCart={cart.clearCart}
+            onCheckout={(courseId) => {
+              cart.setIsCartOpen(false);
+              setLocation(courseId ? `/checkout?courseId=${courseId}` : '/checkout');
+            }}
+          />
+        )}
+      </AnimatePresence>
+      <AuthNoticeBanner message={auth.authNotice} onClose={() => auth.setAuthNotice('')} />
+    </div>
+  );
+}
+
+{/* HOME CATALOG PAGE */ }
+function PlatformCatalog() {
+  const [, setLocation] = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All Products');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [paymentState, setPaymentState] = useState<PaymentState>('idle');
+  const [openFaq, setOpenFaq] = useState<number>(0);
+  const { courses: liveCoursesList, loading: coursesLoading } = useLiveCourses();
+  const allCourses = useMemo(() => (liveCoursesList && liveCoursesList.length > 0 ? liveCoursesList : COURSES), [liveCoursesList]);
+  const auth = useAuth();
+  const cart = useCart(auth.user, allCourses);
+
+  useEffect(() => {
+    const queryState = new URLSearchParams(window.location.search).get('payment');
+    if (queryState === 'success' || queryState === 'pending') setPaymentState('pending');
+    if (queryState === 'cancelled') setPaymentState('cancelled');
+  }, []);
+
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const ITEMS_PER_PAGE = 6;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchQuery]);
+
+  const filteredCourses = useMemo(() => {
+    return allCourses.filter((course) => {
+      const catLower = (course.category || '').toLowerCase();
+      const selLower = (selectedCategory || '').toLowerCase();
+
+      const nonCourseTypes = ['software', 'game', 'notes', 'hacks', 'blog'];
+      const matchesCategory =
+        selLower === 'all products' ||
+        selLower === 'all courses' ||
+        catLower === selLower ||
+        (selLower === 'course' && !nonCourseTypes.includes(catLower));
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch = !q ||
+        course.title.toLowerCase().includes(q) ||
+        course.description.toLowerCase().includes(q) ||
+        course.skills.some(s => s.toLowerCase().includes(q));
+      return matchesCategory && matchesSearch;
+    });
+  }, [allCourses, selectedCategory, searchQuery]);
+
+  const totalPages = Math.ceil(filteredCourses.length / ITEMS_PER_PAGE) || 1;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedCourses = useMemo(() => {
+    return filteredCourses.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredCourses, startIndex]);
+
+  return (
+    <div className="site-page min-h-[100dvh]" id="top">
+      <Header
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+        onSelectCategory={(cat) => setSelectedCategory(cat)}
+        user={auth.user}
+        onOpenAuthModal={auth.openAuth}
+        onLogout={auth.logout}
+        onOpenMyPurchases={() => auth.setIsPurchasesModalOpen(true)}
+        cartCount={cart.cartItems.length}
+        onOpenCart={() => cart.setIsCartOpen(true)}
+      />
+
+      <main>
+        {/* HERO SECTION */}
+        <section className="relative isolate min-h-[640px] overflow-hidden border-b border-slate-800/70 pt-28 sm:pt-36" aria-labelledby="hero-title">
+          <div className="grid-fade absolute inset-0 -z-10 opacity-60" />
+          <div className="hero-orb absolute -right-48 top-20 -z-10 size-[620px] rounded-full" />
+          <div className="cyan-orb absolute -left-60 top-[380px] -z-10 size-[520px] rounded-full" />
+
+          <div className="site-shell relative pb-20 text-center">
+            <div className="mx-auto max-w-4xl">
+              <div className="fade-up mb-5 inline-flex items-center gap-2 rounded-full border border-violet-300/25 bg-violet-300/5 px-4 py-1.5 font-mono-custom text-[11px] text-violet-200">
+                <span className="size-1.5 rounded-full bg-violet-300 shadow-[0_0_10px_hsl(269_100%_72%)]" />
+                SKILL VAULT & DIGITAL ASSETS HUB
+              </div>
+
+              <h1 id="hero-title" className="hero-title fade-up delay-1 font-display text-[clamp(1.65rem,5vw,5.2rem)] font-bold leading-[1.1] sm:leading-[1.05] tracking-[-0.03em] sm:tracking-[-0.04em] text-slate-100">
+                All-in-One Vault to <br className="hidden sm:inline" />
+                <span className="bg-gradient-to-r from-violet-300 via-cyan-300 to-emerald-300 bg-clip-text text-transparent">
+                  Learn Tech Skills & Access Digital Assets.
+                </span>
+              </h1>
+
+              <p className="fade-up delay-2 mx-auto mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-slate-400">
+                High-impact video courses, developer software tools, cybersecurity toolkits, game packs, and study notes. Everything you need to learn, build, and scale.
+              </p>
+
+              {/* SEARCH & FILTER BAR */}
+              <div className="fade-up delay-3 mx-auto mt-9 max-w-xl">
+                <div className="relative flex items-center rounded-xl border border-slate-700/80 bg-[#0e101a] p-2 shadow-2xl focus-within:border-violet-400/50">
+                  <Search size={18} className="ml-3 text-slate-400 shrink-0" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search assets (e.g., Android Security, Full Stack, Software, Hacks, Notes)..."
+                    className="w-full bg-transparent px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="mr-2 rounded-md p-1 text-slate-500 hover:text-slate-200"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* STATS STRIP */}
+              <div className="mt-12 flex flex-wrap items-center justify-center gap-6 sm:gap-12 font-mono-custom text-xs text-slate-400">
+                <span className="flex items-center gap-2">
+                  <Award size={15} className="text-violet-300" /> Premium Digital Assets & Courses
+                </span>
+                <span className="flex items-center gap-2">
+                  <ShieldCheck size={15} className="text-cyan-300" /> Verified Razorpay Checkout
+                </span>
+                <span className="flex items-center gap-2">
+                  <Clock size={15} className="text-emerald-300" /> Instant Email Delivery & Lifetime Access
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+
+        {/* COURSE CATALOG GRID */}
+        <section id="catalog" className="py-16 sm:py-24">
+          <div className="site-shell">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 border-b border-slate-800/80 pb-6 mb-6">
+              <div>
+                <p className="eyebrow">Explore Digital Assets</p>
+                <h2 className="mt-2 font-display text-3xl sm:text-4xl font-semibold tracking-tight text-slate-100">
+                  {selectedCategory === 'All Products' || selectedCategory === 'All Courses' ? 'All Digital Assets' : selectedCategory}
+                </h2>
+              </div>
+              <p className="font-mono-custom text-xs text-slate-500">
+                Showing {filteredCourses.length} asset{filteredCourses.length === 1 ? '' : 's'}
+              </p>
+            </div>
+
+            {/* MOBILE-FRIENDLY CATEGORY FILTER PILLS */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-4 pt-1 mb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${selectedCategory === cat
+                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/25 border border-violet-500/50'
+                      : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700'
+                    }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {filteredCourses.length === 0 ? (
+              <div className="rounded-2xl border border-slate-800 bg-[#0b0d14] p-12 text-center">
+                <BookMarked size={36} className="mx-auto text-slate-600 mb-3" />
+                <h3 className="font-display text-lg font-semibold text-slate-200">No matching assets found</h3>
+                <p className="mt-1 text-sm text-slate-500">Try adjusting your search query or selecting another category.</p>
+                <button
+                  type="button"
+                  onClick={() => { setSelectedCategory('All Products'); setSearchQuery(''); }}
+                  className="mt-5 rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            ) : (
+              <>
+                <motion.div
+                  className="grid gap-8 md:grid-cols-2 lg:grid-cols-3"
+                  variants={containerAnimation}
+                  initial="initial"
+                  animate="animate"
+                  viewport={{ once: true }}
+                >
+                  {paginatedCourses.map((course, index) => {
+                    const IconComponent = getCourseIcon(course.iconName);
+                    const theme = getThemeClasses(course.themeColor);
+
+                    return (
+                      <motion.div
+                        key={course.id}
+                        variants={listItemAnimation}
+                      >
+                        <AnimatedCard
+                          hover="lift"
+                          delay={index * 0.05}
+                          onClick={(e) => {
+                            // Avoid trigger if child button/link was clicked
+                            if ((e.target as HTMLElement).closest('button, a')) return;
+                            setLocation(`/course/${course.id}`);
+                          }}
+                          className={`group relative flex flex-col justify-between rounded-2xl border border-slate-800/90 bg-[#0c0e17] p-5 card-hover-effect pop-in ${theme.borderHover} hover:shadow-2xl hover:shadow-violet-950/30 cursor-pointer`}
+                        >
+                          <div>
+                            {/* Full Width Top Image */}
+                            {course.imageUrl && (
+                              <div className="-mx-5 -mt-5 mb-4 overflow-hidden border-b border-slate-800/90 bg-[#07080e] rounded-t-2xl aspect-video">
+                                <img
+                                  src={course.imageUrl}
+                                  alt={course.title}
+                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
+                              </div>
+                            )}
+
+                            {/* Top Badges */}
+                            <div className="flex items-center justify-between gap-2 mb-3">
+                              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${theme.badge}`}>
+                                <IconComponent size={13} /> {course.category}
+                              </span>
+                              {course.badge && (
+                                <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-2.5 py-0.5 font-mono-custom text-[10px] text-violet-300">
+                                  {course.badge}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Title & Subtitle */}
+                            <h3 className="font-display text-xl font-semibold text-slate-100 group-hover:text-violet-200 transition leading-snug">
+                              {course.title}
+                            </h3>
+                            <p className="mt-1.5 text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                              {course.subtitle}
+                            </p>
+                          </div>
+
+                          {/* Footer Info & Actions */}
+                          <div className="mt-4 border-t border-slate-800/80 pt-4">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="font-display text-2xl font-bold text-slate-100">₹{course.price}</span>
+                                <span className="font-mono-custom text-xs text-slate-500 line-through">₹{course.originalPrice}</span>
+                              </div>
+                              <span className="font-mono-custom text-[10px] text-slate-500">{course.modulesCount} Modules</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <motion.button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (cart.isInCart(course.id)) {
+                                    cart.removeFromCart(course.id);
+                                  } else {
+                                    cart.addToCart(course);
+                                  }
+                                }}
+                                className={`inline-flex min-h-10 items-center justify-center rounded-lg border font-bold text-xs transition-all gap-1.5 cursor-pointer ${cart.isInCart(course.id)
+                                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
+                                    : 'border-slate-800 bg-slate-900/90 text-slate-200 hover:border-violet-500/50 hover:text-white'
+                                  }`}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                <ShoppingCart className="w-3.5 h-3.5" />
+                                {cart.isInCart(course.id) ? 'In Cart' : 'Add to Cart'}
+                              </motion.button>
+                              <CheckoutButton course={course} courseId={course.id} onAddToCart={cart.addToCart} label="Buy Now" onState={setPaymentState} />
+                            </div>
+                          </div>
+                        </AnimatedCard>
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
+
+                {/* PAGINATION CONTROLS BAR */}
+                {totalPages > 1 && (
+                  <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-800/80 pt-6">
+                    <p className="font-mono-custom text-xs text-slate-500">
+                      Showing <span className="font-semibold text-slate-300">{startIndex + 1}</span> to <span className="font-semibold text-slate-300">{Math.min(startIndex + ITEMS_PER_PAGE, filteredCourses.length)}</span> of <span className="font-semibold text-slate-300">{filteredCourses.length}</span> assets
+                    </p>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={currentPage === 1}
+                        onClick={() => {
+                          setCurrentPage((p) => Math.max(1, p - 1));
+                          document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:border-slate-700 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <ChevronLeft size={15} /> Prev
+                      </button>
+
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => {
+                            setCurrentPage(pageNum);
+                            document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                          className={`size-8 rounded-lg text-xs font-mono-custom font-semibold transition cursor-pointer ${currentPage === pageNum
+                            ? 'bg-violet-300 text-slate-950 font-bold shadow-md shadow-violet-950/40'
+                            : 'border border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-white'
+                            }`}
+                        >
+                          {pageNum}
+                        </button>
+                      ))}
+
+                      <button
+                        type="button"
+                        disabled={currentPage === totalPages}
+                        onClick={() => {
+                          setCurrentPage((p) => Math.min(totalPages, p + 1));
+                          document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:border-slate-700 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        Next <ChevronRight size={15} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </section>
+
+        {/* WHY SKILL VAULT SECTION */}
+        <section id="why-us" className="border-t border-slate-800/70 py-20 sm:py-28 bg-[#0a0b12]">
+          <div className="site-shell">
+            <div className="mx-auto max-w-2xl text-center">
+              <p className="eyebrow">The Skill Vault Advantage</p>
+              <h2 className="mt-3 font-display text-3xl sm:text-5xl font-semibold tracking-tight text-slate-100">
+                Built for Developers Who Learn by Shipping
+              </h2>
+            </div>
+
+            <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { title: 'Project-First Learning', text: 'No endless slides. Build real products, APIs, and microservices.', icon: Terminal },
+                { title: 'Zero Fluff Modules', text: 'Curriculum designed directly around in-demand tech company roles.', icon: Braces },
+                { title: 'Lifetime Access', text: 'Instant access to all current and future updates to course material.', icon: BookOpen },
+                { title: 'Secure Instant Delivery', text: 'Razorpay integration with instant course access sent to your email.', icon: LockKeyhole },
+              ].map((item) => (
+                <div key={item.title} className="rounded-xl border border-slate-800 bg-[#0d0f19] p-6">
+                  <div className="mb-4 grid size-10 place-items-center rounded-lg border border-violet-400/20 bg-violet-400/10 text-violet-300">
+                    <item.icon size={18} />
+                  </div>
+                  <h3 className="font-display text-base font-semibold text-slate-200">{item.title}</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-400">{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ SECTION */}
+        <section id="faq" className="border-t border-slate-800/70 py-20 sm:py-28">
+          <div className="site-shell grid gap-12 lg:grid-cols-[0.6fr_1.4fr]">
+            <div>
+              <p className="eyebrow">Frequently Asked Questions</p>
+              <h2 className="mt-3 font-display text-3xl sm:text-4xl font-semibold tracking-tight text-slate-100">
+                Got Questions?
+              </h2>
+              <p className="mt-4 text-xs sm:text-sm text-slate-400">
+                Everything you need to know about Skill Vault courses and enrollment.
+              </p>
+            </div>
+
+            <div className="divide-y divide-slate-800 border-y border-slate-800">
+              {[
+                ['Is this course beginner-friendly?', 'Yes. The course starts with the basics and gradually moves toward advanced Android security concepts and practical lab exercises.'],
+                ['What will I learn in this course?', 'You will learn Android security, APK analysis, malware & RAT analysis, network and C2 concepts, detection, security testing, and practical lab exercises.'],
+                ['Do I get the tools shown in the course?', 'Yes. Relevant tools are included for authorized cybersecurity research and controlled laboratory practice.'],
+                ['Is this a practical course?', 'Yes. The course focuses on practical video lessons, demonstrations, security analysis, and controlled lab exercises.'],
+                ['How long do I get access?', 'You get lifetime access to the course after purchase, so you can learn at your own pace.'],
+                ['Who is this course for?', 'It is suitable for beginners, cybersecurity students, ethical hacking learners, and Android security enthusiasts.'],
+                ['What is the current course price?', 'The original price is ₹2,999, but the current limited-time offer is just ₹299 with lifetime course access.'],
+                ['How do I receive course access after purchase?', 'After completing checkout on Razorpay, your course access link is automatically delivered to the email address you provide at checkout.'],
+                ['What payment methods are supported?', 'Razorpay supports UPI (GPay, PhonePe, Paytm), Credit/Debit Cards, Net Banking, and Wallets.']
+              ].map(([q, a], idx) => (
+                <div key={q}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaq(openFaq === idx ? -1 : idx)}
+                    className="flex w-full items-center justify-between py-5 text-left text-sm font-semibold text-slate-200 hover:text-violet-300 transition-colors cursor-pointer"
+                  >
+                    <span>{q}</span>
+                    <ChevronDown size={17} className={`text-slate-500 transition-transform duration-300 ${openFaq === idx ? 'rotate-180 text-violet-400' : ''}`} />
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {openFaq === idx && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                        className="overflow-hidden transform-gpu"
+                      >
+                        <p className="pb-5 text-xs sm:text-sm leading-relaxed text-slate-400">{a}</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-slate-800/70 py-8 bg-[#08090e]">
+        <div className="site-shell flex flex-col sm:flex-row items-center justify-between gap-4 font-mono-custom text-xs text-slate-500">
+          <Brand onClick={() => smoothScrollTo('#top')} />
+          <p>© 2026 SKILL VAULT ACADEMY • ALL RIGHTS RESERVED</p>
+          <button
+            type="button"
+            onClick={() => setLocation('/admin')}
+            className="hover:text-violet-400 cursor-pointer transition-colors text-[11px] flex items-center gap-1.5"
+          >
+            <span>🔐</span> Admin Portal
+          </button>
+        </div>
+      </footer>
+
+      {/* Payment Notice Notification */}
+      <PaymentNotice state={paymentState} setState={setPaymentState} />
+      <AnimatePresence mode="wait">
+        {auth.isAuthModalOpen && (
+          <AuthModal
+            isOpen={auth.isAuthModalOpen}
+            onClose={() => auth.setIsAuthModalOpen(false)}
+            onSuccess={auth.loginSuccess}
+            initialMode={auth.authModalMode}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence mode="wait">
+        {cart.isCartOpen && (
+          <CartDrawer
+            isOpen={cart.isCartOpen}
+            onClose={() => cart.setIsCartOpen(false)}
+            items={cart.cartItems}
+            onRemoveItem={cart.removeFromCart}
+            onClearCart={cart.clearCart}
+            onCheckout={(courseId) => {
+              cart.setIsCartOpen(false);
+              setLocation(courseId ? `/checkout?courseId=${courseId}` : '/checkout');
+            }}
+          />
+        )}
+      </AnimatePresence>
+      <AuthNoticeBanner message={auth.authNotice} onClose={() => auth.setAuthNotice('')} />
+    </div>
+  );
+}
+
+import AdminPanelPage from './pages/admin-panel';
+
+function Router() {
+  const { courses: allCourses } = useLiveCourses();
+  const auth = useAuth();
+  const cart = useCart(auth.user, allCourses);
+
+  return (
+    <Switch>
+      <Route path="/admin" component={AdminPanelPage} />
+      <Route path="/admin-panel" component={AdminPanelPage} />
+      <Route path="/course/:id" component={CourseDetailPage} />
+      <Route path="/checkout">
+        {() => (
+          <CheckoutPage
+            user={auth.user}
+            onLogout={auth.logout}
+            onOpenAuthModal={auth.openAuth}
+            cartItems={cart.cartItems}
+            onAddToCart={cart.addToCart}
+            onRemoveCartItem={cart.removeFromCart}
+            onClearCart={cart.clearCart}
+          />
+        )}
+      </Route>
+      <Route path="/purchases">
+        {() => (
+          <PurchasesPage
+            user={auth.user}
+            onLogout={auth.logout}
+            purchases={auth.purchases}
+            loading={auth.loading}
+          />
+        )}
+      </Route>
+      <Route path="/my-purchases">
+        {() => (
+          <PurchasesPage
+            user={auth.user}
+            onLogout={auth.logout}
+            purchases={auth.purchases}
+            loading={auth.loading}
+          />
+        )}
+      </Route>
+      <Route path="/payment-success">
+        {() => (
+          <PaymentSuccessPage
+            user={auth.user}
+            onOpenMyPurchases={() => setLocation('/purchases')}
+          />
+        )}
+      </Route>
+      <Route path="/payment-failed" component={PaymentFailedPage} />
+      <Route path="/" component={PlatformCatalog} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function NotFound() {
+  const [, setLocation] = useLocation();
+  return (
+    <main className="grid min-h-[100dvh] place-items-center bg-[#090a10] px-6 text-center">
+      <motion.div {...fadeInUp}>
+        <p className="eyebrow">404 / route not found</p>
+        <h1 className="mt-5 font-display text-5xl font-semibold text-slate-100">Page Not Found</h1>
+        <AnimatedButton
+          onClick={() => setLocation('/')}
+          data-testid="button-return-home"
+          className="mt-8 rounded-lg bg-violet-300 px-5 py-3 text-sm font-bold text-slate-950"
+        >
+          Return to Skill Vault Catalog
+        </AnimatedButton>
+      </motion.div>
+    </main>
+  );
+}
+
+function RoutedErrorBoundary({ children }: { children: ReactNode }) {
+  const [location] = useLocation();
+  return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AnimationProvider mode="wait">
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+            <RoutedErrorBoundary>
+              <Router />
+            </RoutedErrorBoundary>
+          </WouterRouter>
+          <Toaster />
+        </AnimationProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
