@@ -1794,21 +1794,21 @@ function PlatformCatalog() {
                 Got Questions?
               </h2>
               <p className="mt-4 text-xs sm:text-sm text-slate-400">
-                Everything you need to know about Skill Vault courses and enrollment.
+                Everything you need to know about Skill Vault platform, digital assets, purchasing, and instant delivery.
               </p>
             </div>
 
             <div className="divide-y divide-slate-800 border-y border-slate-800">
               {[
-                ['Is this course beginner-friendly?', 'Yes. The course starts with the basics and gradually moves toward advanced Android security concepts and practical lab exercises.'],
-                ['What will I learn in this course?', 'You will learn Android security, APK analysis, malware & RAT analysis, network and C2 concepts, detection, security testing, and practical lab exercises.'],
-                ['Do I get the tools shown in the course?', 'Yes. Relevant tools are included for authorized cybersecurity research and controlled laboratory practice.'],
-                ['Is this a practical course?', 'Yes. The course focuses on practical video lessons, demonstrations, security analysis, and controlled lab exercises.'],
-                ['How long do I get access?', 'You get lifetime access to the course after purchase, so you can learn at your own pace.'],
-                ['Who is this course for?', 'It is suitable for beginners, cybersecurity students, ethical hacking learners, and Android security enthusiasts.'],
-                ['What is the current course price?', 'The original price is ₹2,999, but the current limited-time offer is just ₹299 with lifetime course access.'],
-                ['How do I receive course access after purchase?', 'After completing checkout on Razorpay, your course access link is automatically delivered to the email address you provide at checkout.'],
-                ['What payment methods are supported?', 'Razorpay supports UPI (GPay, PhonePe, Paytm), Credit/Debit Cards, Net Banking, and Wallets.']
+                ['What is Skill Vault?', 'Skill Vault is a digital asset store and learning platform offering premium digital products, source codes, tech courses, and development tools with instant access.'],
+                ['How do I purchase and access assets on Skill Vault?', 'Simply select the asset or course you want, click Buy Now or Enroll, and complete checkout. Your access links and downloads are instantly generated on screen and emailed to you.'],
+                ['Will I get instant access after payment?', 'Yes! Access is 100% automated. Immediately after a successful payment on Razorpay, your download links are unlocked on your receipt page and sent to your email address.'],
+                ['Do I need to create an account before buying?', 'No separate account setup is required! Just provide your valid email during checkout, and your purchase will be automatically linked to your email.'],
+                ['What payment methods are supported?', 'We accept all major payment methods including UPI (Google Pay, PhonePe, Paytm, BHIM), Credit/Debit Cards, Net Banking, and Wallets through secure Razorpay payment gateway.'],
+                ['Is my payment safe and secure?', 'Yes, absolutely. All transactions are protected with industry-standard 256-bit SSL encryption processed via Razorpay. We do not store any card or UPI credentials.'],
+                ['What if I do not receive my email after payment?', 'Check your email Spam or Promotions folder first. If you still cannot locate it, contact our support team with your payment transaction ID for instant assistance.'],
+                ['Can I access my purchased assets on multiple devices?', 'Yes, your access links can be opened on mobile phones, tablets, laptops, or desktops anytime you need them.'],
+                ['How can I contact Skill Vault support for help?', 'You can reach out to our dedicated support team via the Contact Us section or support email listed at the bottom of the page.']
               ].map(([q, a], idx) => (
                 <div key={q}>
                   <button
