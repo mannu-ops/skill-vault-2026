@@ -380,18 +380,32 @@ function useAuth() {
 function useCart(user?: any, availableCourses?: Course[]) {
   const userId = user?.id || user?.email || 'guest';
   const storageKey = `sv_cart_items_${userId}`;
+  const isHydratedRef = useRef(false);
+
+  const parseCart = (raw: any): Course[] => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
 
   const [cartItems, setCartItems] = useState<Course[]>(() => {
     try {
       const userRaw = localStorage.getItem(storageKey);
-      if (userRaw) return JSON.parse(userRaw);
+      if (userRaw) return parseCart(userRaw);
 
-      if (user?.cart && Array.isArray(user.cart) && user.cart.length > 0) {
-        return user.cart;
-      }
+      const dbCart = parseCart(user?.cart);
+      if (dbCart.length > 0) return dbCart;
 
       const guestRaw = localStorage.getItem('sv_cart_items');
-      return guestRaw ? JSON.parse(guestRaw) : [];
+      return parseCart(guestRaw);
     } catch {
       return [];
     }
@@ -402,36 +416,37 @@ function useCart(user?: any, availableCourses?: Course[]) {
   useEffect(() => {
     if (user?.id) {
       const userRaw = localStorage.getItem(storageKey);
-      if (userRaw) {
-        try {
-          const parsed = JSON.parse(userRaw);
-          const guestRaw = localStorage.getItem('sv_cart_items');
-          const guestItems: Course[] = guestRaw ? JSON.parse(guestRaw) : [];
+      const dbCart = parseCart(user?.cart);
+      const guestRaw = localStorage.getItem('sv_cart_items');
+      const guestItems = parseCart(guestRaw);
 
-          if (parsed.length === 0 && guestItems.length > 0) {
-            setCartItems(guestItems);
-            localStorage.setItem(storageKey, JSON.stringify(guestItems));
-          } else {
-            setCartItems(parsed);
-          }
-        } catch (e) {
-          console.error(e);
+      if (userRaw) {
+        const parsed = parseCart(userRaw);
+        if (parsed.length === 0 && guestItems.length > 0) {
+          setCartItems(guestItems);
+          localStorage.setItem(storageKey, JSON.stringify(guestItems));
+        } else {
+          setCartItems(parsed);
         }
-      } else if (user?.cart && Array.isArray(user.cart)) {
-        setCartItems(user.cart);
-        try {
-          localStorage.setItem(storageKey, JSON.stringify(user.cart));
-        } catch (e) {
-          console.error(e);
-        }
+      } else if (dbCart.length > 0) {
+        setCartItems(dbCart);
+        localStorage.setItem(storageKey, JSON.stringify(dbCart));
+      } else if (guestItems.length > 0) {
+        setCartItems(guestItems);
+        localStorage.setItem(storageKey, JSON.stringify(guestItems));
       }
+      isHydratedRef.current = true;
+    } else {
+      const guestRaw = localStorage.getItem('sv_cart_items');
+      setCartItems(parseCart(guestRaw));
+      isHydratedRef.current = true;
     }
-  }, [user?.id]);
+  }, [user?.id, JSON.stringify(user?.cart)]);
 
   useEffect(() => {
     if (Array.isArray(availableCourses) && availableCourses.length > 0 && cartItems.length > 0) {
       const activeIds = new Set(availableCourses.map((c) => c && c.id));
-      const validCart = cartItems.filter((item) => item && activeIds.has(item.id));
+      const validCart = cartItems.filter((item) => item && item.id && activeIds.has(item.id));
       if (validCart.length !== cartItems.length) {
         setCartItems(validCart);
       }
@@ -439,6 +454,10 @@ function useCart(user?: any, availableCourses?: Course[]) {
   }, [availableCourses, cartItems.length]);
 
   useEffect(() => {
+    if (!isHydratedRef.current && user?.id) {
+      return;
+    }
+
     try {
       localStorage.setItem(storageKey, JSON.stringify(cartItems));
       if (!user?.id) {
@@ -449,7 +468,7 @@ function useCart(user?: any, availableCourses?: Course[]) {
     }
 
     const token = localStorage.getItem('sv_user_token');
-    if (user?.id && token) {
+    if (user?.id && token && isHydratedRef.current) {
       const timer = setTimeout(() => {
         fetch(getApiUrl('/api/cart'), {
           method: 'POST',
@@ -1037,7 +1056,7 @@ function useLiveCourses(): { courses: Course[]; loading: boolean } {
 }
 
 {/* DEDICATED COURSE DETAIL PAGE */ }
-function CourseDetailPage() {
+function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth?: any }) {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -1045,8 +1064,10 @@ function CourseDetailPage() {
   const [openModule, setOpenModule] = useState<number>(0);
   const [openFaq, setOpenFaq] = useState<number>(0);
   const { courses: allCourses, loading } = useLiveCourses();
-  const auth = useAuth();
-  const cart = useCart(auth.user, allCourses);
+  const authLocal = useAuth();
+  const auth = propAuth || authLocal;
+  const cartLocal = useCart(auth.user, allCourses);
+  const cart = propCart || cartLocal;
 
   const course = useMemo(() => {
     return allCourses.find((c) => c.id === params.id);
@@ -1422,7 +1443,7 @@ function CourseDetailPage() {
 }
 
 {/* HOME CATALOG PAGE */ }
-function PlatformCatalog() {
+function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?: any }) {
   const [, setLocation] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All Products');
@@ -1431,8 +1452,10 @@ function PlatformCatalog() {
   const [openFaq, setOpenFaq] = useState<number>(0);
   const { courses: liveCoursesList, loading: coursesLoading } = useLiveCourses();
   const allCourses = useMemo(() => (liveCoursesList && liveCoursesList.length > 0 ? liveCoursesList : COURSES), [liveCoursesList]);
-  const auth = useAuth();
-  const cart = useCart(auth.user, allCourses);
+  const authLocal = useAuth();
+  const auth = propAuth || authLocal;
+  const cartLocal = useCart(auth.user, allCourses);
+  const cart = propCart || cartLocal;
 
   useEffect(() => {
     const queryState = new URLSearchParams(window.location.search).get('payment');
@@ -1896,7 +1919,9 @@ function Router() {
     <Switch>
       <Route path="/admin" component={AdminPanelPage} />
       <Route path="/admin-panel" component={AdminPanelPage} />
-      <Route path="/course/:id" component={CourseDetailPage} />
+      <Route path="/course/:id">
+        {() => <CourseDetailPage cart={cart} auth={auth} />}
+      </Route>
       <Route path="/checkout">
         {() => (
           <CheckoutPage
@@ -1939,7 +1964,9 @@ function Router() {
         )}
       </Route>
       <Route path="/payment-failed" component={PaymentFailedPage} />
-      <Route path="/" component={PlatformCatalog} />
+      <Route path="/">
+        {() => <PlatformCatalog cart={cart} auth={auth} />}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
