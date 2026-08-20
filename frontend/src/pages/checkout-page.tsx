@@ -189,6 +189,8 @@ export function CheckoutPage({
               setDirectCourseItem(formattedItem);
             }
           }
+        } else {
+          setDirectCourseItem(null);
         }
       } catch (err) {
         console.error('Error loading checkout data:', err);
@@ -197,6 +199,9 @@ export function CheckoutPage({
         setLoading(false);
       }
     };
+
+    fetchCheckoutData();
+  }, [directCourseId]);
 
   // Synchronize directCourseItem and clean up URL query params when cartItems update
   useEffect(() => {
