@@ -1911,64 +1911,95 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
 import AdminPanelPage from './pages/admin-panel';
 
 function Router() {
-  const { courses: allCourses } = useLiveCourses();
+  const [, setLocation] = useLocation();
+  const { courses: liveCoursesList } = useLiveCourses();
+  const allCourses = useMemo(() => (liveCoursesList && liveCoursesList.length > 0 ? liveCoursesList : COURSES), [liveCoursesList]);
   const auth = useAuth();
   const cart = useCart(auth.user, allCourses);
 
   return (
-    <Switch>
-      <Route path="/admin" component={AdminPanelPage} />
-      <Route path="/admin-panel" component={AdminPanelPage} />
-      <Route path="/course/:id">
-        {() => <CourseDetailPage cart={cart} auth={auth} />}
-      </Route>
-      <Route path="/checkout">
-        {() => (
-          <CheckoutPage
-            user={auth.user}
-            onLogout={auth.logout}
-            onOpenAuthModal={auth.openAuth}
-            cartItems={cart.cartItems}
-            onAddToCart={cart.addToCart}
-            onRemoveCartItem={cart.removeFromCart}
+    <>
+      <Switch>
+        <Route path="/admin" component={AdminPanelPage} />
+        <Route path="/admin-panel" component={AdminPanelPage} />
+        <Route path="/course/:id">
+          {() => <CourseDetailPage cart={cart} auth={auth} />}
+        </Route>
+        <Route path="/checkout">
+          {() => (
+            <CheckoutPage
+              user={auth.user}
+              onLogout={auth.logout}
+              onOpenAuthModal={auth.openAuth}
+              cartItems={cart.cartItems}
+              onAddToCart={cart.addToCart}
+              onRemoveCartItem={cart.removeFromCart}
+              onClearCart={cart.clearCart}
+            />
+          )}
+        </Route>
+        <Route path="/purchases">
+          {() => (
+            <PurchasesPage
+              user={auth.user}
+              onLogout={auth.logout}
+              purchases={auth.purchases}
+              loading={auth.loading}
+            />
+          )}
+        </Route>
+        <Route path="/my-purchases">
+          {() => (
+            <PurchasesPage
+              user={auth.user}
+              onLogout={auth.logout}
+              purchases={auth.purchases}
+              loading={auth.loading}
+            />
+          )}
+        </Route>
+        <Route path="/payment-success">
+          {() => (
+            <PaymentSuccessPage
+              user={auth.user}
+              onOpenMyPurchases={() => setLocation('/purchases')}
+            />
+          )}
+        </Route>
+        <Route path="/payment-failed" component={PaymentFailedPage} />
+        <Route path="/">
+          {() => <PlatformCatalog cart={cart} auth={auth} />}
+        </Route>
+        <Route component={NotFound} />
+      </Switch>
+
+      <AnimatePresence mode="wait">
+        {cart.isCartOpen && (
+          <CartDrawer
+            isOpen={cart.isCartOpen}
+            onClose={() => cart.setIsCartOpen(false)}
+            items={cart.cartItems}
+            onRemoveItem={cart.removeFromCart}
             onClearCart={cart.clearCart}
+            onCheckout={() => {
+              cart.setIsCartOpen(false);
+              setLocation('/checkout');
+            }}
           />
         )}
-      </Route>
-      <Route path="/purchases">
-        {() => (
-          <PurchasesPage
-            user={auth.user}
-            onLogout={auth.logout}
-            purchases={auth.purchases}
-            loading={auth.loading}
+      </AnimatePresence>
+      <AnimatePresence mode="wait">
+        {auth.isAuthModalOpen && (
+          <AuthModal
+            isOpen={auth.isAuthModalOpen}
+            onClose={() => auth.setIsAuthModalOpen(false)}
+            onSuccess={auth.loginSuccess}
+            initialMode={auth.authModalMode}
           />
         )}
-      </Route>
-      <Route path="/my-purchases">
-        {() => (
-          <PurchasesPage
-            user={auth.user}
-            onLogout={auth.logout}
-            purchases={auth.purchases}
-            loading={auth.loading}
-          />
-        )}
-      </Route>
-      <Route path="/payment-success">
-        {() => (
-          <PaymentSuccessPage
-            user={auth.user}
-            onOpenMyPurchases={() => setLocation('/purchases')}
-          />
-        )}
-      </Route>
-      <Route path="/payment-failed" component={PaymentFailedPage} />
-      <Route path="/">
-        {() => <PlatformCatalog cart={cart} auth={auth} />}
-      </Route>
-      <Route component={NotFound} />
-    </Switch>
+      </AnimatePresence>
+      <AuthNoticeBanner message={auth.authNotice} onClose={() => auth.setAuthNotice('')} />
+    </>
   );
 }
 

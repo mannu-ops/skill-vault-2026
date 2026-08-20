@@ -228,21 +228,19 @@ export function CheckoutPage({
   };
 
   // Single source of truth for base items:
-  // If cartItems was ever hydrated/used, cartItems is the absolute source of truth.
-  // If user tapped direct "Buy Now" (?courseId=...) with empty cart, checkout direct item.
+  // 1. If cartItems has items, cartItems is the ABSOLUTE source of truth.
+  // 2. Only if cartItems is empty, fallback to direct URL item if not removed.
   const baseItems = useMemo(() => {
-    const urlId = getDirectCourseId();
-    let raw: Course[] = [];
-
-    if (cartItems.length > 0) {
-      raw = cartItems;
-    } else if (urlId && directCourseItem && !removedItemIds.includes(directCourseItem.id)) {
-      raw = [directCourseItem];
-    } else if (directCourseItem && !removedItemIds.includes(directCourseItem.id)) {
-      raw = [directCourseItem];
+    if (cartItems && cartItems.length > 0) {
+      return cartItems.filter((item) => item && item.id && !removedItemIds.includes(item.id));
     }
 
-    return raw.filter((item) => item && item.id && !removedItemIds.includes(item.id));
+    const urlId = getDirectCourseId();
+    if (urlId && directCourseItem && !removedItemIds.includes(directCourseItem.id)) {
+      return [directCourseItem];
+    }
+
+    return [];
   }, [directCourseItem, cartItems, removedItemIds]);
   // Available bonus offers (excluding items already in base cart)
   const availableBonusOffers = useMemo(() => {
