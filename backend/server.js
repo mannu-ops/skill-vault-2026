@@ -726,10 +726,13 @@ app.post(['/api/auth/signup', '/api/admin/signup'], async (req, res) => {
 // AUTHENTICATION: LOGIN & ADMIN LOGIN ALIAS
 app.post(['/api/auth/login', '/api/admin/login'], async (req, res) => {
   const { email, password, username } = req.body;
+  const inputUser = (username || email || '').trim().toLowerCase();
+  const inputPass = (password || '').trim();
 
-  // Check Admin Login
-  if ((username && username === ADMIN_USERNAME) || (email && email === ADMIN_USERNAME) || (email && email === 'admin@skillvault.dev')) {
-    if (password === ADMIN_PASSWORD) {
+  // Check Admin Login (Accepts 'admin', 'admin@skillvault.dev', or env ADMIN_USERNAME)
+  const validAdminUsernames = ['admin', 'admin@skillvault.dev', (ADMIN_USERNAME || '').toLowerCase()];
+  if (validAdminUsernames.includes(inputUser)) {
+    if (inputPass === ADMIN_PASSWORD) {
       const adminToken = jwt.sign({ id: 'admin_root', email: 'admin@skillvault.dev', role: 'admin' }, JWT_SECRET, { expiresIn: '7d' });
       return res.json({ token: adminToken, user: { id: 'admin_root', email: 'admin@skillvault.dev', name: 'Administrator', role: 'admin' } });
     }

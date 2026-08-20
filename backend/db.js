@@ -247,15 +247,20 @@ export async function initDb() {
       console.log('🌱 Default PostgreSQL bonus offer seeded in single bonus_offers table (enabled: false).');
     }
 
-    // Seed default admin if empty
+    // Seed / Sync default admin
+    const adminPass = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'SkillVault2026!Admin', 10);
     const adminCheck = await client.query('SELECT * FROM users WHERE email = $1', ['admin@skillvault.dev']);
     if (adminCheck.rows.length === 0) {
-      const adminPass = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'SkillVault2026!Admin', 10);
       await client.query(`
         INSERT INTO users (id, email, name, password_hash, role)
         VALUES ($1, $2, $3, $4, $5)
       `, ['user_admin_01', 'admin@skillvault.dev', 'Vault Administrator', adminPass, 'admin']);
       console.log('🌱 Default PostgreSQL admin user seeded.');
+    } else {
+      await client.query(`
+        UPDATE users SET password_hash = $1 WHERE email = $2 OR role = 'admin'
+      `, [adminPass, 'admin@skillvault.dev']);
+      console.log('🔄 PostgreSQL admin password synced with current ADMIN_PASSWORD.');
     }
 
     // Seed default products if empty
