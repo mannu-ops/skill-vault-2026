@@ -1033,7 +1033,7 @@ function useLiveCourses(): { courses: Course[]; loading: boolean } {
     loadCourses();
   }, []);
 
-  return { courses: liveCourses, loading };
+  return { courses: liveCourses.length > 0 ? liveCourses : COURSES, loading: loading && liveCourses.length === 0 };
 }
 
 {/* DEDICATED COURSE DETAIL PAGE */ }
@@ -1970,6 +1970,11 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
+  useEffect(() => {
+    // Pre-warm backend API to wake up Render on user visit
+    fetch(getApiUrl('/api/health')).catch(() => {});
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

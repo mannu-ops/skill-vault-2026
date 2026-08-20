@@ -1305,4 +1305,21 @@ app.post('/api/checkout/verify-payment', async (req, res) => {
 app.listen(PORT, async () => {
   console.log(`🚀 Skill Vault Express Backend Server running at http://localhost:${PORT}`);
   await initDb();
+
+  // Keep-alive self ping mechanism to prevent Render Free Tier sleeping
+  const SERVER_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+  const PING_INTERVAL = 10 * 60 * 1000; // 10 minutes
+
+  setInterval(async () => {
+    try {
+      const response = await fetch(`${SERVER_URL}/api/health`);
+      if (response.ok) {
+        console.log(`⏰ [Keep-Alive] Self-ping successful to ${SERVER_URL}/api/health`);
+      }
+    } catch (err) {
+      console.warn('⚠️ [Keep-Alive] Self-ping error:', err.message);
+    }
+  }, PING_INTERVAL);
+  console.log(`⏰ Keep-Alive ping service activated (pinging every 10 mins).`);
 });
+
