@@ -190,7 +190,7 @@ export function CartDrawer({
                 <button
                   onClick={() => {
                     onClose();
-                    onCheckout(items[0]?.id || '');
+                    onCheckout('');
                   }}
                   className="flex-1 py-3 px-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer hover:shadow-violet-600/40 active:scale-[0.99]"
                 >

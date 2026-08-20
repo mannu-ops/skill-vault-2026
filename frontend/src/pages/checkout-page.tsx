@@ -218,7 +218,14 @@ export function CheckoutPage({
     let raw: Course[] = [];
 
     if (urlId && directCourseItem) {
-      raw = [directCourseItem];
+      const isAlreadyInCart = cartItems.some(
+        (item) => item && String(item.id).toLowerCase() === String(directCourseItem.id).toLowerCase()
+      );
+      if (isAlreadyInCart || cartItems.length === 0) {
+        raw = cartItems.length > 0 ? cartItems : [directCourseItem];
+      } else {
+        raw = [directCourseItem, ...cartItems];
+      }
     } else if (cartItems.length > 0) {
       raw = cartItems;
     } else if (directCourseItem) {
