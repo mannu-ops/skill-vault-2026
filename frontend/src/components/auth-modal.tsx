@@ -200,40 +200,79 @@ export function AuthModal({
 
     const google = (window as any).google;
 
-    if (
-      !google?.accounts?.id ||
-      !googleClientId
-    ) {
-      setError(
-        'Google Sign-In is still loading. Please try again.'
-      );
+    if (!google?.accounts || !googleClientId) {
+      setError('Google Sign-In is still loading. Please try again.');
       return;
     }
 
     setGoogleLoading(true);
 
     try {
-      google.accounts.id.prompt(
-        (notification: any) => {
-          if (
-            notification?.isNotDisplayed?.() ||
-            notification?.isSkippedMoment?.()
-          ) {
+      if (google.accounts.oauth2) {
+        const client = google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: 'email profile openid',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse?.error) {
+              setGoogleLoading(false);
+              if (tokenResponse.error !== 'popup_closed_by_user') {
+                setError('Google Sign-In failed: ' + tokenResponse.error);
+              }
+              return;
+            }
+
+            if (tokenResponse?.access_token) {
+              try {
+                const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                });
+                const googleUser = await userRes.json();
+
+                if (!googleUser?.email) {
+                  throw new Error('Failed to retrieve email profile from Google');
+                }
+
+                const res = await fetch(getApiUrl('/api/auth/google'), {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userInfo: googleUser })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.token && data.user) {
+                  localStorage.setItem('sv_user_token', data.token);
+                  localStorage.setItem('sv_user_data', JSON.stringify(data.user));
+                  const uName = data.user.name || data.user.email?.split('@')[0] || 'User';
+                  setSuccessMsg(`🚀 Logged in with Google successfully! Welcome, ${uName}.`);
+                  setTimeout(() => {
+                    onSuccess(data.user, data.token);
+                    onClose();
+                  }, 1500);
+                  return;
+                }
+
+                setError(data.message || data.error || 'Google login failed');
+              } catch (err: any) {
+                setError(err?.message || 'Failed to verify Google login');
+              } finally {
+                setGoogleLoading(false);
+              }
+            }
+          }
+        });
+        client.requestAccessToken();
+      } else if (google.accounts.id) {
+        google.accounts.id.prompt((notification: any) => {
+          if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
             setGoogleLoading(false);
           }
-        }
-      );
+        });
+      }
     } catch (err) {
-      console.warn(
-        'Google prompt error:',
-        err
-      );
-
+      console.warn('Google auth error:', err);
       setGoogleLoading(false);
-
-      setError(
-        'Unable to open Google Sign-In. Please try again.'
-      );
+      setError('Unable to open Google Sign-In popup. Please try again.');
     }
   };
 
@@ -679,10 +718,7 @@ export function AuthModal({
                 </span>
 
                 {/* Google Official GIS Iframe Overlay */}
-                <div
-                  id="google-signin-btn-container"
-                  className="absolute inset-0 w-full h-full opacity-[0.001] z-10 cursor-pointer overflow-hidden flex justify-center items-center pointer-events-auto"
-                />
+
               </button>
             </div>
 

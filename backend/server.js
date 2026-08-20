@@ -605,21 +605,29 @@ app.post('/api/admin/bonus-product', authenticateToken, async (req, res) => {
 
 // AUTHENTICATION: GOOGLE OAUTH
 app.post('/api/auth/google', async (req, res) => {
-  const { credential } = req.body;
+  const { credential, userInfo } = req.body;
 
-  if (!credential) {
-    return res.status(400).json({ message: 'Google credential is required' });
-  }
+  let email, name, sub, picture;
 
-  try {
+  if (credential) {
     const decoded = jwt.decode(credential);
-
     if (!decoded || !decoded.email) {
       return res.status(400).json({ message: 'Invalid Google credential token' });
     }
+    email = decoded.email;
+    name = decoded.name;
+    sub = decoded.sub;
+    picture = decoded.picture;
+  } else if (userInfo && userInfo.email) {
+    email = userInfo.email;
+    name = userInfo.name || userInfo.email.split('@')[0];
+    sub = userInfo.sub || userInfo.id || String(Date.now());
+    picture = userInfo.picture;
+  } else {
+    return res.status(400).json({ message: 'Google credential or user info is required' });
+  }
 
-    const { email, name, sub, picture } = decoded;
-
+  try {
     if (isDbConnected()) {
       let result = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [email]);
       let user;
