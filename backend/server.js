@@ -749,8 +749,9 @@ app.post(['/api/auth/login', '/api/admin/login'], async (req, res) => {
         const dbUser = result.rows[0];
         if (dbUser.password_hash && bcrypt.compareSync(password, dbUser.password_hash)) {
           const token = jwt.sign({ id: dbUser.id, email: dbUser.email, role: dbUser.role }, JWT_SECRET, { expiresIn: '7d' });
+          const formattedCart = dbUser.cart ? (typeof dbUser.cart === 'string' ? JSON.parse(dbUser.cart) : dbUser.cart) : [];
           const { password_hash, ...userWithoutPassword } = dbUser;
-          return res.json({ token, user: userWithoutPassword });
+          return res.json({ token, user: { ...userWithoutPassword, cart: formattedCart } });
         }
       }
     }

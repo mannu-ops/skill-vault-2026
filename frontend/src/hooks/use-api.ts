@@ -116,21 +116,32 @@ export function useLiveCourses(): { courses: Course[]; loading: boolean; error: 
 export function useCart(user?: any, availableCourses?: Course[]) {
   const userId = user?.id || user?.email || 'guest';
   const storageKey = `sv_cart_items_${userId}`;
+  const isHydratedRef = useRef(false);
+
+  const parseCart = (raw: any): Course[] => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
 
   const [cartItems, setCartItems] = useState<Course[]>(() => {
     try {
-      // 1. Try user-specific local storage
       const userRaw = localStorage.getItem(storageKey);
-      if (userRaw) return JSON.parse(userRaw);
+      if (userRaw) return parseCart(userRaw);
 
-      // 2. Try DB user cart if present
-      if (user?.cart && Array.isArray(user.cart) && user.cart.length > 0) {
-        return user.cart;
-      }
+      const dbCart = parseCart(user?.cart);
+      if (dbCart.length > 0) return dbCart;
 
-      // 3. Fallback to guest storage
       const guestRaw = localStorage.getItem('sv_cart_items');
-      return guestRaw ? JSON.parse(guestRaw) : [];
+      return parseCart(guestRaw);
     } catch {
       return [];
     }
@@ -138,42 +149,43 @@ export function useCart(user?: any, availableCourses?: Course[]) {
 
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Reload/Sync when user logs in or user object updates
+  // Sync state when user logs in, user object updates, or logs out
   useEffect(() => {
     if (user?.id) {
       const userRaw = localStorage.getItem(storageKey);
+      const dbCart = parseCart(user?.cart);
+      const guestRaw = localStorage.getItem('sv_cart_items');
+      const guestItems = parseCart(guestRaw);
+
       if (userRaw) {
-        try {
-          const parsed = JSON.parse(userRaw);
-          // Merge guest cart if user cart is empty
-          const guestRaw = localStorage.getItem('sv_cart_items');
-          const guestItems: Course[] = guestRaw ? JSON.parse(guestRaw) : [];
-
-          if (parsed.length === 0 && guestItems.length > 0) {
-            setCartItems(guestItems);
-            localStorage.setItem(storageKey, JSON.stringify(guestItems));
-          } else {
-            setCartItems(parsed);
-          }
-        } catch (e) {
-          console.error(e);
+        const parsed = parseCart(userRaw);
+        if (parsed.length === 0 && guestItems.length > 0) {
+          setCartItems(guestItems);
+          localStorage.setItem(storageKey, JSON.stringify(guestItems));
+        } else {
+          setCartItems(parsed);
         }
-      } else if (user?.cart && Array.isArray(user.cart)) {
-        setCartItems(user.cart);
-        try {
-          localStorage.setItem(storageKey, JSON.stringify(user.cart));
-        } catch (e) {
-          console.error(e);
-        }
+      } else if (dbCart.length > 0) {
+        setCartItems(dbCart);
+        localStorage.setItem(storageKey, JSON.stringify(dbCart));
+      } else if (guestItems.length > 0) {
+        setCartItems(guestItems);
+        localStorage.setItem(storageKey, JSON.stringify(guestItems));
       }
+      isHydratedRef.current = true;
+    } else {
+      // Guest or logged out mode
+      const guestRaw = localStorage.getItem('sv_cart_items');
+      setCartItems(parseCart(guestRaw));
+      isHydratedRef.current = true;
     }
-  }, [user?.id]);
+  }, [user?.id, JSON.stringify(user?.cart)]);
 
-  // Purge any deleted/unavailable courses from cart
+  // Purge any deleted/unavailable courses ONLY when availableCourses is non-empty
   useEffect(() => {
     if (Array.isArray(availableCourses) && availableCourses.length > 0 && cartItems.length > 0) {
       const activeIds = new Set(availableCourses.map((c) => c && c.id));
-      const validCart = cartItems.filter((item) => item && activeIds.has(item.id));
+      const validCart = cartItems.filter((item) => item && item.id && activeIds.has(item.id));
       if (validCart.length !== cartItems.length) {
         setCartItems(validCart);
       }
@@ -182,6 +194,11 @@ export function useCart(user?: any, availableCourses?: Course[]) {
 
   // Persist locally & Sync with backend PostgreSQL database
   useEffect(() => {
+    // Prevent sending empty array to DB before user cart is loaded into React state
+    if (!isHydratedRef.current && user?.id) {
+      return;
+    }
+
     try {
       localStorage.setItem(storageKey, JSON.stringify(cartItems));
       if (!user?.id) {
@@ -193,7 +210,7 @@ export function useCart(user?: any, availableCourses?: Course[]) {
 
     // Sync to PostgreSQL DB via API if user is authenticated
     const token = localStorage.getItem('sv_user_token');
-    if (user?.id && token) {
+    if (user?.id && token && isHydratedRef.current) {
       const timer = setTimeout(() => {
         fetch(getApiUrl('/api/cart'), {
           method: 'POST',
