@@ -207,32 +207,32 @@ export function CheckoutPage({
     if (directCourseItem && String(directCourseItem.id).toLowerCase() === String(itemId).toLowerCase()) {
       setDirectCourseItem(null);
     }
+    // Clean URL parameter if the removed item matched urlId
+    const urlId = getDirectCourseId();
+    if (urlId && String(urlId).toLowerCase() === String(itemId).toLowerCase()) {
+      if (typeof window !== 'undefined' && window.history && window.history.replaceState) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
     onRemoveCartItem(itemId);
   };
 
   // Single source of truth for base items:
-  // If user tapped direct "Buy Now" (?courseId=...), ONLY checkout that direct item!
-  // If user proceeded from Shopping Cart Drawer (/checkout), checkout cart items.
+  // If cartItems is present, cartItems is the source of truth.
+  // If user tapped direct "Buy Now" (?courseId=...) with empty cart, checkout direct item.
   const baseItems = useMemo(() => {
     const urlId = getDirectCourseId();
     let raw: Course[] = [];
 
-    if (urlId && directCourseItem) {
-      const isAlreadyInCart = cartItems.some(
-        (item) => item && String(item.id).toLowerCase() === String(directCourseItem.id).toLowerCase()
-      );
-      if (isAlreadyInCart || cartItems.length === 0) {
-        raw = cartItems.length > 0 ? cartItems : [directCourseItem];
-      } else {
-        raw = [directCourseItem, ...cartItems];
-      }
-    } else if (cartItems.length > 0) {
+    if (cartItems.length > 0) {
       raw = cartItems;
+    } else if (urlId && directCourseItem) {
+      raw = [directCourseItem];
     } else if (directCourseItem) {
       raw = [directCourseItem];
     }
 
-    return raw.filter((item) => item && !removedItemIds.includes(item.id));
+    return raw.filter((item) => item && item.id && !removedItemIds.includes(item.id));
   }, [directCourseItem, cartItems, removedItemIds]);
   // Available bonus offers (excluding items already in base cart)
   const availableBonusOffers = useMemo(() => {
