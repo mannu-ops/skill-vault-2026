@@ -238,12 +238,12 @@ function AuthNoticeBanner({ message, onClose }: { message: string; onClose: () =
   return (
     <div className="fixed top-20 right-5 z-50 animate-in fade-in slide-in-from-top-4 duration-300 max-w-md">
       <div className={`bg-slate-900/95 border rounded-2xl p-4 shadow-2xl backdrop-blur-xl flex items-center gap-3 ${isLogout
-          ? 'border-amber-500/40 shadow-amber-950/40'
-          : 'border-emerald-500/40 shadow-emerald-950/40'
+        ? 'border-amber-500/40 shadow-amber-950/40'
+        : 'border-emerald-500/40 shadow-emerald-950/40'
         }`}>
         <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${isLogout
-            ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
-            : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+          ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
+          : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
           }`}>
           <CheckCircle2 className="w-5 h-5" />
         </div>
@@ -1002,18 +1002,22 @@ function useLiveCourses(): { courses: Course[]; loading: boolean } {
               ? dbCourse.modules.map((m: any, idx: number) => ({
                 number: String(idx + 1).padStart(2, '0'),
                 title: typeof m === 'string' ? m : m.title,
-                detail: m.detail || 'Practical hands-on lab & security testing module.',
+                detail: m.detail || '',
                 lessons: m.lessons || '1 Lesson'
               }))
-              : meta.modules;
+              : [];
 
             const parsedFaqs = dbCourse.faqs && Array.isArray(dbCourse.faqs) && dbCourse.faqs.length > 0
-              ? dbCourse.faqs.map((f: any) => Array.isArray(f) ? f : [f.question, f.answer] as [string, string])
-              : [
-                ['Is this course beginner-friendly?', 'Yes, it starts from fundamentals and progresses step-by-step to advanced concepts.'],
-                ['How long do I get access?', 'You get lifetime access to all course materials and Google Drive updates.'],
-                ['How do I access course materials?', 'Course access links are delivered directly to your email inbox immediately after purchase.']
-              ];
+              ? dbCourse.faqs.map((f: any) => Array.isArray(f) ? f : [f.question || f[0] || '', f.answer || f[1] || ''] as [string, string]).filter(f => f[0] && f[1])
+              : [];
+
+            const parsedSkills = (dbCourse.features && Array.isArray(dbCourse.features) && dbCourse.features.length > 0)
+              ? dbCourse.features
+              : [];
+
+            const parsedTestimonials = (dbCourse.testimonials && Array.isArray(dbCourse.testimonials) && dbCourse.testimonials.length > 0)
+              ? dbCourse.testimonials.filter((t: any) => t && (t.comment || t.name))
+              : undefined;
 
             const pInr = Number(dbCourse.priceInr ?? dbCourse.price_inr ?? 0);
             const origInr = Number(dbCourse.originalPriceInr ?? dbCourse.original_price_inr ?? pInr * 3);
@@ -1027,17 +1031,17 @@ function useLiveCourses(): { courses: Course[]; loading: boolean } {
               level: 'Beginner to Advanced',
               price: pInr.toLocaleString('en-IN'),
               originalPrice: origInr.toLocaleString('en-IN'),
-              duration: dbCourse.duration || `${parsedModules.length} Modules • Lifetime Access`,
+              duration: dbCourse.duration || (parsedModules.length > 0 ? `${parsedModules.length} Modules` : ''),
               modulesCount: parsedModules.length,
-              iconName: meta.iconName,
-              themeColor: meta.themeColor,
-              badge: meta.badge,
-              skills: (dbCourse.features && Array.isArray(dbCourse.features) && dbCourse.features.length > 0) ? dbCourse.features : meta.skills,
+              iconName: meta.iconName || 'Terminal',
+              themeColor: meta.themeColor || 'violet',
+              badge: dbCourse.badge || undefined,
+              skills: parsedSkills,
               modules: parsedModules,
-              projects: meta.projects,
+              projects: [],
               faqs: parsedFaqs,
               bonus: dbCourse.bonus || undefined,
-              testimonials: (dbCourse.testimonials && Array.isArray(dbCourse.testimonials)) ? dbCourse.testimonials : undefined,
+              testimonials: parsedTestimonials,
               imageUrl: dbCourse.imageUrl || dbCourse.image_url || undefined,
             };
           });
@@ -1189,64 +1193,76 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
             {/* LEFT COLUMN: ABOUT, SYLLABUS, PROJECTS, FAQS */}
             <div className="space-y-12">
               {/* Overview */}
-              <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-6 sm:p-8">
-                <h2 className="font-display text-xl font-semibold text-slate-100 mb-4">About This Course</h2>
-                <p className="text-sm sm:text-base leading-relaxed text-slate-300">
-                  {course.description}
-                </p>
+              {(course.description || (course.skills && course.skills.length > 0)) && (
+                <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-6 sm:p-8">
+                  {course.description && (
+                    <>
+                      <h2 className="font-display text-xl font-semibold text-slate-100 mb-4">About This Product</h2>
+                      <p className="text-sm sm:text-base leading-relaxed text-slate-300">
+                        {course.description}
+                      </p>
+                    </>
+                  )}
 
-                <h3 className="font-mono-custom text-xs uppercase tracking-wider text-slate-500 mt-8 mb-3">Key Technologies & Skills You Will Master</h3>
-                <div className="flex flex-wrap gap-2">
-                  {course.skills.map((skill) => (
-                    <span key={skill} className="rounded-lg border border-slate-800 bg-slate-900/90 px-3 py-1.5 font-mono-custom text-xs text-slate-200">
-                      {skill}
-                    </span>
-                  ))}
+                  {course.skills && course.skills.length > 0 && (
+                    <>
+                      <h3 className="font-mono-custom text-xs uppercase tracking-wider text-slate-500 mt-8 mb-3">Key Features & Technologies</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {course.skills.map((skill) => (
+                          <span key={skill} className="rounded-lg border border-slate-800 bg-slate-900/90 px-3 py-1.5 font-mono-custom text-xs text-slate-200">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
+              )}
 
               {/* Syllabus / Modules */}
-              <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-6 sm:p-8">
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-4 mb-6">
-                  <div>
-                    <p className="eyebrow">Course Content</p>
-                    <h2 className="font-display text-2xl font-semibold text-slate-100">Complete Android Security & APK Mastery</h2>
-                  </div>
-                  <span className="font-mono-custom text-xs text-slate-500">{course.modulesCount} In-Depth Lessons</span>
-                </div>
-
-                <div className="divide-y divide-slate-800/80">
-                  {course.modules.map((mod: CourseModule, idx: number) => (
-                    <div key={mod.number} className="py-3">
-                      <button
-                        type="button"
-                        onClick={() => setOpenModule(openModule === idx ? -1 : idx)}
-                        className="flex w-full items-center justify-between py-3 text-left transition hover:text-violet-300 cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3.5">
-                          <span className={`font-mono-custom text-xs font-bold ${theme.accentText}`}>
-                            {mod.number}
-                          </span>
-                          <span className="font-display text-base font-semibold text-slate-200">
-                            {mod.title}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="inline-flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900/90 px-2.5 py-1 font-mono-custom text-[11px] text-slate-400">
-                            <LockKeyhole size={12} className="text-amber-400" /> Locked
-                          </span>
-                          <ChevronDown size={18} className={`text-slate-500 transition-transform ${openModule === idx ? 'rotate-180' : ''}`} />
-                        </div>
-                      </button>
-                      {openModule === idx && (
-                        <div className="pb-4 pl-9 text-sm leading-relaxed text-slate-400">
-                          {mod.detail}
-                        </div>
-                      )}
+              {course.modules && course.modules.length > 0 && (
+                <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-6 sm:p-8">
+                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-4 mb-6">
+                    <div>
+                      <p className="eyebrow">Course Content</p>
+                      <h2 className="font-display text-2xl font-semibold text-slate-100">Course Syllabus & Modules</h2>
                     </div>
-                  ))}
+                    <span className="font-mono-custom text-xs text-slate-500">{course.modulesCount} In-Depth Lessons</span>
+                  </div>
+
+                  <div className="divide-y divide-slate-800/80">
+                    {course.modules.map((mod: CourseModule, idx: number) => (
+                      <div key={mod.number || idx} className="py-3">
+                        <button
+                          type="button"
+                          onClick={() => setOpenModule(openModule === idx ? -1 : idx)}
+                          className="flex w-full items-center justify-between py-3 text-left transition hover:text-violet-300 cursor-pointer"
+                        >
+                          <div className="flex items-center gap-3.5">
+                            <span className={`font-mono-custom text-xs font-bold ${theme.accentText}`}>
+                              {mod.number || String(idx + 1).padStart(2, '0')}
+                            </span>
+                            <span className="font-display text-base font-semibold text-slate-200">
+                              {mod.title}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="inline-flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900/90 px-2.5 py-1 font-mono-custom text-[11px] text-slate-400">
+                              <LockKeyhole size={12} className="text-amber-400" /> Locked
+                            </span>
+                            <ChevronDown size={18} className={`text-slate-500 transition-transform ${openModule === idx ? 'rotate-180' : ''}`} />
+                          </div>
+                        </button>
+                        {openModule === idx && (
+                          <div className="pb-4 pl-9 text-sm leading-relaxed text-slate-400">
+                            {mod.detail}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
 
 
@@ -1266,7 +1282,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
               {course.testimonials && course.testimonials.length > 0 && (
                 <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-6 sm:p-8">
                   <p className="eyebrow">Student Reviews</p>
-                  <h2 className="font-display text-2xl font-semibold text-slate-100 mb-6">What Learners Say</h2>
+                  <h2 className="font-display text-2xl font-semibold text-slate-100 mb-6">What Customers Say</h2>
                   <div className="grid gap-4 sm:grid-cols-2">
                     {course.testimonials.map((t) => (
                       <div key={t.name} className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 flex flex-col justify-between">
@@ -1370,8 +1386,8 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                       }
                     }}
                     className={`w-full py-3.5 px-4 rounded-xl border font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${cart.isInCart(course.id)
-                        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
-                        : 'border-slate-800 bg-slate-900/90 text-slate-200 hover:border-violet-500/50 hover:bg-slate-800'
+                      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
+                      : 'border-slate-800 bg-slate-900/90 text-slate-200 hover:border-violet-500/50 hover:bg-slate-800'
                       }`}
                   >
                     <ShoppingCart className="w-4 h-4" />
@@ -1599,8 +1615,8 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
                   type="button"
                   onClick={() => setSelectedCategory(cat)}
                   className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${selectedCategory === cat
-                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/25 border border-violet-500/50'
-                      : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700'
+                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/25 border border-violet-500/50'
+                    : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700'
                     }`}
                 >
                   {cat}
@@ -1704,8 +1720,8 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
                                   }
                                 }}
                                 className={`inline-flex min-h-10 items-center justify-center rounded-lg border font-bold text-xs transition-all gap-1.5 cursor-pointer ${cart.isInCart(course.id)
-                                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
-                                    : 'border-slate-800 bg-slate-900/90 text-slate-200 hover:border-violet-500/50 hover:text-white'
+                                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
+                                  : 'border-slate-800 bg-slate-900/90 text-slate-200 hover:border-violet-500/50 hover:text-white'
                                   }`}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
@@ -2030,7 +2046,7 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 export default function App() {
   useEffect(() => {
     // Pre-warm backend API to wake up Render on user visit
-    fetch(getApiUrl('/api/health')).catch(() => {});
+    fetch(getApiUrl('/api/health')).catch(() => { });
   }, []);
 
   return (

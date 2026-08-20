@@ -37,23 +37,19 @@ export function useLiveCourses(): { courses: Course[]; loading: boolean; error: 
             const parsedModules =
               dbCourse.modules && Array.isArray(dbCourse.modules) && dbCourse.modules.length > 0
                 ? dbCourse.modules.map((m: any, idx: number) => ({
-                    number: String(idx + 1).padStart(2, '0'),
-                    title: typeof m === 'string' ? m : m.title,
-                    detail: m.detail || 'Practical hands-on lab & security testing module.',
-                    lessons: m.lessons || '1 Lesson',
-                  }))
-                : meta.modules;
+                  number: String(idx + 1).padStart(2, '0'),
+                  title: typeof m === 'string' ? m : m.title,
+                  detail: m.detail || '',
+                  lessons: m.lessons || '1 Lesson',
+                }))
+                : [];
 
             const parsedFaqs =
               dbCourse.faqs && Array.isArray(dbCourse.faqs) && dbCourse.faqs.length > 0
                 ? dbCourse.faqs.map((f: any) =>
-                    Array.isArray(f) ? (f as [string, string]) : ([f.question, f.answer] as [string, string])
-                  )
-                : [
-                    ['Is this course beginner-friendly?', 'Yes, it starts from fundamentals and progresses step-by-step to advanced concepts.'],
-                    ['How long do I get access?', 'You get lifetime access to all course materials and Google Drive updates.'],
-                    ['How do I access course materials?', 'Course access links are delivered directly to your email inbox immediately after purchase.'],
-                  ];
+                  Array.isArray(f) ? (f as [string, string]) : ([f.question || f[0] || '', f.answer || f[1] || ''] as [string, string])
+                ).filter(f => f[0] && f[1])
+                : [];
 
             const rawPrice = dbCourse.priceInr ?? dbCourse.price_inr ?? dbCourse.price ?? 299;
             const pInr = typeof rawPrice === 'number' ? rawPrice : (parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 299);
@@ -70,22 +66,22 @@ export function useLiveCourses(): { courses: Course[]; loading: boolean; error: 
               level: 'Beginner to Advanced',
               price: pInr.toLocaleString('en-IN'),
               originalPrice: origInr.toLocaleString('en-IN'),
-              duration: dbCourse.duration || `${parsedModules.length} Modules • Lifetime Access`,
+              duration: dbCourse.duration || (parsedModules.length > 0 ? `${parsedModules.length} Modules` : ''),
               modulesCount: parsedModules.length,
-              iconName: meta.iconName,
-              themeColor: meta.themeColor,
-              badge: meta.badge,
+              iconName: meta.iconName || 'Terminal',
+              themeColor: meta.themeColor || 'violet',
+              badge: dbCourse.badge || undefined,
               skills:
                 (dbCourse.features && Array.isArray(dbCourse.features) && dbCourse.features.length > 0)
                   ? dbCourse.features
-                  : meta.skills,
+                  : [],
               modules: parsedModules,
-              projects: meta.projects,
+              projects: [],
               faqs: parsedFaqs,
               bonus: dbCourse.bonus || undefined,
               testimonials:
-                dbCourse.testimonials && Array.isArray(dbCourse.testimonials)
-                  ? dbCourse.testimonials
+                (dbCourse.testimonials && Array.isArray(dbCourse.testimonials) && dbCourse.testimonials.length > 0)
+                  ? dbCourse.testimonials.filter((t: any) => t && (t.comment || t.name))
                   : undefined,
               imageUrl: dbCourse.imageUrl || dbCourse.image_url || undefined,
             };
