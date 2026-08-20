@@ -198,8 +198,18 @@ export function CheckoutPage({
       }
     };
 
-    fetchCheckoutData();
-  }, []);
+  // Synchronize directCourseItem and clean up URL query params when cartItems update
+  useEffect(() => {
+    const urlId = getDirectCourseId();
+    if (urlId) {
+      if (removedItemIds.includes(urlId)) {
+        setDirectCourseItem(null);
+        if (typeof window !== 'undefined' && window.history && window.history.replaceState) {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      }
+    }
+  }, [cartItems, removedItemIds]);
 
   const handleRemoveItem = (itemId: string) => {
     setRemovedItemIds((prev) => [...prev, itemId]);
@@ -218,7 +228,7 @@ export function CheckoutPage({
   };
 
   // Single source of truth for base items:
-  // If cartItems is present, cartItems is the source of truth.
+  // If cartItems was ever hydrated/used, cartItems is the absolute source of truth.
   // If user tapped direct "Buy Now" (?courseId=...) with empty cart, checkout direct item.
   const baseItems = useMemo(() => {
     const urlId = getDirectCourseId();
@@ -226,9 +236,9 @@ export function CheckoutPage({
 
     if (cartItems.length > 0) {
       raw = cartItems;
-    } else if (urlId && directCourseItem) {
+    } else if (urlId && directCourseItem && !removedItemIds.includes(directCourseItem.id)) {
       raw = [directCourseItem];
-    } else if (directCourseItem) {
+    } else if (directCourseItem && !removedItemIds.includes(directCourseItem.id)) {
       raw = [directCourseItem];
     }
 
