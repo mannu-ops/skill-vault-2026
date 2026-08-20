@@ -14,7 +14,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'skillvault_secret_jwt_key_2026_production';
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'SkillVault2026!Admin';
 const razorpayKeyId = process.env.RAZORPAY_KEY_ID || '';
 const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET || '';
 
@@ -507,7 +507,7 @@ app.get('/api/bonus-product', async (req, res) => {
             if (pRes.rows.length > 0) {
               driveUrl = pRes.rows[0].drive_url || '';
             }
-          } catch (e) {}
+          } catch (e) { }
         }
         return {
           id: b.id,
@@ -552,7 +552,7 @@ app.post('/api/admin/bonus-product', authenticateToken, async (req, res) => {
             if (pRes.rows.length > 0) {
               itemDriveUrl = pRes.rows[0].drive_url || '';
             }
-          } catch (e) {}
+          } catch (e) { }
         }
 
         await query(`
@@ -1087,7 +1087,7 @@ async function getCourseDriveUrl(item) {
         const res = await query('SELECT drive_url FROM products WHERE id = $1', [courseId]);
         if (res.rows.length > 0 && res.rows[0].drive_url) return res.rows[0].drive_url;
       }
-    } catch (e) {}
+    } catch (e) { }
     const memProduct = inMemoryDb.products.find(p => p.id === courseId);
     if (memProduct && memProduct.driveUrl) return memProduct.driveUrl;
   }

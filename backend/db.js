@@ -107,7 +107,7 @@ export const inMemoryDb = {
       email: 'admin@skillvault.dev',
       name: 'Vault Administrator',
       phone: '',
-      passwordHash: bcrypt.hashSync('admin123', 10),
+      passwordHash: bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'SkillVault2026!Admin', 10),
       picture: '',
       authProvider: 'email',
       role: 'admin',
@@ -250,7 +250,7 @@ export async function initDb() {
     // Seed default admin if empty
     const adminCheck = await client.query('SELECT * FROM users WHERE email = $1', ['admin@skillvault.dev']);
     if (adminCheck.rows.length === 0) {
-      const adminPass = bcrypt.hashSync('admin123', 10);
+      const adminPass = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'SkillVault2026!Admin', 10);
       await client.query(`
         INSERT INTO users (id, email, name, password_hash, role)
         VALUES ($1, $2, $3, $4, $5)
