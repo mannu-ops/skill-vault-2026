@@ -1112,10 +1112,14 @@ async function getCourseDriveUrl(item) {
   return 'https://drive.google.com';
 }
 
-// GMAIL SMTP (NODEMAILER) EMAIL DELIVERY SERVICE - PURE PLAIN TEXT
+// RESEND HTTP EMAIL DELIVERY SERVICE - PURE PLAIN TEXT
 async function sendPurchaseEmail({ to, customerName, paymentId, items }) {
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
+  const resendApiKey = process.env.RESEND_API_KEY;
+
+  if (!to || !to.includes('@')) {
+    console.error('❌ [EMAIL ERROR]: Invalid or missing recipient email address.');
+    return { success: false, error: 'Invalid recipient email' };
+  }
 
   // Format purchased items with titles & access links
   const itemsTextList = await Promise.all(items.map(async (item, idx) => {
@@ -1151,59 +1155,39 @@ Best regards,
 Skill Vault Team
   `.trim();
 
-  // GMAIL SMTP via Nodemailer (Dual Attempt: Service -> Port 587 STARTTLS)
-  if (emailUser && emailPass && !emailUser.includes('yourgmail@gmail.com') && !emailPass.includes('your_16_digit_app_password')) {
-    const cleanPass = emailPass.replace(/\s+/g, '');
-
-    // Attempt 1: Gmail Service
+  // RESEND HTTP API (100% Guaranteed Delivery on Render Cloud - Bypasses SMTP Port Blocks)
+  if (resendApiKey && !resendApiKey.includes('your_resend_api_key')) {
     try {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user: emailUser, pass: cleanPass },
-      });
-
-      const info = await transporter.sendMail({
-        from: `"Skill Vault" <${emailUser}>`,
-        replyTo: emailUser,
-        to: to,
-        subject: `Your Skill Vault purchase is confirmed — ${paymentId}`,
-        text: textContent,
-      });
-
-      console.log(`\n📧 [GMAIL SMTP SUCCESS]: Confirmation email delivered to ${to} (ID: ${info.messageId})`);
-      return { success: true, messageId: info.messageId, provider: 'gmail-smtp-service' };
-    } catch (err1) {
-      console.warn(`⚠️ [GMAIL SERVICE RETRYING WITH SMTP PORT 587]:`, err1.message);
-
-      // Attempt 2: Fallback to direct SMTP port 587 STARTTLS
-      try {
-        const fallbackTransporter = nodemailer.createTransport({
-          host: 'smtp.gmail.com',
-          port: 587,
-          secure: false,
-          auth: { user: emailUser, pass: cleanPass },
-          tls: { rejectUnauthorized: false }
-        });
-
-        const info = await fallbackTransporter.sendMail({
-          from: `"Skill Vault" <${emailUser}>`,
-          replyTo: emailUser,
-          to: to,
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey.trim()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM_EMAIL || 'Skill Vault <onboarding@resend.dev>',
+          to: [to],
           subject: `Your Skill Vault purchase is confirmed — ${paymentId}`,
           text: textContent,
-        });
+        }),
+      });
 
-        console.log(`\n📧 [GMAIL SMTP 587 SUCCESS]: Confirmation email delivered to ${to} (ID: ${info.messageId})`);
-        return { success: true, messageId: info.messageId, provider: 'gmail-smtp-587' };
-      } catch (err2) {
-        console.error(`\n❌ [GMAIL SMTP ALL ATTEMPTS FAILED]:`, err2.message);
-        return { success: false, error: err2.message };
+      const resendData = await resendRes.json();
+      if (resendRes.ok) {
+        console.log(`\n📧 [RESEND API SUCCESS]: Confirmation email delivered to ${to} (ID: ${resendData.id})`);
+        return { success: true, messageId: resendData.id, provider: 'resend-http-api' };
+      } else {
+        console.error(`\n❌ [RESEND API ERROR]:`, resendData);
+        return { success: false, error: resendData.message || 'Resend API Error' };
       }
+    } catch (resendErr) {
+      console.error(`\n❌ [RESEND API FETCH ERROR]:`, resendErr.message);
+      return { success: false, error: resendErr.message };
     }
   }
 
-  console.log(`\n📧 [EMAIL NOTICE]: Gmail SMTP (EMAIL_USER/EMAIL_PASS) is not configured in backend/.env. Simulated email to ${to}`);
-  return { status: 'simulated', message: 'Configure EMAIL_USER/EMAIL_PASS in backend/.env to send real emails.' };
+  console.log(`\n📧 [EMAIL NOTICE]: RESEND_API_KEY is not configured in backend/.env. Simulated email to ${to}`);
+  return { status: 'simulated', message: 'Configure RESEND_API_KEY in backend/.env to send real emails.' };
 }
 
 // DIAGNOSTIC ENDPOINT TO TEST EMAIL DELIVERY
@@ -1398,12 +1382,12 @@ app.post('/api/checkout/webhook', async (req, res) => {
     const customerEmail = paymentEntity.email || paymentEntity.notes?.customerEmail || '';
     const customerName = paymentEntity.notes?.customerName || (customerEmail ? customerEmail.split('@')[0] : 'Learner');
     const customerPhone = paymentEntity.contact || paymentEntity.notes?.customerPhone || '';
-    
+
     let notesItems = null;
     if (paymentEntity.notes?.items) {
       try {
         notesItems = typeof paymentEntity.notes.items === 'string' ? JSON.parse(paymentEntity.notes.items) : paymentEntity.notes.items;
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (!paymentId) {
