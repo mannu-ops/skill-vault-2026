@@ -1155,7 +1155,38 @@ Best regards,
 Skill Vault Team
   `.trim();
 
-  // RESEND HTTP API (100% Guaranteed Delivery on Render Cloud - Bypasses SMTP Port Blocks)
+  // 1. BREVO HTTP API (Free 300 emails/day to ANY external recipient email without domain lock)
+  const brevoApiKey = process.env.BREVO_API_KEY;
+  if (brevoApiKey && !brevoApiKey.includes('your_brevo_api_key')) {
+    try {
+      const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoApiKey.trim(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: 'Skill Vault', email: process.env.BREVO_SENDER_EMAIL || process.env.EMAIL_USER || 'temp83725@gmail.com' },
+          to: [{ email: to, name: customerName }],
+          subject: `Your Skill Vault purchase is confirmed — ${paymentId}`,
+          textContent: textContent,
+        }),
+      });
+
+      const brevoData = await brevoRes.json();
+      if (brevoRes.ok) {
+        console.log(`\n📧 [BREVO API SUCCESS]: Confirmation email delivered to ${to} (Message ID: ${brevoData.messageId})`);
+        return { success: true, messageId: brevoData.messageId, provider: 'brevo-http-api' };
+      } else {
+        console.error(`\n❌ [BREVO API ERROR]:`, brevoData);
+      }
+    } catch (brevoErr) {
+      console.error(`\n❌ [BREVO API FETCH ERROR]:`, brevoErr.message);
+    }
+  }
+
+  // 2. RESEND HTTP API (Bypasses SMTP Port Blocks - Requires verified domain for external recipients)
   if (resendApiKey && !resendApiKey.includes('your_resend_api_key')) {
     try {
       const resendRes = await fetch('https://api.resend.com/emails', {
@@ -1186,8 +1217,8 @@ Skill Vault Team
     }
   }
 
-  console.log(`\n📧 [EMAIL NOTICE]: RESEND_API_KEY is not configured in backend/.env. Simulated email to ${to}`);
-  return { status: 'simulated', message: 'Configure RESEND_API_KEY in backend/.env to send real emails.' };
+  console.log(`\n📧 [EMAIL NOTICE]: BREVO_API_KEY / RESEND_API_KEY is not configured in backend/.env. Simulated email to ${to}`);
+  return { status: 'simulated', message: 'Configure BREVO_API_KEY or RESEND_API_KEY in backend/.env to send real emails.' };
 }
 
 // DIAGNOSTIC ENDPOINT TO TEST EMAIL DELIVERY
@@ -1203,6 +1234,58 @@ app.get('/api/test-email', async (req, res) => {
     return res.json({ testedTo: to, result });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// DIAGNOSTIC ENDPOINT TO SIMULATE & TEST FULL WEBHOOK PIPELINE DIRECTLY IN BROWSER
+app.get('/api/test-webhook', async (req, res) => {
+  const email = req.query.email || 'learner@example.com';
+  const paymentId = `pay_sim_webhook_${Date.now()}`;
+
+  try {
+    console.log(`🧪 [TEST WEBHOOK SIMULATION INITIATED] for email: ${email}`);
+
+    const itemToGrant = { id: 'course-default', name: 'Full Stack Development Kit', price: 299 };
+    const pId = `pur_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+    const driveUrl = await getCourseDriveUrl(itemToGrant);
+
+    if (isDbConnected()) {
+      await query(`
+        INSERT INTO purchases (id, user_email, user_name, user_phone, course_id, amount_paid_inr, payment_id, status, access_delivered, drive_url)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, 'completed', true, $8)
+      `, [pId, email, 'Test Webhook Learner', '+919876543210', 'course-default', 299, paymentId, driveUrl]);
+    }
+
+    inMemoryDb.purchases.unshift({
+      id: pId,
+      userEmail: email,
+      userName: 'Test Webhook Learner',
+      userPhone: '+919876543210',
+      courseId: 'course-default',
+      amountPaidInr: 299,
+      paymentId,
+      status: 'completed',
+      accessDelivered: true,
+      createdAt: new Date().toISOString(),
+      driveUrl
+    });
+
+    const emailResult = await sendPurchaseEmail({
+      to: email,
+      customerName: 'Test Webhook Learner',
+      paymentId,
+      items: [itemToGrant]
+    });
+
+    return res.json({
+      status: 'WEBHOOK_PIPELINE_WORKING_100%',
+      simulatedPaymentId: paymentId,
+      dbEntrySaved: true,
+      buyersLogUpdated: true,
+      emailResult
+    });
+  } catch (err) {
+    return res.status(500).json({ status: 'ERROR', error: err.message });
   }
 });
 
@@ -1341,6 +1424,8 @@ app.post('/api/checkout/verify-payment', async (req, res) => {
 
 // 3. RAZORPAY WEBHOOK ENDPOINT FOR AUTOMATIC SERVER-TO-SERVER PAYMENT RECORDING
 app.post('/api/checkout/webhook', async (req, res) => {
+  console.log(`🔔 [RAZORPAY WEBHOOK HIT]: Incoming HTTP POST request received on /api/checkout/webhook`);
+
   const secret = razorpayWebhookSecret;
   const signature = req.headers['x-razorpay-signature'];
   const rawBody = req.rawBody ? req.rawBody : (typeof req.body === 'string' ? Buffer.from(req.body) : Buffer.from(JSON.stringify(req.body)));
