@@ -11,7 +11,7 @@ function getLocalApiBase() {
       return `http://${host}:5000`;
     }
   }
-  return "https://skill-vault-store.onrender.com";
+  return "https://api.theskillvault.store";
 }
 
 export const API_BASE_URL =

@@ -17,6 +17,7 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'SkillVault2026!Admin';
 const razorpayKeyId = process.env.RAZORPAY_KEY_ID || '';
 const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET || '';
+const razorpayWebhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET || '';
 
 let razorpayInstance = null;
 if (razorpayKeyId && razorpayKeySecret) {
@@ -32,7 +33,11 @@ if (razorpayKeyId && razorpayKeySecret) {
 }
 
 app.use(cors({ origin: '*' }));
-app.use(express.json());
+app.use(express.json({
+  verify: (req, _res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 
 // Security Headers Middleware
 app.use((req, res, next) => {
@@ -1060,7 +1065,8 @@ app.post('/api/checkout/create-order', async (req, res) => {
           customerName: customerName || '',
           customerEmail: customerEmail || '',
           customerPhone: customerPhone || '',
-          itemCount: String(items.length)
+          itemCount: String(items.length),
+          items: JSON.stringify(items.map(it => ({ id: it.id || it.courseId, name: it.name || it.title, price: it.price || it.priceInr || it.price_inr })))
         }
       };
 
@@ -1312,6 +1318,162 @@ app.post('/api/checkout/verify-payment', async (req, res) => {
   });
 });
 
+// 3. RAZORPAY WEBHOOK ENDPOINT FOR AUTOMATIC SERVER-TO-SERVER PAYMENT RECORDING
+app.post('/api/checkout/webhook', async (req, res) => {
+  const secret = razorpayWebhookSecret;
+  const signature = req.headers['x-razorpay-signature'];
+  const rawBody = req.rawBody ? req.rawBody : (typeof req.body === 'string' ? Buffer.from(req.body) : Buffer.from(JSON.stringify(req.body)));
+
+  // Verify HMAC-SHA256 Signature if secret and signature are present
+  if (secret && signature) {
+    try {
+      const expectedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(rawBody)
+        .digest('hex');
+
+      const sigBuffer = Buffer.from(String(signature || ''), 'utf8');
+      const genBuffer = Buffer.from(String(expectedSignature), 'utf8');
+
+      if (sigBuffer.length !== genBuffer.length || !crypto.timingSafeEqual(sigBuffer, genBuffer)) {
+        console.error('❌ [RAZORPAY WEBHOOK ERROR]: Signature verification failed');
+        return res.status(400).json({ error: 'Invalid webhook signature' });
+      }
+    } catch (err) {
+      console.error('❌ [RAZORPAY WEBHOOK SIGNATURE ERROR]:', err.message);
+      return res.status(400).json({ error: 'Signature verification error' });
+    }
+  }
+
+  let eventPayload;
+  try {
+    eventPayload = typeof req.body === 'object' && !Buffer.isBuffer(req.body) ? req.body : JSON.parse(rawBody.toString('utf8'));
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid JSON body' });
+  }
+
+  const event = eventPayload.event;
+  console.log(`🔔 [RAZORPAY WEBHOOK RECEIVED]: Event '${event}'`);
+
+  if (event === 'payment.captured' || event === 'order.paid') {
+    const paymentEntity = eventPayload?.payload?.payment?.entity || {};
+    const paymentId = paymentEntity.id;
+    const customerEmail = paymentEntity.email || paymentEntity.notes?.customerEmail || '';
+    const customerName = paymentEntity.notes?.customerName || (customerEmail ? customerEmail.split('@')[0] : 'Learner');
+    const customerPhone = paymentEntity.contact || paymentEntity.notes?.customerPhone || '';
+    
+    let notesItems = null;
+    if (paymentEntity.notes?.items) {
+      try {
+        notesItems = typeof paymentEntity.notes.items === 'string' ? JSON.parse(paymentEntity.notes.items) : paymentEntity.notes.items;
+      } catch (e) {}
+    }
+
+    if (!paymentId) {
+      return res.json({ status: 'ignored', message: 'No payment ID found in webhook payload' });
+    }
+
+    // IDEMPOTENCY CHECK: Check if this payment is already recorded in DB or memory DB
+    let isAlreadyRecorded = false;
+
+    if (isDbConnected()) {
+      try {
+        const existing = await query('SELECT id FROM purchases WHERE payment_id = $1 LIMIT 1', [paymentId]);
+        if (existing.rows.length > 0) {
+          isAlreadyRecorded = true;
+        }
+      } catch (err) {
+        console.error('Database idempotency check error:', err.message);
+      }
+    }
+
+    if (!isAlreadyRecorded && inMemoryDb.purchases.some(p => p.paymentId === paymentId)) {
+      isAlreadyRecorded = true;
+    }
+
+    if (isAlreadyRecorded) {
+      console.log(`ℹ️ [RAZORPAY WEBHOOK]: Payment ${paymentId} is already recorded in DB. Skipping duplicate insertion.`);
+      return res.json({ status: 'ok', message: 'Purchase already processed.' });
+    }
+
+    // Determine purchased items (from notes or default fallback)
+    let itemsToGrant = Array.isArray(notesItems) && notesItems.length > 0 ? notesItems : [{
+      id: paymentEntity.notes?.courseId || 'course-default',
+      name: paymentEntity.notes?.courseTitle || 'Digital Asset Package',
+      price: Math.round((paymentEntity.amount || 29900) / 100)
+    }];
+
+    console.log(`✅ [RAZORPAY WEBHOOK PROCESSING]: Recording purchase for ${customerEmail} (Payment: ${paymentId})`);
+
+    // Record in DB
+    try {
+      if (isDbConnected()) {
+        for (const item of itemsToGrant) {
+          const pId = `pur_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+          const courseId = item.id || 'course-default';
+          const rawPrice = item.price !== undefined ? item.price : (item.priceInr || item.price_inr || '299');
+          const price = Math.round(parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 299);
+          const driveUrl = await getCourseDriveUrl(item);
+
+          await query(`
+            INSERT INTO purchases (id, user_email, user_name, user_phone, course_id, amount_paid_inr, payment_id, status, access_delivered, drive_url)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'completed', true, $8)
+          `, [pId, customerEmail || 'customer@example.com', customerName, customerPhone, courseId, price, paymentId, driveUrl]);
+        }
+
+        // Clear cart for user
+        if (customerEmail && itemsToGrant.length > 0) {
+          const purchasedIds = itemsToGrant.map(it => String(it.id || ''));
+          await query(`
+            UPDATE users
+            SET cart = (
+              SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
+              FROM jsonb_array_elements(cart) elem
+              WHERE elem IS NOT NULL AND NOT (elem->>'id' = ANY($2::text[]))
+            )
+            WHERE LOWER(email) = LOWER($1) AND cart IS NOT NULL AND jsonb_typeof(cart) = 'array'
+          `, [customerEmail, purchasedIds]);
+        }
+      }
+    } catch (err) {
+      console.error('PostgreSQL record purchase on webhook error:', err.message);
+    }
+
+    // Update inMemoryDb
+    for (const item of itemsToGrant) {
+      const courseId = item.id || 'course-default';
+      const rawPrice = item.price !== undefined ? item.price : (item.priceInr || item.price_inr || '299');
+      const price = Math.round(parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 299);
+      const driveUrl = await getCourseDriveUrl(item);
+
+      inMemoryDb.purchases.unshift({
+        id: `pur_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+        userEmail: customerEmail || 'customer@example.com',
+        userName: customerName,
+        userPhone: customerPhone,
+        courseId,
+        amountPaidInr: price,
+        paymentId,
+        status: 'completed',
+        accessDelivered: true,
+        createdAt: new Date().toISOString(),
+        driveUrl: driveUrl
+      });
+    }
+
+    // Trigger purchase confirmation email
+    if (customerEmail) {
+      sendPurchaseEmail({
+        to: customerEmail,
+        customerName: customerName,
+        paymentId,
+        items: itemsToGrant
+      }).catch(err => console.error('Webhook email execution error:', err.message));
+    }
+  }
+
+  return res.json({ status: 'ok' });
+});
 
 
 app.listen(PORT, async () => {
