@@ -1151,39 +1151,76 @@ Best regards,
 Skill Vault Team
   `.trim();
 
-  // GMAIL SMTP via Nodemailer
+  // GMAIL SMTP via Nodemailer (Dual Attempt: Service -> Port 587 STARTTLS)
   if (emailUser && emailPass && !emailUser.includes('yourgmail@gmail.com') && !emailPass.includes('your_16_digit_app_password')) {
+    const cleanPass = emailPass.replace(/\s+/g, '');
+
+    // Attempt 1: Gmail Service
     try {
       const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: {
-          user: emailUser,
-          pass: emailPass.replace(/\s+/g, ''),
-        },
+        service: 'gmail',
+        auth: { user: emailUser, pass: cleanPass },
       });
 
-      const mailOptions = {
+      const info = await transporter.sendMail({
         from: `"Skill Vault" <${emailUser}>`,
         replyTo: emailUser,
         to: to,
         subject: `Your Skill Vault purchase is confirmed — ${paymentId}`,
         text: textContent,
-      };
+      });
 
-      const info = await transporter.sendMail(mailOptions);
       console.log(`\n📧 [GMAIL SMTP SUCCESS]: Confirmation email delivered to ${to} (ID: ${info.messageId})`);
-      return { success: true, messageId: info.messageId, provider: 'gmail-smtp-text' };
-    } catch (err) {
-      console.error(`\n❌ [GMAIL SMTP ERROR]:`, err.message);
-      return { success: false, error: err.message };
+      return { success: true, messageId: info.messageId, provider: 'gmail-smtp-service' };
+    } catch (err1) {
+      console.warn(`⚠️ [GMAIL SERVICE RETRYING WITH SMTP PORT 587]:`, err1.message);
+
+      // Attempt 2: Fallback to direct SMTP port 587 STARTTLS
+      try {
+        const fallbackTransporter = nodemailer.createTransport({
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false,
+          auth: { user: emailUser, pass: cleanPass },
+          tls: { rejectUnauthorized: false }
+        });
+
+        const info = await fallbackTransporter.sendMail({
+          from: `"Skill Vault" <${emailUser}>`,
+          replyTo: emailUser,
+          to: to,
+          subject: `Your Skill Vault purchase is confirmed — ${paymentId}`,
+          text: textContent,
+        });
+
+        console.log(`\n📧 [GMAIL SMTP 587 SUCCESS]: Confirmation email delivered to ${to} (ID: ${info.messageId})`);
+        return { success: true, messageId: info.messageId, provider: 'gmail-smtp-587' };
+      } catch (err2) {
+        console.error(`\n❌ [GMAIL SMTP ALL ATTEMPTS FAILED]:`, err2.message);
+        return { success: false, error: err2.message };
+      }
     }
   }
 
   console.log(`\n📧 [EMAIL NOTICE]: Gmail SMTP (EMAIL_USER/EMAIL_PASS) is not configured in backend/.env. Simulated email to ${to}`);
   return { status: 'simulated', message: 'Configure EMAIL_USER/EMAIL_PASS in backend/.env to send real emails.' };
 }
+
+// DIAGNOSTIC ENDPOINT TO TEST EMAIL DELIVERY
+app.get('/api/test-email', async (req, res) => {
+  const to = req.query.to || process.env.EMAIL_USER || 'customer@example.com';
+  try {
+    const result = await sendPurchaseEmail({
+      to: to,
+      customerName: 'Test Customer',
+      paymentId: `pay_test_${Date.now()}`,
+      items: [{ name: 'Sample Test Asset', price: 299, driveUrl: 'https://drive.google.com' }]
+    });
+    return res.json({ testedTo: to, result });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 
 
