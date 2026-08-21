@@ -1400,15 +1400,7 @@ app.post('/api/checkout/verify-payment', async (req, res) => {
     });
   }
 
-  // Trigger purchase confirmation email asynchronously
-  if (customerEmail) {
-    sendPurchaseEmail({
-      to: customerEmail,
-      customerName: customerName || customerEmail.split('@')[0],
-      paymentId,
-      items
-    }).catch(err => console.error('Background email execution error:', err.message));
-  }
+  // Note: Email delivery is handled reliably by Razorpay Webhook (/api/checkout/webhook) to prevent duplicate emails
 
 
 
