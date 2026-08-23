@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getApiUrl } from '../config';
+import { toast } from 'sonner';
 import {
   DollarSign,
   ShoppingBag,
@@ -130,6 +131,12 @@ export default function AdminPanelPage() {
   const [purchases, setPurchases] = useState<PurchaseItem[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Custom Theme Session Revocation / Access Restore Modal State
+  const [accessConfirmModal, setAccessConfirmModal] = useState<{
+    isOpen: boolean;
+    user: { id: string; name: string; email: string; isDisabled: boolean } | null;
+  }>({ isOpen: false, user: null });
 
   // Filters
   const [selectedCategory, setSelectedCategory] = useState('All Products');
@@ -657,28 +664,40 @@ export default function AdminPanelPage() {
     }
   };
 
-  // Toggle User Access / Revoke Active Session Handler
-  const handleToggleUserAccess = async (userId: string, currentStatus?: boolean) => {
-    if (!userId) return;
-    const actionLabel = currentStatus ? 'restore access for' : 'revoke active session & disable access for';
-    if (!window.confirm(`Are you sure you want to ${actionLabel} this user?`)) return;
+  // Open Custom Theme Access Confirmation Modal
+  const handleOpenAccessModal = (u: any) => {
+    setAccessConfirmModal({
+      isOpen: true,
+      user: {
+        id: u.id,
+        name: u.name || u.email,
+        email: u.email,
+        isDisabled: Boolean(u.isDisabled)
+      }
+    });
+  };
+
+  const handleExecuteToggleUserAccess = async () => {
+    if (!accessConfirmModal.user) return;
+    const { id, isDisabled } = accessConfirmModal.user;
 
     try {
       const authHeaders = { Authorization: `Bearer ${token}` };
-      const res = await safeFetch(`/api/admin/users/${encodeURIComponent(userId)}/toggle-access`, {
+      const res = await safeFetch(`/api/admin/users/${encodeURIComponent(id)}/toggle-access`, {
         method: 'POST',
         headers: authHeaders
       });
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || (currentStatus ? 'User access restored.' : 'User session revoked & access disabled!'));
+        toast.success(data.message || (isDisabled ? 'User access restored.' : 'User session revoked & access disabled!'));
+        setAccessConfirmModal({ isOpen: false, user: null });
         await fetchData();
       } else {
-        alert('Failed to update user access status.');
+        toast.error('Failed to update user access status.');
       }
     } catch (err: any) {
       console.error('Failed to toggle user access:', err);
-      alert('Network error updating user status.');
+      toast.error('Network error updating user status.');
     }
   };
 
@@ -1483,7 +1502,7 @@ export default function AdminPanelPage() {
                               <div className="inline-flex items-center gap-1.5 justify-end">
                                 {u.isRegistered && (
                                   <button
-                                    onClick={() => handleToggleUserAccess(u.id, u.isDisabled)}
+                                    onClick={() => handleOpenAccessModal(u)}
                                     className={`p-1.5 rounded border transition-colors cursor-pointer ${
                                       u.isDisabled
                                         ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/40'
@@ -2267,6 +2286,82 @@ export default function AdminPanelPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Theme Session Revocation / Access Restore Modal */}
+      {accessConfirmModal.isOpen && accessConfirmModal.user && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-[#0d0f19] border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden relative border-t-2 border-t-violet-500">
+            <div className="p-6 text-center space-y-4">
+              <div className={`mx-auto w-14 h-14 rounded-2xl flex items-center justify-center border shadow-lg ${
+                accessConfirmModal.user.isDisabled
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-emerald-500/10'
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-400 shadow-rose-500/10'
+              }`}>
+                {accessConfirmModal.user.isDisabled ? (
+                  <ShieldCheck className="w-7 h-7" />
+                ) : (
+                  <ShieldAlert className="w-7 h-7" />
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="text-lg font-extrabold text-white">
+                  {accessConfirmModal.user.isDisabled ? 'Restore Account Access?' : 'Revoke Session & Disable Access?'}
+                </h3>
+                <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                  {accessConfirmModal.user.isDisabled
+                    ? `Restore login access for ${accessConfirmModal.user.email}`
+                    : `Instantly terminate active sessions and block login access for ${accessConfirmModal.user.email}`}
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800/80 text-left text-xs space-y-1 font-mono">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Customer:</span>
+                  <span className="text-slate-200 font-bold">{accessConfirmModal.user.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Email:</span>
+                  <span className="text-cyan-400">{accessConfirmModal.user.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Action:</span>
+                  <span className={accessConfirmModal.user.isDisabled ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                    {accessConfirmModal.user.isDisabled ? 'UNBLOCK & RESTORE' : 'REVOKE 24/7 ACTIVE SESSION'}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-500 text-left leading-relaxed">
+                {accessConfirmModal.user.isDisabled
+                  ? 'User will be able to log back into their account and access purchased courses.'
+                  : 'User will be automatically logged out across all browsers/devices within 3-4 seconds via heartbeat guard.'}
+              </p>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAccessConfirmModal({ isOpen: false, user: null })}
+                  className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs border border-slate-700 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecuteToggleUserAccess}
+                  className={`flex-1 px-4 py-2.5 font-bold rounded-xl text-xs transition-colors cursor-pointer shadow-lg ${
+                    accessConfirmModal.user.isDisabled
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'
+                      : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-500/20'
+                  }`}
+                >
+                  {accessConfirmModal.user.isDisabled ? 'Confirm Restore' : 'Confirm Revoke Session'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
