@@ -2019,6 +2019,24 @@ app.post('/api/checkout/webhook', async (req, res) => {
   return res.json({ status: 'ok' });
 });
 
+// 404 UNHANDLED ROUTE HANDLER
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Route Not Found',
+    message: `The requested endpoint ${req.originalUrl} does not exist on this server.`,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// CENTRALIZED GLOBAL EXPRESS ERROR HANDLER
+app.use((err, req, res, _next) => {
+  console.error(`💥 [UNHANDLED EXPRESS ERROR] on ${req.method} ${req.url}:`, err);
+  res.status(err.status || 500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'production' ? 'An internal server error occurred.' : (err.message || 'Something went wrong'),
+    timestamp: new Date().toISOString()
+  });
+});
 
 app.listen(PORT, async () => {
   console.log(`🚀 Skill Vault Express Backend Server running at http://localhost:${PORT}`);
