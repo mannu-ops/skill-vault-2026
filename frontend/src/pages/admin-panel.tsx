@@ -1016,6 +1016,15 @@ export default function AdminPanelPage() {
           >
             <Plus className="w-4 h-4" /> Add Product
           </button>
+          <a
+            href={getApiUrl('/api/admin/whatsapp/qr')}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg transition-colors cursor-pointer"
+            title="Scan WhatsApp QR Code or Check Status"
+          >
+            <Sparkles className="w-3.5 h-3.5" /> WhatsApp QR / Status
+          </a>
           <button
             onClick={handleLogout}
             className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg transition-colors cursor-pointer"

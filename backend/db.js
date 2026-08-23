@@ -225,6 +225,15 @@ export async function initDb() {
     // Ensure drive_url column exists on pre-existing bonus_offers table
     await client.query(`ALTER TABLE bonus_offers ADD COLUMN IF NOT EXISTS drive_url TEXT;`);
 
+    // 8. Create System Config Table for persistent session & config storage
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS system_config (
+        key VARCHAR(255) PRIMARY KEY,
+        value TEXT,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Clean up old redundant table if present
     await client.query(`DROP TABLE IF EXISTS bonus_config;`);
 

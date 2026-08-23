@@ -1285,7 +1285,130 @@ Skill Vault Team
   return { status: 'simulated', message: 'Configure BREVO_API_KEY or RESEND_API_KEY in backend/.env to send real emails.' };
 }
 
-// WHATSAPP PURCHASE NOTIFICATION SERVICE (Supports OpenWA / UltraMsg / GreenAPI / Custom HTTP Gateway)
+// BAILEYS WHATSAPP CLIENT (100% Free Built-in WhatsApp Automation)
+let baileysSock = null;
+let baileysQrDataUrl = null;
+let baileysConnected = false;
+let baileysUserPhone = null;
+
+async function initBaileysWhatsApp() {
+  try {
+    const baileys = await import('@whiskeysockets/baileys').catch(() => null);
+    const QRCode = await import('qrcode').catch(() => null);
+
+    if (!baileys || !QRCode) {
+      console.log('ℹ️ [BAILEYS NOTICE]: Baileys module optional fallback mode active.');
+      return;
+    }
+
+    const { makeWASocket, useMultiFileAuthState, DisconnectReason } = baileys;
+    const { state, saveCreds } = await useMultiFileAuthState('baileys_auth');
+
+    baileysSock = makeWASocket({
+      auth: state,
+      printQRInTerminal: true,
+      browser: ['Skill Vault Store', 'Chrome', '1.0.0']
+    });
+
+    baileysSock.ev.on('creds.update', saveCreds);
+
+    baileysSock.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect, qr } = update;
+
+      if (qr) {
+        try {
+          baileysQrDataUrl = await QRCode.toDataURL(qr);
+          console.log('📱 [BAILEYS QR GENERATED]: Open /api/admin/whatsapp/qr or Admin Panel to scan QR code!');
+        } catch (e) { }
+      }
+
+      if (connection === 'open') {
+        baileysConnected = true;
+        baileysQrDataUrl = null;
+        baileysUserPhone = baileysSock.user?.id ? baileysSock.user.id.split(':')[0] : 'Connected';
+        console.log(`\n💚 [BAILEYS WHATSAPP CONNECTED]: WhatsApp Web active for user ${baileysUserPhone}! Automatic 24/7 delivery active.`);
+      }
+
+      if (connection === 'close') {
+        baileysConnected = false;
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+        console.log(`⚠️ [BAILEYS DISCONNECTED]: Reconnecting: ${shouldReconnect} (status: ${statusCode})`);
+        if (shouldReconnect) {
+          setTimeout(initBaileysWhatsApp, 5000);
+        }
+      }
+    });
+  } catch (err) {
+    console.warn('⚠️ [BAILEYS INIT NOTICE]:', err.message);
+  }
+}
+
+// WHATSAPP STATUS API & QR HTML DISPLAY
+app.get('/api/admin/whatsapp/status', (req, res) => {
+  res.json({
+    connected: baileysConnected,
+    qrDataUrl: baileysQrDataUrl,
+    phone: baileysUserPhone,
+    enabled: process.env.WHATSAPP_ENABLED !== 'false'
+  });
+});
+
+app.get('/api/admin/whatsapp/qr', (req, res) => {
+  if (baileysConnected) {
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head><title>WhatsApp Connected - Skill Vault</title></head>
+        <body style="background:#090a10;color:#fff;font-family:sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;">
+          <div style="text-align:center;padding:40px;border:1px solid #10b98133;background:#064e3b22;border-radius:16px;max-width:440px;">
+            <h1 style="color:#10b981;margin-bottom:8px;">✅ WhatsApp Connected 100% Active</h1>
+            <p style="color:#9ca3af;">Connected Account: <strong>${baileysUserPhone}</strong></p>
+            <p style="color:#6b7280;font-size:13px;line-height:1.5;">Automatic WhatsApp purchase delivery is live 24/7! Purchased links will automatically send to customers upon payment.</p>
+          </div>
+        </body>
+      </html>
+    `);
+  }
+
+  if (baileysQrDataUrl) {
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Scan WhatsApp QR Code - Skill Vault</title>
+          <meta http-equiv="refresh" content="5">
+        </head>
+        <body style="background:#090a10;color:#fff;font-family:sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;">
+          <div style="text-align:center;padding:32px;border:1px solid #7c3aed44;background:#1e1b4b33;border-radius:16px;max-width:400px;">
+            <h2 style="color:#a78bfa;margin-top:0;">Scan QR to Connect WhatsApp</h2>
+            <p style="color:#9ca3af;font-size:13px;margin-bottom:20px;">Open WhatsApp on your phone &gt; Linked Devices &gt; Link a Device and scan the QR code below:</p>
+            <img src="${baileysQrDataUrl}" alt="WhatsApp QR Code" style="width:250px;height:250px;border-radius:12px;border:4px solid #fff;" />
+            <p style="color:#6b7280;font-size:11px;margin-top:16px;">Page auto-refreshes every 5 seconds. Once scanned, WhatsApp will connect automatically!</p>
+          </div>
+        </body>
+      </html>
+    `);
+  }
+
+  return res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>WhatsApp Initializing... - Skill Vault</title>
+        <meta http-equiv="refresh" content="4">
+      </head>
+      <body style="background:#090a10;color:#fff;font-family:sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;">
+        <div style="text-align:center;padding:32px;">
+          <h3 style="color:#fbbf24;">Initializing WhatsApp Web Client...</h3>
+          <p style="color:#9ca3af;font-size:13px;">Generating QR code... Page will auto-refresh in 4 seconds.</p>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
+// WHATSAPP PURCHASE NOTIFICATION SERVICE (Supports Baileys Built-in / OpenWA / UltraMsg / GreenAPI / Custom Gateway)
 async function sendPurchaseWhatsApp({ toPhone, customerName, paymentId, items }) {
   if (!toPhone) {
     console.log('⚠️ [WHATSAPP NOTICE]: No customer phone number provided for WhatsApp delivery.');
@@ -1334,6 +1457,19 @@ If you have any questions, reply to this message.
 Best regards,
 Skill Vault Team`;
 
+  // 1. Direct Baileys WASocket Delivery (100% Free, Built-in, No Third-Party API Keys Needed)
+  if (baileysConnected && baileysSock) {
+    try {
+      const recipientJid = `${cleanPhone}@s.whatsapp.net`;
+      await baileysSock.sendMessage(recipientJid, { text: whatsappMessage });
+      console.log(`\n💬 [BAILEYS SUCCESS]: Automatic WhatsApp message delivered to ${cleanPhone}`);
+      return { success: true, provider: 'baileys-built-in', recipient: cleanPhone };
+    } catch (bErr) {
+      console.error('❌ [BAILEYS SEND ERROR]:', bErr.message);
+    }
+  }
+
+  // 2. HTTP Gateway Fallback (OpenWA / UltraMsg / GreenAPI)
   const waApiUrl = process.env.WHATSAPP_API_URL || 'http://localhost:8080/api/send-message';
   const waApiKey = process.env.WHATSAPP_API_KEY || process.env.WHATSAPP_TOKEN;
 
@@ -1375,7 +1511,7 @@ Skill Vault Team`;
   }
 
   const clickToChatUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`;
-  console.log(`\n💬 [WHATSAPP NOTICE]: WhatsApp API gateway not reachable. Click-to-chat URL generated for ${cleanPhone}:\n${clickToChatUrl}`);
+  console.log(`\n💬 [WHATSAPP NOTICE]: Direct click-to-chat URL generated for ${cleanPhone}:\n${clickToChatUrl}`);
   return { success: true, simulated: true, clickToChatUrl, message: whatsappMessage };
 }
 
@@ -1775,6 +1911,7 @@ app.post('/api/checkout/webhook', async (req, res) => {
 app.listen(PORT, async () => {
   console.log(`🚀 Skill Vault Express Backend Server running at http://localhost:${PORT}`);
   await initDb();
+  await initBaileysWhatsApp();
 
   // Keep-alive self ping mechanism to prevent Render Free Tier sleeping
   const SERVER_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;

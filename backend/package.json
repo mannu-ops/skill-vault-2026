@@ -16,7 +16,9 @@
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^9.0.5",
     "pg": "^8.23.0",
-    "razorpay": "^2.9.4"
+    "qrcode": "^1.5.3",
+    "razorpay": "^2.9.4",
+    "@whiskeysockets/baileys": "^6.7.9"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
