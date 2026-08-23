@@ -1270,7 +1270,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
 
 
               {/* Software Installation Guide (Only displays if filled by admin) */}
-              {course.installationProcess && course.installationProcess.trim().length > 0 && (
+              {Boolean((course.installationProcess || (course as any).installation_process) && String(course.installationProcess || (course as any).installation_process).trim().length > 0) && (
                 <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-6 sm:p-8 space-y-4">
                   <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
                     <div className="flex items-center gap-2 text-emerald-300 font-mono-custom text-xs font-bold uppercase tracking-wider">
@@ -1282,7 +1282,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                   </div>
 
                   <div className="font-mono text-xs sm:text-sm text-emerald-100 bg-[#070a14] border border-emerald-900/60 rounded-xl p-4 sm:p-5 leading-relaxed whitespace-pre-wrap selection:bg-emerald-500 selection:text-black">
-                    {course.installationProcess}
+                    {course.installationProcess || (course as any).installation_process}
                   </div>
                 </div>
               )}
