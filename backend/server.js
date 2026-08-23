@@ -377,6 +377,20 @@ app.get('/api/auth/heartbeat', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.id;
     const userEmail = req.user?.email;
+
+    // Admin Root or Admin Role bypass (Admins are never disabled via heartbeat)
+    if (userId === 'admin_root' || req.user?.role === 'admin') {
+      return res.json({
+        status: 'active',
+        sessionRevoked: false,
+        user: {
+          id: userId || 'admin_root',
+          email: userEmail || 'admin@skillvault.dev',
+          role: 'admin'
+        }
+      });
+    }
+
     let targetUser = null;
 
     if (isDbConnected()) {
