@@ -198,6 +198,7 @@ export default function AdminPanelPage() {
   const [formModules, setFormModules] = useState('');
   const [formTestimonials, setFormTestimonials] = useState('');
   const [formFaqs, setFormFaqs] = useState('');
+  const [formInstallationProcess, setFormInstallationProcess] = useState('');
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -461,12 +462,6 @@ export default function AdminPanelPage() {
       fetchData();
     }
   }, [token]);
-
-  const [formFaqs, setFormFaqs] = useState('');
-  const [formInstallationProcess, setFormInstallationProcess] = useState('');
-  const [uploadingBanner, setUploadingBanner] = useState(false);
-  const [formError, setFormError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
 
   const handleOpenModal = (course?: CourseItem) => {
     setFormError('');
