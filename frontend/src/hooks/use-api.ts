@@ -84,6 +84,7 @@ export function useLiveCourses(): { courses: Course[]; loading: boolean; error: 
                   ? dbCourse.testimonials.filter((t: any) => t && (t.comment || t.name))
                   : undefined,
               imageUrl: dbCourse.imageUrl || dbCourse.image_url || undefined,
+              isPublished: dbCourse.isPublished !== undefined ? Boolean(dbCourse.isPublished) : (dbCourse.is_published !== undefined ? Boolean(dbCourse.is_published) : true),
             };
           });
 

@@ -70,7 +70,7 @@ const formatProduct = (p) => ({
   ...p,
   priceInr: p.price_inr ?? p.priceInr ?? 299,
   originalPriceInr: p.original_price_inr ?? p.originalPriceInr ?? 1999,
-  isPublished: p.is_published ?? p.isPublished ?? true,
+  isPublished: p.is_published !== undefined && p.is_published !== null ? Boolean(p.is_published) : (p.isPublished !== undefined && p.isPublished !== null ? Boolean(p.isPublished) : true),
   driveUrl: p.drive_url ?? p.driveUrl ?? '',
   imageUrl: p.image_url ?? p.imageUrl ?? '',
   features: typeof p.features === 'string' ? JSON.parse(p.features) : (p.features || []),
@@ -95,7 +95,7 @@ const authenticateToken = (req, res, next) => {
 // Middleware to strictly enforce Admin privilege
 const requireAdmin = (req, res, next) => {
   if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
+    return res.status(403).json({ message: 'Access denied: Admin privileges required' });
   }
   next();
 };
@@ -125,7 +125,8 @@ app.get(['/api/products', '/api/courses'], async (req, res) => {
   } catch (err) {
     console.error('PostgreSQL fetch products error:', err.message);
   }
-  res.json({ products: inMemoryDb.products.filter(p => p.isPublished), courses: inMemoryDb.products.filter(p => p.isPublished) });
+  const formattedInMemory = inMemoryDb.products.map(formatProduct).filter(p => p.isPublished !== false);
+  res.json({ products: formattedInMemory, courses: formattedInMemory });
 });
 
 // GET ALL PRODUCTS / COURSES FOR ADMIN
@@ -139,7 +140,8 @@ app.get(['/api/admin/products', '/api/admin/courses'], [authenticateToken, requi
   } catch (err) {
     console.error('PostgreSQL admin fetch products error:', err.message);
   }
-  res.json({ products: inMemoryDb.products, courses: inMemoryDb.products });
+  const formattedInMemory = inMemoryDb.products.map(formatProduct);
+  res.json({ products: formattedInMemory, courses: formattedInMemory });
 });
 
 // CREATE CATALOG PRODUCT / COURSE (ADMIN)
@@ -158,7 +160,7 @@ app.post(['/api/admin/products', '/api/admin/courses'], authenticateToken, async
     category: category || 'Course',
     priceInr: Number(priceInr) || 299,
     originalPriceInr: Number(originalPriceInr) || 1999,
-    isPublished: req.body.isPublished ?? true,
+    isPublished: req.body.isPublished !== undefined ? Boolean(req.body.isPublished) : true,
     driveUrl: driveUrl || 'https://drive.google.com',
     imageUrl: imageUrl || '',
     duration: duration || 'Lifetime Access',
@@ -218,6 +220,7 @@ app.put(['/api/admin/products/:id', '/api/admin/courses/:id'], authenticateToken
       const category = req.body.category || prev.category;
       const priceInr = req.body.priceInr !== undefined ? Number(req.body.priceInr) : prev.price_inr;
       const originalPriceInr = req.body.originalPriceInr !== undefined ? Number(req.body.originalPriceInr) : prev.original_price_inr;
+      const isPublished = req.body.isPublished !== undefined ? Boolean(req.body.isPublished) : (prev.is_published ?? true);
       const driveUrl = req.body.driveUrl || prev.drive_url;
       const imageUrl = req.body.imageUrl || prev.image_url;
       const duration = req.body.duration !== undefined ? req.body.duration : prev.duration;
@@ -230,11 +233,31 @@ app.put(['/api/admin/products/:id', '/api/admin/courses/:id'], authenticateToken
 
       await query(`
         UPDATE products
-        SET title = $1, subtitle = $2, description = $3, category = $4, price_inr = $5, original_price_inr = $6, drive_url = $7, image_url = $8, duration = $9, bonus = $10, features = $11, modules = $12, testimonials = $13, faqs = $14
-        WHERE id = $15
-      `, [title, subtitle, description, category, priceInr, originalPriceInr, driveUrl, imageUrl, duration, bonus, features, modules, testimonials, faqs, id]);
+        SET title = $1, subtitle = $2, description = $3, category = $4, price_inr = $5, original_price_inr = $6, drive_url = $7, image_url = $8, duration = $9, bonus = $10, features = $11, modules = $12, testimonials = $13, faqs = $14, is_published = $15
+        WHERE id = $16
+      `, [title, subtitle, description, category, priceInr, originalPriceInr, driveUrl, imageUrl, duration, bonus, features, modules, testimonials, faqs, isPublished, id]);
 
-      return res.json({ message: 'Product updated successfully in PostgreSQL' });
+      // Sync in-memory backup
+      const memIndex = inMemoryDb.products.findIndex(p => p.id === id);
+      if (memIndex !== -1) {
+        inMemoryDb.products[memIndex] = {
+          ...inMemoryDb.products[memIndex],
+          ...req.body,
+          id,
+          isPublished,
+          priceInr,
+          originalPriceInr
+        };
+      }
+
+      const updatedProduct = formatProduct({
+        id, title, subtitle, description, category,
+        price_inr: priceInr, original_price_inr: originalPriceInr,
+        drive_url: driveUrl, image_url: imageUrl, duration, bonus,
+        features, modules, testimonials, faqs, is_published: isPublished
+      });
+
+      return res.json({ message: 'Product updated successfully', product: updatedProduct, course: updatedProduct });
     }
   } catch (err) {
     console.error('PostgreSQL update product error:', err.message);
@@ -246,11 +269,41 @@ app.put(['/api/admin/products/:id', '/api/admin/courses/:id'], authenticateToken
   inMemoryDb.products[index] = {
     ...inMemoryDb.products[index],
     ...req.body,
+    id,
+    isPublished: req.body.isPublished !== undefined ? Boolean(req.body.isPublished) : (inMemoryDb.products[index].isPublished ?? true),
     priceInr: req.body.priceInr !== undefined ? Number(req.body.priceInr) : inMemoryDb.products[index].priceInr,
     originalPriceInr: req.body.originalPriceInr !== undefined ? Number(req.body.originalPriceInr) : inMemoryDb.products[index].originalPriceInr
   };
 
-  res.json({ message: 'Product updated successfully', product: inMemoryDb.products[index], course: inMemoryDb.products[index] });
+  const formattedProduct = formatProduct(inMemoryDb.products[index]);
+  res.json({ message: 'Product updated successfully', product: formattedProduct, course: formattedProduct });
+});
+
+// QUICK TOGGLE PUBLISH PRODUCT STATUS (ADMIN)
+app.patch(['/api/admin/products/:id/toggle-publish', '/api/admin/courses/:id/toggle-publish'], authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  let newPublishedState = true;
+
+  try {
+    if (isDbConnected()) {
+      const existing = await query('SELECT is_published FROM products WHERE id = $1', [id]);
+      if (existing.rows.length === 0) return res.status(404).json({ message: 'Product not found' });
+      newPublishedState = !existing.rows[0].is_published;
+      await query('UPDATE products SET is_published = $1 WHERE id = $2', [newPublishedState, id]);
+    }
+  } catch (err) {
+    console.error('PostgreSQL toggle publish error:', err.message);
+  }
+
+  const index = inMemoryDb.products.findIndex(p => p.id === id);
+  if (index !== -1) {
+    if (!isDbConnected()) {
+      newPublishedState = !inMemoryDb.products[index].isPublished;
+    }
+    inMemoryDb.products[index].isPublished = newPublishedState;
+  }
+
+  res.json({ message: `Product ${newPublishedState ? 'published' : 'unpublished'} successfully`, isPublished: newPublishedState, id });
 });
 
 // DELETE CATALOG PRODUCT / COURSE (ADMIN)

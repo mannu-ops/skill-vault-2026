@@ -1043,6 +1043,7 @@ function useLiveCourses(): { courses: Course[]; loading: boolean } {
               bonus: dbCourse.bonus || undefined,
               testimonials: parsedTestimonials,
               imageUrl: dbCourse.imageUrl || dbCourse.image_url || undefined,
+              isPublished: dbCourse.isPublished !== undefined ? Boolean(dbCourse.isPublished) : (dbCourse.is_published !== undefined ? Boolean(dbCourse.is_published) : true),
             };
           });
           setLiveCourses(coursesFromDb);
@@ -1502,7 +1503,7 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
         course.title.toLowerCase().includes(q) ||
         course.description.toLowerCase().includes(q) ||
         course.skills.some(s => s.toLowerCase().includes(q));
-      return matchesCategory && matchesSearch;
+      return course.isPublished !== false && matchesCategory && matchesSearch;
     });
   }, [allCourses, selectedCategory, searchQuery]);
 

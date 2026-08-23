@@ -543,7 +543,7 @@ export default function AdminPanelPage() {
     try {
       let res;
       if (editingCourse) {
-        res = await safeFetch(`/api/admin/courses/${editingCourse.id}`, {
+        res = await safeFetch(`/api/admin/courses/${encodeURIComponent(editingCourse.id)}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -600,6 +600,40 @@ export default function AdminPanelPage() {
       setDeleteError(err?.message || 'Failed to delete product from Database');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleTogglePublish = async (course: CourseItem) => {
+    const previousState = course.isPublished;
+    // Optimistic UI update
+    setCourses((prev) =>
+      prev.map((c) => (c.id === course.id ? { ...c, isPublished: !previousState } : c))
+    );
+
+    try {
+      const res = await safeFetch(`/api/admin/courses/${encodeURIComponent(course.id)}/toggle-publish`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Failed to toggle product status');
+      }
+      const data = await res.json();
+      if (typeof data.isPublished === 'boolean') {
+        setCourses((prev) =>
+          prev.map((c) => (c.id === course.id ? { ...c, isPublished: data.isPublished } : c))
+        );
+      }
+      await fetchData();
+    } catch (err: any) {
+      // Revert state on error
+      setCourses((prev) =>
+        prev.map((c) => (c.id === course.id ? { ...c, isPublished: previousState } : c))
+      );
+      alert(err.message || 'Error updating product publish status');
     }
   };
 
@@ -1175,15 +1209,22 @@ export default function AdminPanelPage() {
                             ₹{(Number(course?.originalPriceInr ?? (course as any)?.original_price_inr) || 0).toLocaleString()}
                           </td>
                           <td className="py-4 px-4">
-                            {course.isPublished ? (
-                              <span className="inline-flex items-center gap-1 text-emerald-400 text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                                <CheckCircle className="w-3 h-3" /> Published
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-slate-400 text-[11px] font-medium bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-full">
-                                <XCircle className="w-3 h-3" /> Draft
-                              </span>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePublish(course)}
+                              className="cursor-pointer transition-transform hover:scale-105 group"
+                              title={course.isPublished ? "Click to unpublish from live catalog" : "Click to publish to live catalog"}
+                            >
+                              {course.isPublished ? (
+                                <span className="inline-flex items-center gap-1 text-emerald-400 text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full group-hover:bg-emerald-500/20">
+                                  <CheckCircle className="w-3 h-3" /> Published
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-amber-400 text-[11px] font-medium bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full group-hover:bg-amber-500/20">
+                                  <XCircle className="w-3 h-3" /> Draft
+                                </span>
+                              )}
+                            </button>
                             {course.driveUrl && (
                               <span className="ml-2 inline-flex items-center gap-1 text-cyan-400 text-[10px] font-mono bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full" title={course.driveUrl}>
                                 Drive Attached

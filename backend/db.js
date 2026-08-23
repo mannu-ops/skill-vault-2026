@@ -168,6 +168,7 @@ export async function initDb() {
     `);
 
     // Ensure columns exist on existing table
+    await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;`);
     await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS modules JSONB DEFAULT '[]'::jsonb;`);
     await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS testimonials JSONB DEFAULT '[]'::jsonb;`);
     await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS faqs JSONB DEFAULT '[]'::jsonb;`);

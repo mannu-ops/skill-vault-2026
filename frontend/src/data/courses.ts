@@ -49,6 +49,7 @@ export interface Course {
   bonus?: string;
   testimonials?: CourseTestimonial[];
   imageUrl?: string;
+  isPublished?: boolean;
   rating?: number;
   students?: string;
 }
