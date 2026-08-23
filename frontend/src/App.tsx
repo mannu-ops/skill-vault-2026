@@ -646,13 +646,6 @@ function Header({
                   >
                     <span>📝</span> Blogs
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => { close(); setLocation('/admin'); }}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-violet-400 hover:bg-slate-800/80 hover:text-violet-300 transition-colors text-left border-t border-slate-800/70 mt-1 pt-2"
-                  >
-                    <span>🔐</span> Admin Panel
-                  </button>
                 </div>
               </div>
             )}
