@@ -31,6 +31,8 @@ interface PurchaseItem {
   created_at?: string;
   driveUrl?: string;
   drive_url?: string;
+  installationProcess?: string;
+  installation_process?: string;
   imageUrl?: string;
   category?: string;
 }
@@ -282,6 +284,17 @@ export function PurchasesPage({ user, onLogout, purchases: initialPurchases = []
                         <span className="font-mono-custom text-[11px] text-slate-500 truncate max-w-[140px]">{paymentId}</span>
                       </p>
                     </div>
+
+                    {(item.installationProcess || item.installation_process) && (
+                      <div className="p-3 bg-emerald-950/30 border border-emerald-500/30 rounded-xl space-y-1">
+                        <div className="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5 font-mono-custom">
+                          🛠️ Installation & Setup Process Guide:
+                        </div>
+                        <div className="text-[11px] font-mono text-emerald-200 leading-relaxed whitespace-pre-wrap">
+                          {item.installationProcess || item.installation_process}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-3 mt-auto">

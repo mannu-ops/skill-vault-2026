@@ -287,6 +287,7 @@ app.put(['/api/admin/products/:id', '/api/admin/courses/:id'], authenticateToken
         id, title, subtitle, description, category,
         price_inr: priceInr, original_price_inr: originalPriceInr,
         drive_url: driveUrl, image_url: imageUrl, duration, bonus,
+        installation_process: installationProcess,
         features, modules, testimonials, faqs, is_published: isPublished
       });
 
