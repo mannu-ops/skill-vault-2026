@@ -1285,6 +1285,85 @@ Skill Vault Team
   return { status: 'simulated', message: 'Configure BREVO_API_KEY or RESEND_API_KEY in backend/.env to send real emails.' };
 }
 
+// POSTGRESQL AUTH STATE ADAPTER FOR BAILEYS (Persists QR session in DB across Render redeploys)
+async function useDbAuthState() {
+  if (isDbConnected()) {
+    try {
+      const baileys = await import('@whiskeysockets/baileys');
+      const { initAuthCreds, BufferJSON } = baileys;
+
+      const readConfig = async (key) => {
+        try {
+          const res = await query('SELECT value FROM system_config WHERE key = $1', [key]);
+          if (res.rows.length > 0 && res.rows[0].value) {
+            return JSON.parse(res.rows[0].value, BufferJSON.reviver);
+          }
+        } catch (e) { }
+        return null;
+      };
+
+      const writeConfig = async (key, value) => {
+        try {
+          const str = JSON.stringify(value, BufferJSON.replacer);
+          await query(`
+            INSERT INTO system_config (key, value, updated_at)
+            VALUES ($1, $2, CURRENT_TIMESTAMP)
+            ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+          `, [key, str]);
+        } catch (e) {
+          console.error('Failed to write system_config:', e.message);
+        }
+      };
+
+      let creds = await readConfig('baileys_creds');
+      if (!creds) {
+        creds = initAuthCreds();
+        await writeConfig('baileys_creds', creds);
+      }
+
+      let keys = (await readConfig('baileys_keys')) || {};
+
+      return {
+        state: {
+          creds,
+          keys: {
+            get: (type, ids) => {
+              const data = {};
+              for (const id of ids) {
+                const value = keys[`${type}-${id}`];
+                if (value) data[id] = value;
+              }
+              return data;
+            },
+            set: async (data) => {
+              for (const category in data) {
+                for (const id in data[category]) {
+                  const value = data[category][id];
+                  const k = `${category}-${id}`;
+                  if (value) {
+                    keys[k] = value;
+                  } else {
+                    delete keys[k];
+                  }
+                }
+              }
+              await writeConfig('baileys_keys', keys);
+            }
+          }
+        },
+        saveCreds: async () => {
+          await writeConfig('baileys_creds', creds);
+        }
+      };
+    } catch (dbErr) {
+      console.warn('⚠️ [BAILEYS DB AUTH FALLBACK]:', dbErr.message);
+    }
+  }
+
+  const { useMultiFileAuthState } = await import('@whiskeysockets/baileys');
+  return await useMultiFileAuthState('baileys_auth');
+}
+
 // BAILEYS WHATSAPP CLIENT (100% Free Built-in WhatsApp Automation)
 let baileysSock = null;
 let baileysQrDataUrl = null;
@@ -1301,8 +1380,8 @@ async function initBaileysWhatsApp() {
       return;
     }
 
-    const { makeWASocket, useMultiFileAuthState, DisconnectReason } = baileys;
-    const { state, saveCreds } = await useMultiFileAuthState('baileys_auth');
+    const { makeWASocket, DisconnectReason } = baileys;
+    const { state, saveCreds } = await useDbAuthState();
 
     baileysSock = makeWASocket({
       auth: state,
