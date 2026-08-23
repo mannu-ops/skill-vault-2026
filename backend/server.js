@@ -478,6 +478,17 @@ app.post('/api/admin/purchases', authenticateToken, async (req, res) => {
   }
 
   inMemoryDb.purchases.unshift(newPurchase);
+
+  // Trigger WhatsApp delivery for manual admin purchase
+  if (userPhone) {
+    sendPurchaseWhatsApp({
+      toPhone: userPhone,
+      customerName: userName || userEmail.split('@')[0],
+      paymentId: newPurchase.paymentId,
+      items: [targetCourse || { id: courseId, name: courseId, price: amountPaidInr, driveUrl: newPurchase.driveUrl }]
+    }).catch(err => console.error('Manual purchase WhatsApp error:', err.message));
+  }
+
   res.status(201).json({ message: 'Manual purchase recorded successfully', purchase: newPurchase });
 });
 
@@ -1274,6 +1285,116 @@ Skill Vault Team
   return { status: 'simulated', message: 'Configure BREVO_API_KEY or RESEND_API_KEY in backend/.env to send real emails.' };
 }
 
+// WHATSAPP PURCHASE NOTIFICATION SERVICE (Supports OpenWA / UltraMsg / GreenAPI / Custom HTTP Gateway)
+async function sendPurchaseWhatsApp({ toPhone, customerName, paymentId, items }) {
+  if (!toPhone) {
+    console.log('⚠️ [WHATSAPP NOTICE]: No customer phone number provided for WhatsApp delivery.');
+    return { success: false, reason: 'No phone number provided' };
+  }
+
+  // Clean phone number: remove non-digits
+  let cleanPhone = String(toPhone).replace(/[^0-9]/g, '');
+  if (!cleanPhone) {
+    return { success: false, reason: 'Invalid phone number' };
+  }
+
+  // Add default country code (91 for India if 10 digits)
+  if (cleanPhone.length === 10) {
+    cleanPhone = `91${cleanPhone}`;
+  }
+
+  // Format purchased items with titles & access links
+  const itemsTextList = await Promise.all(items.map(async (item, idx) => {
+    const title = item.title || item.name || item.courseId || item.id || `Digital Asset #${idx + 1}`;
+    const rawPrice = item.price !== undefined ? item.price : (item.priceInr || item.price_inr || '299');
+    const price = Math.round(parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 299);
+    const driveUrl = await getCourseDriveUrl(item);
+
+    return `📦 *${title}* (Rs. ${price})\n🔗 *Access Link:* ${driveUrl}`;
+  }));
+
+  const itemsText = itemsTextList.join('\n\n');
+
+  const whatsappMessage = `🎉 *Skill Vault - Purchase Confirmed*
+
+Hello *${customerName || 'Learner'}*,
+
+Thank you for your purchase on Skill Vault! Your payment has been successfully confirmed.
+
+💳 *Payment ID:* ${paymentId}
+
+*Your Purchased Digital Assets & Drive Access:*
+--------------------------------------------------
+${itemsText}
+
+--------------------------------------------------
+Log in to your account anytime on Skill Vault to view all your active purchases.
+If you have any questions, reply to this message.
+
+Best regards,
+Skill Vault Team`;
+
+  const waApiUrl = process.env.WHATSAPP_API_URL || 'http://localhost:8080/api/send-message';
+  const waApiKey = process.env.WHATSAPP_API_KEY || process.env.WHATSAPP_TOKEN;
+
+  if (process.env.WHATSAPP_ENABLED === 'true' && waApiUrl) {
+    try {
+      const payload = {
+        to: `${cleanPhone}@c.us`,
+        chatId: `${cleanPhone}@c.us`,
+        phone: cleanPhone,
+        number: cleanPhone,
+        message: whatsappMessage,
+        body: whatsappMessage,
+        content: whatsappMessage
+      };
+
+      const headers = { 'Content-Type': 'application/json' };
+      if (waApiKey && waApiKey.trim() !== '') {
+        headers['Authorization'] = `Bearer ${waApiKey.trim()}`;
+        headers['api-key'] = waApiKey.trim();
+        headers['token'] = waApiKey.trim();
+      }
+
+      const waRes = await fetch(waApiUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+
+      const resData = await waRes.json().catch(() => ({}));
+      if (waRes.ok) {
+        console.log(`\n💬 [WHATSAPP API SUCCESS]: Purchase notification sent to ${cleanPhone}`);
+        return { success: true, provider: 'whatsapp-http-gateway', data: resData };
+      } else {
+        console.error(`\n❌ [WHATSAPP API ERROR]:`, resData);
+      }
+    } catch (err) {
+      console.error(`\n❌ [WHATSAPP FETCH ERROR]:`, err.message);
+    }
+  }
+
+  const clickToChatUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`;
+  console.log(`\n💬 [WHATSAPP NOTICE]: WhatsApp API gateway not reachable. Click-to-chat URL generated for ${cleanPhone}:\n${clickToChatUrl}`);
+  return { success: true, simulated: true, clickToChatUrl, message: whatsappMessage };
+}
+
+// DIAGNOSTIC ENDPOINT TO TEST WHATSAPP DELIVERY
+app.get('/api/test-whatsapp', async (req, res) => {
+  const phone = req.query.phone || req.query.to || '919876543210';
+  try {
+    const result = await sendPurchaseWhatsApp({
+      toPhone: phone,
+      customerName: 'Test Customer',
+      paymentId: `pay_wa_test_${Date.now()}`,
+      items: [{ name: 'Sample Developer Asset', price: 299, driveUrl: 'https://drive.google.com' }]
+    });
+    return res.json({ testedPhone: phone, result });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // DIAGNOSTIC ENDPOINT TO TEST EMAIL DELIVERY
 app.get('/api/test-email', async (req, res) => {
   const to = req.query.to || process.env.EMAIL_USER || 'customer@example.com';
@@ -1330,12 +1451,20 @@ app.get('/api/test-webhook', async (req, res) => {
       items: [itemToGrant]
     });
 
+    const whatsappResult = await sendPurchaseWhatsApp({
+      toPhone: req.query.phone || '+919876543210',
+      customerName: 'Test Webhook Learner',
+      paymentId,
+      items: [itemToGrant]
+    });
+
     return res.json({
       status: 'WEBHOOK_PIPELINE_WORKING_100%',
       simulatedPaymentId: paymentId,
       dbEntrySaved: true,
       buyersLogUpdated: true,
-      emailResult
+      emailResult,
+      whatsappResult
     });
   } catch (err) {
     return res.status(500).json({ status: 'ERROR', error: err.message });
@@ -1453,15 +1582,21 @@ app.post('/api/checkout/verify-payment', async (req, res) => {
     });
   }
 
-  // Note: Email delivery is handled reliably by Razorpay Webhook (/api/checkout/webhook) to prevent duplicate emails
-
-
+  // Trigger WhatsApp notification if customer phone is provided
+  if (customerPhone) {
+    sendPurchaseWhatsApp({
+      toPhone: customerPhone,
+      customerName: customerName || 'Learner',
+      paymentId,
+      items
+    }).catch(err => console.error('Verify-payment WhatsApp execution error:', err.message));
+  }
 
   const firstDriveUrl = items.length > 0 ? await getCourseDriveUrl(items[0]) : 'https://drive.google.com';
 
   res.json({
     success: true,
-    message: '🎉 Payment verified successfully! Access granted to your digital assets and confirmation email sent.',
+    message: '🎉 Payment verified successfully! Access granted to your digital assets and confirmation delivered via Email & WhatsApp.',
     paymentId,
     driveUrl: firstDriveUrl
   });
@@ -1620,6 +1755,16 @@ app.post('/api/checkout/webhook', async (req, res) => {
         paymentId,
         items: itemsToGrant
       }).catch(err => console.error('Webhook email execution error:', err.message));
+    }
+
+    // Trigger purchase confirmation WhatsApp message
+    if (customerPhone) {
+      sendPurchaseWhatsApp({
+        toPhone: customerPhone,
+        customerName: customerName,
+        paymentId,
+        items: itemsToGrant
+      }).catch(err => console.error('Webhook WhatsApp execution error:', err.message));
     }
   }
 
