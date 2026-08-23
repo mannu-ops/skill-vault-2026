@@ -1268,7 +1268,23 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
 
 
 
-              {/* Bonus Included */}
+              {/* Software Installation Guide (Only displays if filled by admin) */}
+              {course.installationProcess && course.installationProcess.trim().length > 0 && (
+                <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-6 sm:p-8 space-y-4">
+                  <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+                    <div className="flex items-center gap-2 text-emerald-300 font-mono-custom text-xs font-bold uppercase tracking-wider">
+                      <Terminal className="w-4 h-4 text-emerald-400" /> Software Installation & Setup Guide
+                    </div>
+                    <span className="text-[10px] font-mono-custom font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                      Step-by-Step Instructions
+                    </span>
+                  </div>
+
+                  <div className="font-mono text-xs sm:text-sm text-emerald-100 bg-[#070a14] border border-emerald-900/60 rounded-xl p-4 sm:p-5 leading-relaxed whitespace-pre-wrap selection:bg-emerald-500 selection:text-black">
+                    {course.installationProcess}
+                  </div>
+                </div>
+              )}
               {course.bonus && (
                 <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-6 sm:p-8">
                   <div className="flex items-center gap-2 text-amber-300 font-mono-custom text-xs font-bold uppercase tracking-wider mb-2">
