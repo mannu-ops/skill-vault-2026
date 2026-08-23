@@ -1128,9 +1128,11 @@ export default function AdminPanelPage() {
             </div>
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Customers</p>
             <h2 className="text-2xl md:text-3xl font-extrabold text-cyan-400 mt-2">
-              {stats.totalUsers}
+              {combinedCustomers.length || stats.totalUsers}
             </h2>
-            <p className="text-[11px] text-slate-500 mt-1">Verified buyer accounts</p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              <strong className="text-violet-300">{users.filter(u => u && u.role !== 'admin').length}</strong> Registered • <strong className="text-cyan-300">{Math.max(0, combinedCustomers.length - users.filter(u => u && u.role !== 'admin').length)}</strong> Guest Buyers
+            </p>
           </div>
 
           <div className="bg-[#0d0f19] border border-slate-800/80 rounded-xl p-5 shadow-xl relative overflow-hidden">
