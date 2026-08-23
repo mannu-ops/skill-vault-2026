@@ -73,6 +73,7 @@ const formatProduct = (p) => ({
   isPublished: p.is_published !== undefined && p.is_published !== null ? Boolean(p.is_published) : (p.isPublished !== undefined && p.isPublished !== null ? Boolean(p.isPublished) : true),
   driveUrl: p.drive_url ?? p.driveUrl ?? '',
   imageUrl: p.image_url ?? p.imageUrl ?? '',
+  installationProcess: p.installation_process ?? p.installationProcess ?? '',
   features: typeof p.features === 'string' ? JSON.parse(p.features) : (p.features || []),
   modules: typeof p.modules === 'string' ? JSON.parse(p.modules) : (p.modules || []),
   testimonials: typeof p.testimonials === 'string' ? JSON.parse(p.testimonials) : (p.testimonials || []),
@@ -175,7 +176,7 @@ app.get(['/api/admin/products', '/api/admin/courses'], [authenticateToken, requi
 
 // CREATE CATALOG PRODUCT / COURSE (ADMIN)
 app.post(['/api/admin/products', '/api/admin/courses'], authenticateToken, async (req, res) => {
-  const { title, subtitle, description, category, priceInr, originalPriceInr, driveUrl, imageUrl, duration, features, bonus, modules, testimonials, faqs } = req.body;
+  const { title, subtitle, description, category, priceInr, originalPriceInr, driveUrl, imageUrl, duration, features, bonus, installationProcess, modules, testimonials, faqs } = req.body;
 
   if (!title) {
     return res.status(400).json({ message: 'Title is required' });
@@ -195,6 +196,7 @@ app.post(['/api/admin/products', '/api/admin/courses'], authenticateToken, async
     duration: duration || 'Lifetime Access',
     features: Array.isArray(features) ? features : (features ? String(features).split(',').map(f => f.trim()) : []),
     bonus: bonus || '',
+    installationProcess: installationProcess || '',
     modules: Array.isArray(modules) ? modules : [],
     testimonials: Array.isArray(testimonials) ? testimonials : [],
     faqs: Array.isArray(faqs) ? faqs : [],
@@ -204,8 +206,8 @@ app.post(['/api/admin/products', '/api/admin/courses'], authenticateToken, async
   try {
     if (isDbConnected()) {
       await query(`
-        INSERT INTO products (id, title, subtitle, description, category, price_inr, original_price_inr, is_published, drive_url, image_url, duration, features, bonus, modules, testimonials, faqs)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        INSERT INTO products (id, title, subtitle, description, category, price_inr, original_price_inr, is_published, drive_url, image_url, duration, features, bonus, installation_process, modules, testimonials, faqs)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       `, [
         newProduct.id,
         newProduct.title,
@@ -220,6 +222,7 @@ app.post(['/api/admin/products', '/api/admin/courses'], authenticateToken, async
         newProduct.duration,
         JSON.stringify(newProduct.features),
         newProduct.bonus,
+        newProduct.installationProcess,
         JSON.stringify(newProduct.modules),
         JSON.stringify(newProduct.testimonials),
         JSON.stringify(newProduct.faqs)
@@ -254,6 +257,7 @@ app.put(['/api/admin/products/:id', '/api/admin/courses/:id'], authenticateToken
       const imageUrl = req.body.imageUrl || prev.image_url;
       const duration = req.body.duration !== undefined ? req.body.duration : prev.duration;
       const bonus = req.body.bonus !== undefined ? req.body.bonus : prev.bonus;
+      const installationProcess = req.body.installationProcess !== undefined ? req.body.installationProcess : (prev.installation_process || '');
 
       const features = req.body.features !== undefined ? JSON.stringify(req.body.features) : prev.features;
       const modules = req.body.modules !== undefined ? JSON.stringify(req.body.modules) : prev.modules;
@@ -262,9 +266,9 @@ app.put(['/api/admin/products/:id', '/api/admin/courses/:id'], authenticateToken
 
       await query(`
         UPDATE products
-        SET title = $1, subtitle = $2, description = $3, category = $4, price_inr = $5, original_price_inr = $6, drive_url = $7, image_url = $8, duration = $9, bonus = $10, features = $11, modules = $12, testimonials = $13, faqs = $14, is_published = $15
-        WHERE id = $16
-      `, [title, subtitle, description, category, priceInr, originalPriceInr, driveUrl, imageUrl, duration, bonus, features, modules, testimonials, faqs, isPublished, id]);
+        SET title = $1, subtitle = $2, description = $3, category = $4, price_inr = $5, original_price_inr = $6, drive_url = $7, image_url = $8, duration = $9, bonus = $10, features = $11, modules = $12, testimonials = $13, faqs = $14, is_published = $15, installation_process = $16
+        WHERE id = $17
+      `, [title, subtitle, description, category, priceInr, originalPriceInr, driveUrl, imageUrl, duration, bonus, features, modules, testimonials, faqs, isPublished, installationProcess, id]);
 
       // Sync in-memory backup
       const memIndex = inMemoryDb.products.findIndex(p => p.id === id);

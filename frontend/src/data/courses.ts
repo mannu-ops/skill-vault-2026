@@ -47,6 +47,7 @@ export interface Course {
   projects: CourseProject[];
   faqs: Array<[string, string]>;
   bonus?: string;
+  installationProcess?: string;
   testimonials?: CourseTestimonial[];
   imageUrl?: string;
   isPublished?: boolean;

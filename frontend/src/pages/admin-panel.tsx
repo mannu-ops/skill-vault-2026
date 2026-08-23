@@ -462,6 +462,12 @@ export default function AdminPanelPage() {
     }
   }, [token]);
 
+  const [formFaqs, setFormFaqs] = useState('');
+  const [formInstallationProcess, setFormInstallationProcess] = useState('');
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
   const handleOpenModal = (course?: CourseItem) => {
     setFormError('');
     if (course) {
@@ -480,6 +486,7 @@ export default function AdminPanelPage() {
       setFormDuration(course.duration || '');
       setFormFeatures(course.features ? course.features.join(', ') : '');
       setFormBonus(course.bonus || '');
+      setFormInstallationProcess(course.installationProcess || (course as any).installation_process || '');
       setFormModules(course.modules ? course.modules.map(m => typeof m === 'string' ? m : m.title).join('\n') : '');
       setFormTestimonials(course.testimonials ? course.testimonials.map(t => `${t.name} | ${t.comment}`).join('\n') : '');
       setFormFaqs(course.faqs ? course.faqs.map(f => Array.isArray(f) ? `${f[0]} | ${f[1]}` : `${f.question} | ${f.answer}`).join('\n') : '');
@@ -499,6 +506,7 @@ export default function AdminPanelPage() {
       setFormDuration('');
       setFormFeatures('');
       setFormBonus('');
+      setFormInstallationProcess('');
       setFormModules('');
       setFormTestimonials('');
       setFormFaqs('');
@@ -544,6 +552,7 @@ export default function AdminPanelPage() {
       duration: formDuration || null,
       features: formFeatures ? formFeatures.split(',').map(s => s.trim()).filter(Boolean) : null,
       bonus: formBonus || null,
+      installationProcess: formInstallationProcess || null,
       modules: parsedModules,
       testimonials: parsedTestimonials,
       faqs: parsedFaqs
@@ -1998,6 +2007,34 @@ export default function AdminPanelPage() {
                       onChange={(e) => setFormBonus(e.target.value)}
                       className="w-full px-3.5 py-2 bg-slate-900 border border-amber-800/60 rounded-lg text-amber-200 focus:outline-none focus:border-amber-500 text-[11px]"
                     />
+                  </div>
+
+                  {/* Software Category Specific Section: Installation Process */}
+                  <div className={`p-3.5 rounded-xl border transition-all ${
+                    formCategory.toLowerCase().includes('software')
+                      ? 'bg-emerald-950/30 border-emerald-500/40 shadow-lg shadow-emerald-950/20'
+                      : 'bg-slate-900/60 border-slate-800'
+                  }`}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="font-bold text-xs flex items-center gap-1.5 text-emerald-400">
+                        🛠️ Installation Process & Setup Guide {formCategory.toLowerCase().includes('software') ? '(Recommended for Software)' : '(Optional)'}
+                      </label>
+                      {formCategory.toLowerCase().includes('software') && (
+                        <span className="text-[10px] font-bold font-mono px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-md">
+                          SOFTWARE ACTIVE
+                        </span>
+                      )}
+                    </div>
+                    <textarea
+                      rows={3}
+                      placeholder={"Step 1: Download zip from Google Drive link.\nStep 2: Extract archive & run setup.exe as Admin.\nStep 3: Paste key into key.txt file in C:\\Program Files\\..."}
+                      value={formInstallationProcess}
+                      onChange={(e) => setFormInstallationProcess(e.target.value)}
+                      className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-emerald-200 focus:outline-none focus:border-emerald-500 font-mono text-[11px] leading-relaxed"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Software customer ko delivery message aur product viewer me step-by-step installation guide dikhane ke liye yaha process likhein.
+                    </p>
                   </div>
 
                   <div>
