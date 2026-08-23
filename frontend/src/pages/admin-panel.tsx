@@ -24,7 +24,9 @@ import {
   Loader2,
   Upload,
   Sparkles,
-  Link
+  Link,
+  ShieldAlert,
+  ShieldCheck
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 
@@ -1489,7 +1491,7 @@ export default function AdminPanelPage() {
                                     }`}
                                     title={u.isDisabled ? 'Restore Customer Access' : 'Revoke Session & Disable Access'}
                                   >
-                                    <ShieldAlert className="w-3.5 h-3.5" />
+                                    {u.isDisabled ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldAlert className="w-3.5 h-3.5" />}
                                   </button>
                                 )}
                                 {u.isRegistered && (
