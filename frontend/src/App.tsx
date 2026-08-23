@@ -1184,7 +1184,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                   <BookOpen size={14} className={theme.accentText} /> {course.modulesCount} Complete Modules
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <ShieldCheck size={14} className={theme.accentText} /> Instant Email Delivery
+                  <ShieldCheck size={14} className={theme.accentText} /> Instant Delivery
                 </span>
               </div>
             </div>
@@ -1683,7 +1683,7 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
                   <ShieldCheck size={15} className="text-cyan-300" /> Verified Razorpay Checkout
                 </span>
                 <span className="flex items-center gap-2">
-                  <Clock size={15} className="text-emerald-300" /> Instant Email Delivery & Lifetime Access
+                  <Clock size={15} className="text-emerald-300" /> Instant Delivery & Lifetime Access
                 </span>
               </div>
             </div>
