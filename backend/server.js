@@ -1451,7 +1451,6 @@ Thank you for your purchase on Skill Vault! Your payment has been successfully c
 ${itemsText}
 
 --------------------------------------------------
-Log in to your account anytime on Skill Vault to view all your active purchases.
 If you have any questions, reply to this message.
 
 Best regards,
