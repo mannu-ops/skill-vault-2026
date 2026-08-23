@@ -2060,25 +2060,27 @@ function AuthHeartbeatListener() {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        if (res.status === 401) {
+        if (!res.ok || res.status === 401 || res.status === 403) {
           const data = await res.json().catch(() => ({}));
-          if (data.sessionRevoked || res.status === 401) {
+          if (data.sessionRevoked || !res.ok) {
             console.warn('🔒 [SESSION REVOKED]: Account access disabled by Administrator.');
             localStorage.removeItem('sv_user_token');
             localStorage.removeItem('sv_admin_token');
             localStorage.removeItem('sv_user');
             localStorage.removeItem('sv_admin');
             toast.error('Session Revoked: Your account access has been disabled by Administrator.');
-            setLocation('/auth?reason=revoked');
+            setTimeout(() => {
+              window.location.href = getApiUrl('/auth?reason=revoked');
+            }, 300);
           }
         }
       } catch (err) { }
     };
 
     checkSessionHeartbeat();
-    const interval = setInterval(checkSessionHeartbeat, 4000);
+    const interval = setInterval(checkSessionHeartbeat, 3000);
     return () => clearInterval(interval);
-  }, [setLocation]);
+  }, []);
 
   return null;
 }

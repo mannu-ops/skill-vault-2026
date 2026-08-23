@@ -85,9 +85,38 @@ const authenticateToken = (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Authentication token required' });
 
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, JWT_SECRET, async (err, decoded) => {
     if (err) return res.status(403).json({ message: 'Invalid or expired token' });
     req.user = decoded;
+
+    // Real-Time Session Control: Check if user account access has been revoked / disabled
+    if (req.user && req.user.id !== 'admin_root') {
+      try {
+        let isUserDisabled = false;
+        if (isDbConnected()) {
+          const uRes = await query('SELECT is_disabled FROM users WHERE id = $1 OR LOWER(email) = LOWER($2) LIMIT 1', [req.user.id, req.user.email || '']);
+          if (uRes.rows.length > 0) {
+            isUserDisabled = Boolean(uRes.rows[0].is_disabled);
+          }
+        } else {
+          const memU = inMemoryDb.users.find(u => u.id === req.user.id || (u.email && u.email.toLowerCase() === req.user.email?.toLowerCase()));
+          if (memU) {
+            isUserDisabled = Boolean(memU.is_disabled);
+          }
+        }
+
+        if (isUserDisabled) {
+          return res.status(401).json({
+            status: 'revoked',
+            sessionRevoked: true,
+            message: 'Your account access has been revoked or disabled by an Administrator.'
+          });
+        }
+      } catch (checkErr) {
+        console.error('Auth token status check error:', checkErr.message);
+      }
+    }
+
     next();
   });
 };
