@@ -1658,68 +1658,97 @@ app.post('/api/checkout/verify-payment', async (req, res) => {
 
   const paymentId = razorpay_payment_id || `pay_sim_${Date.now()}`;
 
-  // Record purchases in PostgreSQL database & clear cart
-  try {
-    if (isDbConnected()) {
-      for (const item of items) {
-        const pId = `pur_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-        const courseId = item.id || 'course-default';
-        const rawPrice = item.price !== undefined ? item.price : (item.priceInr || item.price_inr || '299');
-        const price = Math.round(parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 299);
-        const driveUrl = await getCourseDriveUrl(item);
-
-        await query(`
-          INSERT INTO purchases (id, user_email, user_name, user_phone, course_id, amount_paid_inr, payment_id, status, access_delivered, drive_url)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, 'completed', true, $8)
-        `, [pId, customerEmail || 'customer@example.com', customerName || 'Learner', customerPhone || '', courseId, price, paymentId, driveUrl]);
+  // Idempotency Check: Prevent duplicate insertions if Webhook or previous request already recorded this paymentId
+  let isAlreadyRecorded = false;
+  if (isDbConnected()) {
+    try {
+      const existing = await query('SELECT id FROM purchases WHERE payment_id = $1 LIMIT 1', [paymentId]);
+      if (existing.rows.length > 0) {
+        isAlreadyRecorded = true;
       }
-
-      // Remove ONLY purchased item IDs from user cart in PostgreSQL DB
-      if (customerEmail && items.length > 0) {
-        const purchasedIds = items.map(it => String(it.id || ''));
-        await query(`
-          UPDATE users
-          SET cart = (
-            SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
-            FROM jsonb_array_elements(cart) elem
-            WHERE elem IS NOT NULL AND NOT (elem->>'id' = ANY($2::text[]))
-          )
-          WHERE LOWER(email) = LOWER($1) AND cart IS NOT NULL AND jsonb_typeof(cart) = 'array'
-        `, [customerEmail, purchasedIds]);
-      }
-    }
-  } catch (err) {
-    console.error('PostgreSQL record purchase on checkout error:', err.message);
-  }
-
-  // Also update inMemoryDb cart
-  if (customerEmail && items.length > 0) {
-    const purchasedIds = new Set(items.map(it => String(it.id || '')));
-    const u = inMemoryDb.users.find(usr => usr.email.toLowerCase() === customerEmail.toLowerCase());
-    if (u && Array.isArray(u.cart)) {
-      u.cart = u.cart.filter(cItem => cItem && !purchasedIds.has(String(cItem.id || '')));
+    } catch (err) {
+      console.error('Database idempotency check error:', err.message);
     }
   }
 
-  // Also update inMemoryDb
-  for (const item of items) {
-    const courseId = item.id || 'course-default';
-    const rawPrice = item.price !== undefined ? item.price : (item.priceInr || item.price_inr || '299');
-    const price = Math.round(parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 299);
-    const driveUrl = await getCourseDriveUrl(item);
-    inMemoryDb.purchases.unshift({
-      id: `pur_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-      userEmail: customerEmail || 'customer@example.com',
-      userName: customerName || 'Learner',
-      userPhone: customerPhone || '',
-      courseId,
-      amountPaidInr: price,
-      paymentId,
-      status: 'completed',
-      accessDelivered: true,
-      createdAt: new Date().toISOString(),
-      driveUrl: driveUrl
-    });
+  if (!isAlreadyRecorded && inMemoryDb.purchases.some(p => p.paymentId === paymentId)) {
+    isAlreadyRecorded = true;
+  }
+
+  if (!isAlreadyRecorded) {
+    // Record purchases in PostgreSQL database & clear cart
+    try {
+      if (isDbConnected()) {
+        for (const item of items) {
+          const pId = `pur_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+          const courseId = item.id || 'course-default';
+          const rawPrice = item.price !== undefined ? item.price : (item.priceInr || item.price_inr || '299');
+          const price = Math.round(parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 299);
+          const driveUrl = await getCourseDriveUrl(item);
+
+          await query(`
+            INSERT INTO purchases (id, user_email, user_name, user_phone, course_id, amount_paid_inr, payment_id, status, access_delivered, drive_url)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'completed', true, $8)
+          `, [pId, customerEmail || 'customer@example.com', customerName || 'Learner', customerPhone || '', courseId, price, paymentId, driveUrl]);
+        }
+
+        // Remove ONLY purchased item IDs from user cart in PostgreSQL DB
+        if (customerEmail && items.length > 0) {
+          const purchasedIds = items.map(it => String(it.id || ''));
+          await query(`
+            UPDATE users
+            SET cart = (
+              SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
+              FROM jsonb_array_elements(cart) elem
+              WHERE elem IS NOT NULL AND NOT (elem->>'id' = ANY($2::text[]))
+            )
+            WHERE LOWER(email) = LOWER($1) AND cart IS NOT NULL AND jsonb_typeof(cart) = 'array'
+          `, [customerEmail, purchasedIds]);
+        }
+      }
+    } catch (err) {
+      console.error('PostgreSQL record purchase on checkout error:', err.message);
+    }
+
+    // Also update inMemoryDb cart
+    if (customerEmail && items.length > 0) {
+      const purchasedIds = new Set(items.map(it => String(it.id || '')));
+      const u = inMemoryDb.users.find(usr => usr.email.toLowerCase() === customerEmail.toLowerCase());
+      if (u && Array.isArray(u.cart)) {
+        u.cart = u.cart.filter(cItem => cItem && !purchasedIds.has(String(cItem.id || '')));
+      }
+    }
+
+    // Also update inMemoryDb
+    for (const item of items) {
+      const courseId = item.id || 'course-default';
+      const rawPrice = item.price !== undefined ? item.price : (item.priceInr || item.price_inr || '299');
+      const price = Math.round(parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 299);
+      const driveUrl = await getCourseDriveUrl(item);
+      inMemoryDb.purchases.unshift({
+        id: `pur_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+        userEmail: customerEmail || 'customer@example.com',
+        userName: customerName || 'Learner',
+        userPhone: customerPhone || '',
+        courseId,
+        amountPaidInr: price,
+        paymentId,
+        status: 'completed',
+        accessDelivered: true,
+        createdAt: new Date().toISOString(),
+        driveUrl: driveUrl
+      });
+    }
+
+    // Trigger WhatsApp notification if customer phone is provided
+    if (customerPhone) {
+      sendPurchaseWhatsApp({
+        toPhone: customerPhone,
+        customerName: customerName || 'Learner',
+        paymentId,
+        items
+      }).catch(err => console.error('Verify-payment WhatsApp execution error:', err.message));
+    }
   }
 
   // Trigger WhatsApp notification if customer phone is provided

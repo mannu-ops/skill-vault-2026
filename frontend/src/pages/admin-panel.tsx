@@ -1332,7 +1332,13 @@ export default function AdminPanelPage() {
                           </td>
                           <td className="py-4 px-4">
                             <div className="font-bold text-slate-100 text-xs">
-                              {purchase.courseId}
+                              {(() => {
+                                const foundCourse = (Array.isArray(courses) ? courses : []).find(c => c && c.id === purchase.courseId);
+                                const foundBonus = (Array.isArray(bonuses) ? bonuses : []).find(b => b && b.id === purchase.courseId);
+                                if (foundCourse) return foundCourse.title;
+                                if (foundBonus) return `${foundBonus.title} (Bonus Offer)`;
+                                return purchase.courseId;
+                              })()}
                             </div>
                             <div className="text-emerald-400 font-mono text-[11px] font-bold mt-0.5">
                               ₹{(Number(purchase?.amountPaidInr ?? (purchase as any)?.amount_paid_inr) || 0).toLocaleString()}
