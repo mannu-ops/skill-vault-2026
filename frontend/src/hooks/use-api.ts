@@ -79,6 +79,7 @@ export function useLiveCourses(): { courses: Course[]; loading: boolean; error: 
               projects: [],
               faqs: parsedFaqs,
               bonus: dbCourse.bonus || undefined,
+              installationProcess: dbCourse.installationProcess || dbCourse.installation_process || undefined,
               testimonials:
                 (dbCourse.testimonials && Array.isArray(dbCourse.testimonials) && dbCourse.testimonials.length > 0)
                   ? dbCourse.testimonials.filter((t: any) => t && (t.comment || t.name))

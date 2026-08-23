@@ -1042,6 +1042,7 @@ function useLiveCourses(): { courses: Course[]; loading: boolean } {
               projects: [],
               faqs: parsedFaqs,
               bonus: dbCourse.bonus || undefined,
+              installationProcess: dbCourse.installationProcess || dbCourse.installation_process || undefined,
               testimonials: parsedTestimonials,
               imageUrl: dbCourse.imageUrl || dbCourse.image_url || undefined,
               isPublished: dbCourse.isPublished !== undefined ? Boolean(dbCourse.isPublished) : (dbCourse.is_published !== undefined ? Boolean(dbCourse.is_published) : true),
