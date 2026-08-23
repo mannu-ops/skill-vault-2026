@@ -788,6 +788,9 @@ app.post('/api/auth/google', async (req, res) => {
         user = { id, email, name: userName, picture: picture || '', authProvider: 'google', role: 'user' };
       } else {
         const dbUser = result.rows[0];
+        if (dbUser.is_disabled) {
+          return res.status(403).json({ message: 'Your account access has been disabled by Administrator.' });
+        }
         user = { id: dbUser.id, email: dbUser.email, name: dbUser.name, picture: dbUser.picture, authProvider: dbUser.auth_provider, role: dbUser.role };
       }
 
@@ -796,6 +799,10 @@ app.post('/api/auth/google', async (req, res) => {
     }
 
     let user = inMemoryDb.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+    if (user && user.is_disabled) {
+      return res.status(403).json({ message: 'Your account access has been disabled by Administrator.' });
+    }
 
     if (!user) {
       user = {
@@ -900,6 +907,9 @@ app.post(['/api/auth/login', '/api/admin/login'], async (req, res) => {
       const result = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [email]);
       if (result.rows.length > 0) {
         const dbUser = result.rows[0];
+        if (dbUser.is_disabled) {
+          return res.status(403).json({ message: 'Your account access has been disabled by Administrator.' });
+        }
         if (dbUser.password_hash && bcrypt.compareSync(password, dbUser.password_hash)) {
           const token = jwt.sign({ id: dbUser.id, email: dbUser.email, role: dbUser.role }, JWT_SECRET, { expiresIn: '7d' });
           const formattedCart = dbUser.cart ? (typeof dbUser.cart === 'string' ? JSON.parse(dbUser.cart) : dbUser.cart) : [];
@@ -913,6 +923,9 @@ app.post(['/api/auth/login', '/api/admin/login'], async (req, res) => {
   }
 
   const user = inMemoryDb.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (user && user.is_disabled) {
+    return res.status(403).json({ message: 'Your account access has been disabled by Administrator.' });
+  }
   if (!user || !user.passwordHash || !bcrypt.compareSync(password, user.passwordHash)) {
     return res.status(401).json({ message: 'Invalid email or password' });
   }
