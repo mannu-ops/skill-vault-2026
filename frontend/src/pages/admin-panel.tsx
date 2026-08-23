@@ -82,6 +82,66 @@ const CATEGORIES = [
   'Blog'
 ];
 
+function AdminPagination({
+  currentPage,
+  totalItems,
+  itemsPerPage,
+  onPageChange
+}: {
+  currentPage: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+}) {
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  if (totalPages <= 1) return null;
+
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-slate-800 bg-[#0d0f19] text-xs font-medium text-slate-400">
+      <div>
+        Showing <span className="font-bold text-slate-200">{startItem}</span> to <span className="font-bold text-slate-200">{endItem}</span> of <span className="font-bold text-slate-200">{totalItems}</span> entries
+      </div>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+        >
+          Previous
+        </button>
+
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+          <button
+            key={pageNum}
+            type="button"
+            onClick={() => onPageChange(pageNum)}
+            className={`px-3 py-1.5 rounded-lg border font-mono transition-colors cursor-pointer ${
+              currentPage === pageNum
+                ? 'bg-violet-600 border-violet-500 text-white font-bold shadow-md shadow-violet-600/30'
+                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+            }`}
+          >
+            {pageNum}
+          </button>
+        ))}
+
+        <button
+          type="button"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPanelPage() {
   const [, setLocation] = useLocation();
   const [token, setToken] = useState<string>(() => localStorage.getItem('sv_admin_token') || '');
@@ -144,6 +204,12 @@ export default function AdminPanelPage() {
   const [buyerSearch, setBuyerSearch] = useState('');
   const [buyerFilterType, setBuyerFilterType] = useState<'all' | 'guest' | 'registered'>('all');
   const [userSearch, setUserSearch] = useState('');
+
+  // Pagination State
+  const [coursesPage, setCoursesPage] = useState(1);
+  const [purchasesPage, setPurchasesPage] = useState(1);
+  const [usersPage, setUsersPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -960,6 +1026,18 @@ export default function AdminPanelPage() {
     });
   }, [combinedCustomers, userSearch]);
 
+  const paginatedCourses = useMemo(() => {
+    return filteredCourses.slice((coursesPage - 1) * ITEMS_PER_PAGE, coursesPage * ITEMS_PER_PAGE);
+  }, [filteredCourses, coursesPage]);
+
+  const paginatedPurchases = useMemo(() => {
+    return filteredPurchases.slice((purchasesPage - 1) * ITEMS_PER_PAGE, purchasesPage * ITEMS_PER_PAGE);
+  }, [filteredPurchases, purchasesPage]);
+
+  const paginatedCustomers = useMemo(() => {
+    return filteredCombinedCustomers.slice((usersPage - 1) * ITEMS_PER_PAGE, usersPage * ITEMS_PER_PAGE);
+  }, [filteredCombinedCustomers, usersPage]);
+
   // LOGIN SCREEN RENDER
   if (!token) {
     return (
@@ -1246,7 +1324,7 @@ export default function AdminPanelPage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredCourses.map((course) => (
+                      paginatedCourses.map((course) => (
                         <tr key={course.id} className="hover:bg-slate-900/40 transition-colors">
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
@@ -1331,6 +1409,12 @@ export default function AdminPanelPage() {
                   </tbody>
                 </table>
               </div>
+              <AdminPagination
+                currentPage={coursesPage}
+                totalItems={filteredCourses.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={setCoursesPage}
+              />
             </div>
           </div>
         )}
@@ -1386,7 +1470,7 @@ export default function AdminPanelPage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredPurchases.map((purchase) => (
+                      paginatedPurchases.map((purchase) => (
                         <tr key={purchase.id} className="hover:bg-slate-900/40 transition-colors">
                           <td className="py-4 px-4 font-mono text-violet-400 text-xs font-bold">
                             {purchase.paymentId || purchase.id.slice(0, 12)}
@@ -1435,6 +1519,12 @@ export default function AdminPanelPage() {
                   </tbody>
                 </table>
               </div>
+              <AdminPagination
+                currentPage={purchasesPage}
+                totalItems={filteredPurchases.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={setPurchasesPage}
+              />
             </div>
           </div>
         )}
@@ -1479,7 +1569,7 @@ export default function AdminPanelPage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredCombinedCustomers.map((u) => {
+                      paginatedCustomers.map((u) => {
                         const userPurchases = purchases.filter(p => p && p.userEmail && u.email && p.userEmail.toLowerCase().trim() === u.email.toLowerCase().trim());
                         return (
                           <tr key={u.id || u.email} className="hover:bg-slate-900/40 transition-colors">
@@ -1557,6 +1647,12 @@ export default function AdminPanelPage() {
                   </tbody>
                 </table>
               </div>
+              <AdminPagination
+                currentPage={usersPage}
+                totalItems={filteredCombinedCustomers.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={setUsersPage}
+              />
             </div>
           </div>
         )}
