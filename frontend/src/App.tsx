@@ -39,7 +39,8 @@ import {
   LogOut,
   LogIn,
   UserPlus,
-  ShoppingCart
+  ShoppingCart,
+  ShieldAlert
 } from 'lucide-react';
 import { Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
 import { COURSES, type Course, type CourseModule } from './data/courses';
@@ -2044,20 +2045,64 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
 }
 
-function AuthHeartbeatListener() {
-  const [, setLocation] = useLocation();
+function RevokedAccessModal() {
+  const [isOpen, setIsOpen] = useState(() => {
+    return window.location.search.includes('revoked=true');
+  });
 
+  const handleClose = () => {
+    setIsOpen(false);
+    // Remove ?revoked=true from URL cleanly without reloading
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-[#0d0f19] border border-rose-500/30 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden relative border-t-2 border-t-rose-500">
+        <div className="p-6 text-center space-y-4">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center shadow-lg shadow-rose-500/10">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-1">
+            <h3 className="text-xl font-extrabold text-white">Account Access Revoked</h3>
+            <p className="text-xs text-rose-300 font-medium">
+              Your 24/7 active session has been terminated by Administrator.
+            </p>
+          </div>
+
+          <div className="p-3.5 bg-slate-900/90 rounded-xl border border-slate-800 text-left text-xs space-y-1.5 text-slate-300 leading-relaxed">
+            <p>🔒 <strong>Access Status:</strong> <span className="text-rose-400 font-bold">DISABLED / REVOKED</span></p>
+            <p className="text-slate-400 text-[11px]">
+              Aapka account access Administrator dwara disable kar diya gaya hai. Aapko har ek device se automatic logout kar diya gaya hai.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleClose}
+            className="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer shadow-lg shadow-rose-600/20"
+          >
+            I Understand
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AuthHeartbeatListener() {
   useEffect(() => {
     const checkSessionHeartbeat = async () => {
       const userToken = localStorage.getItem('sv_user_token');
-      const adminToken = localStorage.getItem('sv_admin_token');
-      const token = userToken || adminToken;
-
-      if (!token) return;
+      if (!userToken) return;
 
       try {
         const res = await fetch(getApiUrl('/api/auth/heartbeat'), {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${userToken}` }
         });
 
         if (!res.ok || res.status === 401 || res.status === 403) {
@@ -2065,13 +2110,11 @@ function AuthHeartbeatListener() {
           if (data.sessionRevoked || !res.ok) {
             console.warn('🔒 [SESSION REVOKED]: Account access disabled by Administrator.');
             localStorage.removeItem('sv_user_token');
-            localStorage.removeItem('sv_admin_token');
+            localStorage.removeItem('sv_user_data');
             localStorage.removeItem('sv_user');
-            localStorage.removeItem('sv_admin');
-            toast.error('Session Revoked: Your account access has been disabled by Administrator.');
-            setTimeout(() => {
-              window.location.href = getApiUrl('/auth?reason=revoked');
-            }, 300);
+            
+            const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+            window.location.href = `${baseUrl}/?revoked=true`;
           }
         }
       } catch (err) { }
@@ -2097,6 +2140,7 @@ export default function App() {
         <AnimationProvider mode="wait">
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
             <AuthHeartbeatListener />
+            <RevokedAccessModal />
             <RoutedErrorBoundary>
               <Router />
             </RoutedErrorBoundary>
