@@ -143,6 +143,8 @@ export async function initDb() {
 
     // Ensure columns exist on existing tables
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS cart JSONB DEFAULT '[]'::jsonb;`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_disabled BOOLEAN DEFAULT FALSE;`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version INTEGER DEFAULT 1;`);
 
     // 2. Create Products Table with full modules, testimonials, faqs fields
     await client.query(`

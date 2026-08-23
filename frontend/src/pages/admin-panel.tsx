@@ -655,6 +655,31 @@ export default function AdminPanelPage() {
     }
   };
 
+  // Toggle User Access / Revoke Active Session Handler
+  const handleToggleUserAccess = async (userId: string, currentStatus?: boolean) => {
+    if (!userId) return;
+    const actionLabel = currentStatus ? 'restore access for' : 'revoke active session & disable access for';
+    if (!window.confirm(`Are you sure you want to ${actionLabel} this user?`)) return;
+
+    try {
+      const authHeaders = { Authorization: `Bearer ${token}` };
+      const res = await safeFetch(`/api/admin/users/${encodeURIComponent(userId)}/toggle-access`, {
+        method: 'POST',
+        headers: authHeaders
+      });
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || (currentStatus ? 'User access restored.' : 'User session revoked & access disabled!'));
+        await fetchData();
+      } else {
+        alert('Failed to update user access status.');
+      }
+    } catch (err: any) {
+      console.error('Failed to toggle user access:', err);
+      alert('Network error updating user status.');
+    }
+  };
+
   // Delete Purchase Log Handler
   const handleDeletePurchase = async (purchaseId: string) => {
     if (!purchaseId || !window.confirm('Are you sure you want to delete this purchase sales record?')) return;
@@ -850,6 +875,7 @@ export default function AdminPanelPage() {
           name: u.name || 'Registered Customer',
           phone: u.phone || 'N/A',
           isRegistered: true,
+          isDisabled: u.isDisabled || u.is_disabled || false,
           hasPassword: u.hasPassword,
           createdAt: u.createdAt
         });
@@ -1453,6 +1479,19 @@ export default function AdminPanelPage() {
                             </td>
                             <td className="py-4 px-4 text-right">
                               <div className="inline-flex items-center gap-1.5 justify-end">
+                                {u.isRegistered && (
+                                  <button
+                                    onClick={() => handleToggleUserAccess(u.id, u.isDisabled)}
+                                    className={`p-1.5 rounded border transition-colors cursor-pointer ${
+                                      u.isDisabled
+                                        ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/40'
+                                        : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30'
+                                    }`}
+                                    title={u.isDisabled ? 'Restore Customer Access' : 'Revoke Session & Disable Access'}
+                                  >
+                                    <ShieldAlert className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                                 {u.isRegistered && (
                                   <button
                                     onClick={() => handleOpenUserModal(u)}

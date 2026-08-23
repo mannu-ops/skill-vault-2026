@@ -343,13 +343,54 @@ app.delete(['/api/admin/products/:id', '/api/admin/courses/:id'], authenticateTo
   res.json({ message: 'Product deleted successfully and removed from user carts' });
 });
 
+// BACKGROUND HEARTBEAT & REAL-TIME AUTHORIZATION CHECK
+app.get('/api/auth/heartbeat', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const userEmail = req.user?.email;
+    let targetUser = null;
+
+    if (isDbConnected()) {
+      const dbRes = await query('SELECT id, email, role, is_disabled FROM users WHERE id = $1 OR LOWER(email) = LOWER($2) LIMIT 1', [userId, userEmail]);
+      if (dbRes.rows.length > 0) {
+        targetUser = dbRes.rows[0];
+      }
+    }
+
+    if (!targetUser) {
+      targetUser = inMemoryDb.users.find(u => u.id === userId || u.email.toLowerCase() === userEmail?.toLowerCase());
+    }
+
+    if (!targetUser || targetUser.is_disabled) {
+      return res.status(401).json({
+        status: 'revoked',
+        sessionRevoked: true,
+        message: 'Your account access has been revoked or disabled by an Administrator.'
+      });
+    }
+
+    return res.json({
+      status: 'active',
+      sessionRevoked: false,
+      user: {
+        id: targetUser.id,
+        email: targetUser.email,
+        role: targetUser.role
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Heartbeat check error', message: err.message });
+  }
+});
+
 // GET ALL USERS (ADMIN)
 app.get('/api/admin/users', authenticateToken, async (req, res) => {
   try {
     if (isDbConnected()) {
-      const result = await query('SELECT id, email, name, phone, picture, role, created_at FROM users ORDER BY created_at DESC');
+      const result = await query('SELECT id, email, name, phone, picture, role, is_disabled, created_at FROM users ORDER BY created_at DESC');
       const formatted = result.rows.map(u => ({
         ...u,
+        isDisabled: u.is_disabled ?? false,
         createdAt: u.created_at
       }));
       return res.json({ users: formatted });
@@ -358,8 +399,43 @@ app.get('/api/admin/users', authenticateToken, async (req, res) => {
     console.error('PostgreSQL fetch users error:', err.message);
   }
 
-  const sanitized = inMemoryDb.users.map(({ passwordHash, ...u }) => u);
+  const sanitized = inMemoryDb.users.map(({ passwordHash, ...u }) => ({
+    ...u,
+    isDisabled: u.is_disabled ?? false
+  }));
   res.json({ users: sanitized });
+});
+
+// TOGGLE USER ACCESS / REVOKE SESSION (ADMIN)
+app.post('/api/admin/users/:id/toggle-access', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  let isDisabled = false;
+
+  try {
+    if (isDbConnected()) {
+      const userRes = await query('SELECT is_disabled FROM users WHERE id = $1', [id]);
+      if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+
+      isDisabled = !(userRes.rows[0].is_disabled ?? false);
+      await query('UPDATE users SET is_disabled = $1, session_version = session_version + 1 WHERE id = $2', [isDisabled, id]);
+    }
+  } catch (err) {
+    console.error('PostgreSQL toggle user access error:', err.message);
+  }
+
+  const memUser = inMemoryDb.users.find(u => u.id === id);
+  if (memUser) {
+    memUser.is_disabled = !(memUser.is_disabled ?? false);
+    memUser.session_version = (memUser.session_version || 1) + 1;
+    isDisabled = memUser.is_disabled;
+  }
+
+  console.log(`🔒 [SESSION CONTROL]: User ${id} access set to isDisabled=${isDisabled}`);
+  return res.json({
+    success: true,
+    isDisabled,
+    message: isDisabled ? 'User access revoked & active sessions invalidated.' : 'User access restored successfully.'
+  });
 });
 
 // UPDATE USER (ADMIN)

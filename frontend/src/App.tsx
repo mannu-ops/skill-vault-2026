@@ -2044,6 +2044,45 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
 }
 
+function AuthHeartbeatListener() {
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    const checkSessionHeartbeat = async () => {
+      const userToken = localStorage.getItem('sv_user_token');
+      const adminToken = localStorage.getItem('sv_admin_token');
+      const token = userToken || adminToken;
+
+      if (!token) return;
+
+      try {
+        const res = await fetch(getApiUrl('/api/auth/heartbeat'), {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (res.status === 401) {
+          const data = await res.json().catch(() => ({}));
+          if (data.sessionRevoked || res.status === 401) {
+            console.warn('🔒 [SESSION REVOKED]: Account access disabled by Administrator.');
+            localStorage.removeItem('sv_user_token');
+            localStorage.removeItem('sv_admin_token');
+            localStorage.removeItem('sv_user');
+            localStorage.removeItem('sv_admin');
+            toast.error('Session Revoked: Your account access has been disabled by Administrator.');
+            setLocation('/auth?reason=revoked');
+          }
+        }
+      } catch (err) { }
+    };
+
+    checkSessionHeartbeat();
+    const interval = setInterval(checkSessionHeartbeat, 4000);
+    return () => clearInterval(interval);
+  }, [setLocation]);
+
+  return null;
+}
+
 export default function App() {
   useEffect(() => {
     // Pre-warm backend API to wake up Render on user visit
@@ -2055,6 +2094,7 @@ export default function App() {
       <TooltipProvider>
         <AnimationProvider mode="wait">
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+            <AuthHeartbeatListener />
             <RoutedErrorBoundary>
               <Router />
             </RoutedErrorBoundary>
