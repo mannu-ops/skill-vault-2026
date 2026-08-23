@@ -80,6 +80,11 @@ export function useLiveCourses(): { courses: Course[]; loading: boolean; error: 
               faqs: parsedFaqs,
               bonus: dbCourse.bonus || undefined,
               installationProcess: dbCourse.installationProcess || dbCourse.installation_process || undefined,
+              galleryImages: (dbCourse.galleryImages && Array.isArray(dbCourse.galleryImages) && dbCourse.galleryImages.length > 0)
+                ? dbCourse.galleryImages
+                : ((dbCourse.gallery_images && Array.isArray(dbCourse.gallery_images) && dbCourse.gallery_images.length > 0)
+                  ? dbCourse.gallery_images
+                  : (typeof dbCourse.gallery_images === 'string' ? JSON.parse(dbCourse.gallery_images) : undefined)),
               testimonials:
                 (dbCourse.testimonials && Array.isArray(dbCourse.testimonials) && dbCourse.testimonials.length > 0)
                   ? dbCourse.testimonials.filter((t: any) => t && (t.comment || t.name))

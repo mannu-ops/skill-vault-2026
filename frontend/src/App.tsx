@@ -40,7 +40,8 @@ import {
   LogIn,
   UserPlus,
   ShoppingCart,
-  ShieldAlert
+  ShieldAlert,
+  Maximize2
 } from 'lucide-react';
 import { Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
 import { COURSES, type Course, type CourseModule } from './data/courses';
@@ -1036,6 +1037,11 @@ function useLiveCourses(): { courses: Course[]; loading: boolean } {
               faqs: parsedFaqs,
               bonus: dbCourse.bonus || undefined,
               installationProcess: dbCourse.installationProcess || dbCourse.installation_process || undefined,
+              galleryImages: (dbCourse.galleryImages && Array.isArray(dbCourse.galleryImages) && dbCourse.galleryImages.length > 0)
+                ? dbCourse.galleryImages
+                : ((dbCourse.gallery_images && Array.isArray(dbCourse.gallery_images) && dbCourse.gallery_images.length > 0)
+                  ? dbCourse.gallery_images
+                  : (typeof dbCourse.gallery_images === 'string' ? JSON.parse(dbCourse.gallery_images) : undefined)),
               testimonials: parsedTestimonials,
               imageUrl: dbCourse.imageUrl || dbCourse.image_url || undefined,
               isPublished: dbCourse.isPublished !== undefined ? Boolean(dbCourse.isPublished) : (dbCourse.is_published !== undefined ? Boolean(dbCourse.is_published) : true),
@@ -1063,6 +1069,8 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
   const [paymentState, setPaymentState] = useState<PaymentState>('idle');
   const [openModule, setOpenModule] = useState<number>(0);
   const [openFaq, setOpenFaq] = useState<number>(0);
+  const [selectedGalleryImg, setSelectedGalleryImg] = useState<string | null>(null);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const { courses: allCourses, loading } = useLiveCourses();
   const authLocal = useAuth();
   const auth = propAuth || authLocal;
@@ -1278,7 +1286,85 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                     {course.installationProcess || (course as any).installation_process}
                   </div>
                 </div>
-              )}
+              {/* Product Photo Gallery (Only displays if image links exist) */}
+              {(() => {
+                const rawGallery = course.galleryImages || (course as any).gallery_images;
+                const galleryList: string[] = Array.isArray(rawGallery)
+                  ? rawGallery
+                  : (typeof rawGallery === 'string' ? (JSON.parse(rawGallery || '[]') || []) : []);
+
+                if (!galleryList || galleryList.length === 0) return null;
+                const currentImg = selectedGalleryImg || galleryList[0];
+
+                return (
+                  <div className="rounded-2xl border border-cyan-500/30 bg-[#0c0e17] p-6 sm:p-8 space-y-6">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                      <div>
+                        <p className="eyebrow text-cyan-400">Visual Tour</p>
+                        <h2 className="font-display text-2xl font-semibold text-slate-100 flex items-center gap-2">
+                          📸 Product Screenshots & Visual Gallery
+                        </h2>
+                      </div>
+                      <span className="text-xs font-mono-custom font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1 rounded-full">
+                        {galleryList.length} Photo{galleryList.length === 1 ? '' : 's'}
+                      </span>
+                    </div>
+
+                    {/* Main Featured Image Preview */}
+                    <div className="relative group overflow-hidden rounded-2xl border border-slate-800 bg-[#07080e] aspect-video flex items-center justify-center shadow-xl">
+                      <img
+                        src={currentImg}
+                        alt="Product Gallery Preview"
+                        className="w-full h-full object-contain cursor-zoom-in transition-transform duration-500 group-hover:scale-105"
+                        onClick={() => { setSelectedGalleryImg(currentImg); setIsLightboxOpen(true); }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedGalleryImg(currentImg); setIsLightboxOpen(true); }}
+                        className="absolute bottom-3 right-3 bg-slate-950/80 hover:bg-slate-900 text-cyan-300 border border-cyan-500/40 text-xs font-bold font-mono-custom px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
+                      >
+                        <Maximize2 className="w-3.5 h-3.5" /> Fullscreen View
+                      </button>
+                    </div>
+
+                    {/* Thumbnails Strip */}
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 pt-2">
+                      {galleryList.map((imgUrl, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setSelectedGalleryImg(imgUrl)}
+                          className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-[#07080e] ${
+                            currentImg === imgUrl
+                              ? 'border-cyan-400 ring-2 ring-cyan-500/50 scale-105'
+                              : 'border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-600'
+                          }`}
+                        >
+                          <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Fullscreen Lightbox Modal */}
+                    {isLightboxOpen && selectedGalleryImg && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4 backdrop-blur-xl animate-in fade-in duration-200">
+                        <button
+                          type="button"
+                          onClick={() => setIsLightboxOpen(false)}
+                          className="absolute top-5 right-5 text-slate-400 hover:text-white p-2.5 bg-slate-900/80 rounded-full border border-slate-800 cursor-pointer transition-colors"
+                        >
+                          <X className="w-6 h-6" />
+                        </button>
+                        <img
+                          src={selectedGalleryImg}
+                          alt="Fullscreen Product View"
+                          className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl border border-cyan-500/30"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               {course.bonus && (
                 <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-6 sm:p-8">
                   <div className="flex items-center gap-2 text-amber-300 font-mono-custom text-xs font-bold uppercase tracking-wider mb-2">

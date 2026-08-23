@@ -74,6 +74,7 @@ const formatProduct = (p) => ({
   driveUrl: p.drive_url ?? p.driveUrl ?? '',
   imageUrl: p.image_url ?? p.imageUrl ?? '',
   installationProcess: p.installation_process ?? p.installationProcess ?? '',
+  galleryImages: typeof p.gallery_images === 'string' ? JSON.parse(p.gallery_images) : (Array.isArray(p.gallery_images) ? p.gallery_images : (Array.isArray(p.galleryImages) ? p.galleryImages : [])),
   features: typeof p.features === 'string' ? JSON.parse(p.features) : (p.features || []),
   modules: typeof p.modules === 'string' ? JSON.parse(p.modules) : (p.modules || []),
   testimonials: typeof p.testimonials === 'string' ? JSON.parse(p.testimonials) : (p.testimonials || []),
@@ -176,11 +177,15 @@ app.get(['/api/admin/products', '/api/admin/courses'], [authenticateToken, requi
 
 // CREATE CATALOG PRODUCT / COURSE (ADMIN)
 app.post(['/api/admin/products', '/api/admin/courses'], authenticateToken, async (req, res) => {
-  const { title, subtitle, description, category, priceInr, originalPriceInr, driveUrl, imageUrl, duration, features, bonus, installationProcess, modules, testimonials, faqs } = req.body;
+  const { title, subtitle, description, category, priceInr, originalPriceInr, driveUrl, imageUrl, duration, features, bonus, installationProcess, galleryImages, modules, testimonials, faqs } = req.body;
 
   if (!title) {
     return res.status(400).json({ message: 'Title is required' });
   }
+
+  const parsedGallery = Array.isArray(galleryImages)
+    ? galleryImages
+    : (typeof galleryImages === 'string' ? galleryImages.split('\n').map(u => u.trim()).filter(Boolean) : []);
 
   const newProduct = {
     id: req.body.id || `product_${Date.now()}`,
@@ -197,6 +202,7 @@ app.post(['/api/admin/products', '/api/admin/courses'], authenticateToken, async
     features: Array.isArray(features) ? features : (features ? String(features).split(',').map(f => f.trim()) : []),
     bonus: bonus || '',
     installationProcess: installationProcess || '',
+    galleryImages: parsedGallery,
     modules: Array.isArray(modules) ? modules : [],
     testimonials: Array.isArray(testimonials) ? testimonials : [],
     faqs: Array.isArray(faqs) ? faqs : [],
@@ -206,8 +212,8 @@ app.post(['/api/admin/products', '/api/admin/courses'], authenticateToken, async
   try {
     if (isDbConnected()) {
       await query(`
-        INSERT INTO products (id, title, subtitle, description, category, price_inr, original_price_inr, is_published, drive_url, image_url, duration, features, bonus, installation_process, modules, testimonials, faqs)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        INSERT INTO products (id, title, subtitle, description, category, price_inr, original_price_inr, is_published, drive_url, image_url, duration, features, bonus, installation_process, gallery_images, modules, testimonials, faqs)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       `, [
         newProduct.id,
         newProduct.title,
@@ -223,6 +229,7 @@ app.post(['/api/admin/products', '/api/admin/courses'], authenticateToken, async
         JSON.stringify(newProduct.features),
         newProduct.bonus,
         newProduct.installationProcess,
+        JSON.stringify(newProduct.galleryImages),
         JSON.stringify(newProduct.modules),
         JSON.stringify(newProduct.testimonials),
         JSON.stringify(newProduct.faqs)
@@ -259,16 +266,21 @@ app.put(['/api/admin/products/:id', '/api/admin/courses/:id'], authenticateToken
       const bonus = req.body.bonus !== undefined ? req.body.bonus : prev.bonus;
       const installationProcess = req.body.installationProcess !== undefined ? req.body.installationProcess : (prev.installation_process || '');
 
+      const parsedGallery = req.body.galleryImages !== undefined
+        ? (Array.isArray(req.body.galleryImages) ? req.body.galleryImages : (typeof req.body.galleryImages === 'string' ? req.body.galleryImages.split('\n').map(u => u.trim()).filter(Boolean) : []))
+        : (typeof prev.gallery_images === 'string' ? JSON.parse(prev.gallery_images) : (prev.gallery_images || []));
+
       const features = req.body.features !== undefined ? JSON.stringify(req.body.features) : prev.features;
       const modules = req.body.modules !== undefined ? JSON.stringify(req.body.modules) : prev.modules;
       const testimonials = req.body.testimonials !== undefined ? JSON.stringify(req.body.testimonials) : prev.testimonials;
       const faqs = req.body.faqs !== undefined ? JSON.stringify(req.body.faqs) : prev.faqs;
+      const galleryImages = JSON.stringify(parsedGallery);
 
       await query(`
         UPDATE products
-        SET title = $1, subtitle = $2, description = $3, category = $4, price_inr = $5, original_price_inr = $6, drive_url = $7, image_url = $8, duration = $9, bonus = $10, features = $11, modules = $12, testimonials = $13, faqs = $14, is_published = $15, installation_process = $16
-        WHERE id = $17
-      `, [title, subtitle, description, category, priceInr, originalPriceInr, driveUrl, imageUrl, duration, bonus, features, modules, testimonials, faqs, isPublished, installationProcess, id]);
+        SET title = $1, subtitle = $2, description = $3, category = $4, price_inr = $5, original_price_inr = $6, drive_url = $7, image_url = $8, duration = $9, bonus = $10, features = $11, modules = $12, testimonials = $13, faqs = $14, is_published = $15, installation_process = $16, gallery_images = $17
+        WHERE id = $18
+      `, [title, subtitle, description, category, priceInr, originalPriceInr, driveUrl, imageUrl, duration, bonus, features, modules, testimonials, faqs, isPublished, installationProcess, galleryImages, id]);
 
       // Sync in-memory backup
       const memIndex = inMemoryDb.products.findIndex(p => p.id === id);
@@ -279,7 +291,8 @@ app.put(['/api/admin/products/:id', '/api/admin/courses/:id'], authenticateToken
           id,
           isPublished,
           priceInr,
-          originalPriceInr
+          originalPriceInr,
+          galleryImages: parsedGallery
         };
       }
 
@@ -288,6 +301,7 @@ app.put(['/api/admin/products/:id', '/api/admin/courses/:id'], authenticateToken
         price_inr: priceInr, original_price_inr: originalPriceInr,
         drive_url: driveUrl, image_url: imageUrl, duration, bonus,
         installation_process: installationProcess,
+        gallery_images: parsedGallery,
         features, modules, testimonials, faqs, is_published: isPublished
       });
 

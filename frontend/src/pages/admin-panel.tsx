@@ -461,7 +461,13 @@ export default function AdminPanelPage() {
     if (token) {
       fetchData();
     }
-  }, [token]);
+  }, []);
+  const [formFaqs, setFormFaqs] = useState('');
+  const [formInstallationProcess, setFormInstallationProcess] = useState('');
+  const [formGalleryImages, setFormGalleryImages] = useState('');
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const handleOpenModal = (course?: CourseItem) => {
     setFormError('');
@@ -482,6 +488,8 @@ export default function AdminPanelPage() {
       setFormFeatures(course.features ? course.features.join(', ') : '');
       setFormBonus(course.bonus || '');
       setFormInstallationProcess(course.installationProcess || (course as any).installation_process || '');
+      const gallery = (course as any).galleryImages || (course as any).gallery_images;
+      setFormGalleryImages(Array.isArray(gallery) ? gallery.join('\n') : (typeof gallery === 'string' ? JSON.parse(gallery).join('\n') : ''));
       setFormModules(course.modules ? course.modules.map(m => typeof m === 'string' ? m : m.title).join('\n') : '');
       setFormTestimonials(course.testimonials ? course.testimonials.map(t => `${t.name} | ${t.comment}`).join('\n') : '');
       setFormFaqs(course.faqs ? course.faqs.map(f => Array.isArray(f) ? `${f[0]} | ${f[1]}` : `${f.question} | ${f.answer}`).join('\n') : '');
@@ -502,6 +510,7 @@ export default function AdminPanelPage() {
       setFormFeatures('');
       setFormBonus('');
       setFormInstallationProcess('');
+      setFormGalleryImages('');
       setFormModules('');
       setFormTestimonials('');
       setFormFaqs('');
@@ -532,6 +541,10 @@ export default function AdminPanelPage() {
       }).filter(f => f.question && f.answer)
       : null;
 
+    const parsedGallery = formGalleryImages
+      ? formGalleryImages.split('\n').map(u => u.trim()).filter(Boolean)
+      : null;
+
     const payload = {
       id: formId.toLowerCase().trim().replace(/\s+/g, '-'),
       title: formTitle,
@@ -548,6 +561,7 @@ export default function AdminPanelPage() {
       features: formFeatures ? formFeatures.split(',').map(s => s.trim()).filter(Boolean) : null,
       bonus: formBonus || null,
       installationProcess: formInstallationProcess || null,
+      galleryImages: parsedGallery,
       modules: parsedModules,
       testimonials: parsedTestimonials,
       faqs: parsedFaqs
@@ -2027,8 +2041,22 @@ export default function AdminPanelPage() {
                       onChange={(e) => setFormInstallationProcess(e.target.value)}
                       className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-emerald-200 focus:outline-none focus:border-emerald-500 font-mono text-[11px] leading-relaxed"
                     />
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      Software customer ko delivery message aur product viewer me step-by-step installation guide dikhane ke liye yaha process likhein.
+                  </div>
+
+                  {/* Photo Gallery Screenshots (Optional - Conditional Rendering) */}
+                  <div className="p-3.5 bg-slate-900/80 border border-slate-800 rounded-xl space-y-2">
+                    <label className="block font-bold text-xs text-cyan-300 flex items-center gap-1.5">
+                      🖼️ Product Screenshots / Photo Gallery (Image URLs - 1 per line)
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder={"https://example.com/screenshot1.jpg\nhttps://example.com/screenshot2.jpg\nhttps://example.com/demo.png"}
+                      value={formGalleryImages}
+                      onChange={(e) => setFormGalleryImages(e.target.value)}
+                      className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-cyan-200 focus:outline-none focus:border-cyan-500 font-mono text-[11px] leading-relaxed"
+                    />
+                    <p className="text-[10px] text-slate-400">
+                      ⚡ Jin products me aap image links daalenge, sirf unhi me product page par photo gallery section automatic render hoga!
                     </p>
                   </div>
 
