@@ -442,17 +442,17 @@ app.post('/api/admin/users/:id/toggle-access', authenticateToken, requireAdmin, 
 
   try {
     if (isDbConnected()) {
-      const userRes = await query('SELECT is_disabled FROM users WHERE id = $1', [id]);
+      const userRes = await query('SELECT is_disabled FROM users WHERE id = $1 OR LOWER(email) = LOWER($1)', [id]);
       if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
       isDisabled = !(userRes.rows[0].is_disabled ?? false);
-      await query('UPDATE users SET is_disabled = $1, session_version = session_version + 1 WHERE id = $2', [isDisabled, id]);
+      await query('UPDATE users SET is_disabled = $1, session_version = COALESCE(session_version, 1) + 1 WHERE id = $2 OR LOWER(email) = LOWER($2)', [isDisabled, id]);
     }
   } catch (err) {
     console.error('PostgreSQL toggle user access error:', err.message);
   }
 
-  const memUser = inMemoryDb.users.find(u => u.id === id);
+  const memUser = inMemoryDb.users.find(u => u.id === id || (u.email && u.email.toLowerCase() === id.toLowerCase()));
   if (memUser) {
     memUser.is_disabled = !(memUser.is_disabled ?? false);
     memUser.session_version = (memUser.session_version || 1) + 1;
@@ -993,9 +993,17 @@ app.get(['/api/auth/me', '/api/purchases'], async (req, res) => {
     if (isDbConnected()) {
       let userRes = { rows: [] };
       if (userId) {
-        userRes = await query('SELECT id, email, name, phone, picture, role, cart, created_at FROM users WHERE id = $1', [userId]);
+        userRes = await query('SELECT id, email, name, phone, picture, role, is_disabled, cart, created_at FROM users WHERE id = $1 OR LOWER(email) = LOWER($2)', [userId, userEmail || '']);
       } else if (userEmail) {
-        userRes = await query('SELECT id, email, name, phone, picture, role, cart, created_at FROM users WHERE LOWER(email) = LOWER($1)', [userEmail]);
+        userRes = await query('SELECT id, email, name, phone, picture, role, is_disabled, cart, created_at FROM users WHERE LOWER(email) = LOWER($1)', [userEmail]);
+      }
+
+      if (userRes.rows.length > 0 && userRes.rows[0].is_disabled) {
+        return res.status(401).json({
+          status: 'revoked',
+          sessionRevoked: true,
+          message: 'Your account access has been revoked or disabled by an Administrator.'
+        });
       }
 
       const queryEmail = userEmail || (userRes.rows[0] && userRes.rows[0].email);
