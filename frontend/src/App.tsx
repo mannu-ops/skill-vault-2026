@@ -1286,6 +1286,8 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                     {course.installationProcess || (course as any).installation_process}
                   </div>
                 </div>
+              )}
+
               {/* Product Photo Gallery (Only displays if image links exist) */}
               {(() => {
                 const rawGallery = course.galleryImages || (course as any).gallery_images;
