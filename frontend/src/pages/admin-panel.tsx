@@ -200,6 +200,7 @@ export default function AdminPanelPage() {
   const [formFaqs, setFormFaqs] = useState('');
   const [formInstallationProcess, setFormInstallationProcess] = useState('');
   const [formGalleryImages, setFormGalleryImages] = useState('');
+  const [activeFormTab, setActiveFormTab] = useState<'basic' | 'access' | 'software' | 'content'>('basic');
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -466,6 +467,7 @@ export default function AdminPanelPage() {
 
   const handleOpenModal = (course?: CourseItem) => {
     setFormError('');
+    setActiveFormTab('basic');
     if (course) {
       setEditingCourse(course);
       setFormId(course.id);
@@ -1780,334 +1782,423 @@ export default function AdminPanelPage() {
 
       {/* Add / Edit Product Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-          <div className="bg-[#0d0f19] border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[92vh] overflow-y-auto shadow-2xl flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#0d0f19] border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between p-4 px-6 border-b border-slate-800 bg-[#0d0f19]/95 backdrop-blur-md">
-              <h3 className="font-bold text-base text-white flex items-center gap-2">
-                <span className="size-2 rounded-full bg-violet-400" />
-                {editingCourse ? 'Edit Product Details' : 'Add New Digital Asset / Product'}
+            <div className="flex items-center justify-between p-4 px-6 border-b border-slate-800 bg-[#0d0f19] shrink-0">
+              <h3 className="font-bold text-sm sm:text-base text-white flex items-center gap-2">
+                <span className="size-2 rounded-full bg-violet-400 animate-pulse" />
+                {editingCourse ? `Edit: ${editingCourse.title}` : 'Add New Digital Asset / Product'}
               </h3>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveCourse} className="p-6 space-y-6 text-xs flex-1">
-              {formError && (
-                <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl text-xs font-medium">
-                  {formError}
-                </div>
-              )}
+            {/* Responsive Tab Bar */}
+            <div className="flex items-center gap-1.5 overflow-x-auto p-2 bg-slate-950 border-b border-slate-800 text-xs font-semibold scrollbar-none px-4 sm:px-6 shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveFormTab('basic')}
+                className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                  activeFormTab === 'basic'
+                    ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30 font-bold'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                }`}
+              >
+                📝 1. Basic Info & Banner
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFormTab('access')}
+                className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                  activeFormTab === 'access'
+                    ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30 font-bold'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                }`}
+              >
+                🚀 2. Links & Access
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFormTab('software')}
+                className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                  activeFormTab === 'software'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 font-bold'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                }`}
+              >
+                🛠️ 3. Software & Gallery
+                {formCategory.toLowerCase().includes('software') && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFormTab('content')}
+                className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                  activeFormTab === 'content'
+                    ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30 font-bold'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                }`}
+              >
+                📚 4. Modules & FAQs
+              </button>
+            </div>
 
-              {/* 50% LEFT & 50% RIGHT GRID LAYOUT */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                {/* LEFT COLUMN (50%) - BASIC INFO & PRICING & LINKS */}
-                <div className="space-y-4">
-                  <h4 className="font-mono-custom text-[11px] uppercase tracking-wider text-violet-400 font-bold border-b border-slate-800/80 pb-2">
-                    1. Product Identity & Pricing
-                  </h4>
-
-                  <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Product ID (Unique Slug)</label>
-                    <input
-                      type="text"
-                      required
-                      disabled={Boolean(editingCourse)}
-                      placeholder="e.g. mern-stack-mastery or windows-tool-pro"
-                      value={formId}
-                      onChange={(e) => setFormId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono disabled:opacity-50"
-                    />
+            <form onSubmit={handleSaveCourse} className="flex flex-col flex-1 overflow-hidden">
+              {/* Tab Panels Body (Scrollable) */}
+              <div className="p-4 sm:p-6 overflow-y-auto flex-1 text-xs space-y-4">
+                {formError && (
+                  <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl text-xs font-medium">
+                    {formError}
                   </div>
+                )}
 
-                  <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Product Title</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Full Stack Mastery / Windows Utility Software"
-                      value={formTitle}
-                      onChange={(e) => setFormTitle(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Subtitle / Tagline</label>
-                    <input
-                      type="text"
-                      placeholder="Short catchy tagline..."
-                      value={formSubtitle}
-                      onChange={(e) => setFormSubtitle(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Duration / Info Tag (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 10 Modules • 38 Hours OR v2.4 • 450 MB Zip"
-                      value={formDuration}
-                      onChange={(e) => setFormDuration(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono text-[11px]"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block font-semibold text-slate-300 mb-1">Category / Type</label>
-                      <select
-                        value={formCategory}
-                        onChange={(e) => setFormCategory(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 cursor-pointer"
-                      >
-                        {CATEGORIES.filter((c) => c !== 'All Products' && c !== 'All Courses').map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
+                {/* TAB 1: BASIC INFO */}
+                {activeFormTab === 'basic' && (
+                  <div className="space-y-4 animate-in fade-in duration-150">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-semibold text-slate-300 mb-1">Product ID (Slug)</label>
+                        <input
+                          type="text"
+                          required
+                          disabled={Boolean(editingCourse)}
+                          placeholder="e.g. mern-stack-mastery or windows-tool-pro"
+                          value={formId}
+                          onChange={(e) => setFormId(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono disabled:opacity-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-semibold text-slate-300 mb-1">Product Title</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Full Stack Mastery / Windows Utility Software"
+                          value={formTitle}
+                          onChange={(e) => setFormTitle(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500"
+                        />
+                      </div>
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-300 mb-1">Price (INR ₹)</label>
+                      <label className="block font-semibold text-slate-300 mb-1">Subtitle / Tagline</label>
                       <input
-                        type="number"
-                        required
-                        min="1"
-                        value={formPrice}
-                        onChange={(e) => setFormPrice(e.target.value)}
+                        type="text"
+                        placeholder="Short catchy tagline..."
+                        value={formSubtitle}
+                        onChange={(e) => setFormSubtitle(e.target.value)}
                         className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500"
                       />
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Original Price (INR ₹)</label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={formOriginalPrice}
-                      onChange={(e) => setFormOriginalPrice(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-cyan-400 mb-1">Access / Download Link (Drive, Mega, S3, GitHub)</label>
-                    <input
-                      type="url"
-                      placeholder="https://drive.google.com/... or https://mega.nz/... (Auto-sent on purchase)"
-                      value={formDriveUrl}
-                      onChange={(e) => setFormDriveUrl(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-cyan-800/60 rounded-lg text-cyan-200 focus:outline-none focus:border-cyan-500 font-mono text-[11px]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-violet-300 mb-1">Custom Razorpay Payment Link (Optional)</label>
-                    <input
-                      type="url"
-                      placeholder="https://rzp.io/rzp/your-product-link (Per-product custom checkout link)"
-                      value={formRazorpayPaymentUrl}
-                      onChange={(e) => setFormRazorpayPaymentUrl(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-violet-800/60 rounded-lg text-violet-200 focus:outline-none focus:border-violet-400 font-mono text-[11px]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-indigo-300 mb-1">Product Banner Image</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Image URL or upload below..."
-                        value={formImageUrl}
-                        onChange={(e) => setFormImageUrl(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono"
-                      />
-                      <label className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg cursor-pointer text-xs font-semibold shrink-0 flex items-center gap-1.5 transition-colors shadow-md shadow-indigo-600/20">
-                        {uploadingBanner ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                        {uploadingBanner ? "Uploading..." : "Upload File"}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileUpload}
-                          disabled={uploadingBanner}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                    {formImageUrl && (
-                      <div className="mt-2.5 relative rounded-xl overflow-hidden border border-slate-800 h-28 bg-slate-950 flex items-center justify-center">
-                        <img
-                          src={formImageUrl}
-                          alt="Banner Preview"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                        <span className="absolute bottom-1.5 right-2 text-[10px] bg-slate-900/80 px-2 py-0.5 rounded text-slate-300 border border-slate-700">
-                          Live Banner Preview
-                        </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block font-semibold text-slate-300 mb-1">Category / Type</label>
+                        <select
+                          value={formCategory}
+                          onChange={(e) => setFormCategory(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 cursor-pointer"
+                        >
+                          {CATEGORIES.filter((c) => c !== 'All Products' && c !== 'All Courses').map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                    )}
-                  </div>
 
-                  <div className="pt-2">
-                    <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={formIsPublished}
-                        onChange={(e) => setFormIsPublished(e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-violet-500 focus:ring-violet-500 cursor-pointer"
-                      />
-                      <span>Publish Product to Live Website Catalog</span>
-                    </label>
-                  </div>
-                </div>
+                      <div>
+                        <label className="block font-semibold text-slate-300 mb-1">Selling Price (INR ₹)</label>
+                        <input
+                          type="number"
+                          required
+                          min="1"
+                          value={formPrice}
+                          onChange={(e) => setFormPrice(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-bold text-emerald-400"
+                        />
+                      </div>
 
-                {/* RIGHT COLUMN (50%) - RICH DETAILS, MODULES & FAQS */}
-                <div className="space-y-4">
-                  <h4 className="font-mono-custom text-[11px] uppercase tracking-wider text-cyan-400 font-bold border-b border-slate-800/80 pb-2">
-                    2. Description & Rich Content
-                  </h4>
+                      <div>
+                        <label className="block font-semibold text-slate-300 mb-1">Original Price (INR ₹)</label>
+                        <input
+                          type="number"
+                          required
+                          min="1"
+                          value={formOriginalPrice}
+                          onChange={(e) => setFormOriginalPrice(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 line-through text-slate-400"
+                        />
+                      </div>
+                    </div>
 
-                  <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Description</label>
-                    <textarea
-                      rows={3}
-                      placeholder="Detailed product description (software features, course modules, or PDF summary)..."
-                      value={formDescription}
-                      onChange={(e) => setFormDescription(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 leading-relaxed"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Key Features (Comma-separated)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Lifetime Access, Source Code Included, Instant Download"
-                      value={formFeatures}
-                      onChange={(e) => setFormFeatures(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono text-[11px]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-amber-300 mb-1">Special Bonus Offer (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Includes FREE Premium Cheat Sheet PDF ($49 Value)"
-                      value={formBonus}
-                      onChange={(e) => setFormBonus(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-slate-900 border border-amber-800/60 rounded-lg text-amber-200 focus:outline-none focus:border-amber-500 text-[11px]"
-                    />
-                  </div>
-
-                  {/* Software Category Specific Section: Installation Process */}
-                  <div className={`p-3.5 rounded-xl border transition-all ${
-                    formCategory.toLowerCase().includes('software')
-                      ? 'bg-emerald-950/30 border-emerald-500/40 shadow-lg shadow-emerald-950/20'
-                      : 'bg-slate-900/60 border-slate-800'
-                  }`}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="font-bold text-xs flex items-center gap-1.5 text-emerald-400">
-                        🛠️ Installation Process & Setup Guide {formCategory.toLowerCase().includes('software') ? '(Recommended for Software)' : '(Optional)'}
-                      </label>
-                      {formCategory.toLowerCase().includes('software') && (
-                        <span className="text-[10px] font-bold font-mono px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-md">
-                          SOFTWARE ACTIVE
-                        </span>
+                    <div>
+                      <label className="block font-semibold text-indigo-300 mb-1">Product Banner Image</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Image URL or upload below..."
+                          value={formImageUrl}
+                          onChange={(e) => setFormImageUrl(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono"
+                        />
+                        <label className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg cursor-pointer text-xs font-semibold shrink-0 flex items-center gap-1.5 transition-colors shadow-md shadow-indigo-600/20">
+                          {uploadingBanner ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                          {uploadingBanner ? "Uploading..." : "Upload File"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileUpload}
+                            disabled={uploadingBanner}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                      {formImageUrl && (
+                        <div className="mt-2.5 relative rounded-xl overflow-hidden border border-slate-800 h-28 bg-slate-950 flex items-center justify-center">
+                          <img
+                            src={formImageUrl}
+                            alt="Banner Preview"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                          <span className="absolute bottom-1.5 right-2 text-[10px] bg-slate-900/80 px-2 py-0.5 rounded text-slate-300 border border-slate-700">
+                            Live Banner Preview
+                          </span>
+                        </div>
                       )}
                     </div>
-                    <textarea
-                      rows={3}
-                      placeholder={"Step 1: Download zip from Google Drive link.\nStep 2: Extract archive & run setup.exe as Admin.\nStep 3: Paste key into key.txt file in C:\\Program Files\\..."}
-                      value={formInstallationProcess}
-                      onChange={(e) => setFormInstallationProcess(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-emerald-200 focus:outline-none focus:border-emerald-500 font-mono text-[11px] leading-relaxed"
-                    />
-                  </div>
 
-                  {/* Photo Gallery Screenshots (Optional - Conditional Rendering) */}
-                  <div className="p-3.5 bg-slate-900/80 border border-slate-800 rounded-xl space-y-2">
-                    <label className="block font-bold text-xs text-cyan-300 flex items-center gap-1.5">
-                      🖼️ Product Screenshots / Photo Gallery (Image URLs - 1 per line)
-                    </label>
-                    <textarea
-                      rows={3}
-                      placeholder={"https://example.com/screenshot1.jpg\nhttps://example.com/screenshot2.jpg\nhttps://example.com/demo.png"}
-                      value={formGalleryImages}
-                      onChange={(e) => setFormGalleryImages(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-cyan-200 focus:outline-none focus:border-cyan-500 font-mono text-[11px] leading-relaxed"
-                    />
-                    <p className="text-[10px] text-slate-400">
-                      ⚡ Jin products me aap image links daalenge, sirf unhi me product page par photo gallery section automatic render hoga!
-                    </p>
+                    <div className="pt-2">
+                      <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={formIsPublished}
+                          onChange={(e) => setFormIsPublished(e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-violet-500 focus:ring-violet-500 cursor-pointer"
+                        />
+                        <span>Publish Product to Live Website Catalog</span>
+                      </label>
+                    </div>
                   </div>
+                )}
 
-                  <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Course Content / Modules (1 per line)</label>
-                    <textarea
-                      rows={3}
-                      placeholder={"Module 01: Setup & Environment\nModule 02: Core Security Labs\nModule 03: Production Deployment"}
-                      value={formModules}
-                      onChange={(e) => setFormModules(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono text-[11px]"
-                    />
+                {/* TAB 2: LINKS & ACCESS */}
+                {activeFormTab === 'access' && (
+                  <div className="space-y-4 animate-in fade-in duration-150">
+                    <div>
+                      <label className="block font-semibold text-cyan-400 mb-1">Access / Download Link (Drive, Mega, S3, GitHub)</label>
+                      <input
+                        type="url"
+                        placeholder="https://drive.google.com/... or https://mega.nz/... (Auto-sent on purchase)"
+                        value={formDriveUrl}
+                        onChange={(e) => setFormDriveUrl(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-slate-900 border border-cyan-800/60 rounded-lg text-cyan-200 focus:outline-none focus:border-cyan-500 font-mono text-[11px]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-violet-300 mb-1">Custom Razorpay Payment Link (Optional)</label>
+                      <input
+                        type="url"
+                        placeholder="https://rzp.io/rzp/your-product-link (Per-product custom checkout link)"
+                        value={formRazorpayPaymentUrl}
+                        onChange={(e) => setFormRazorpayPaymentUrl(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-slate-900 border border-violet-800/60 rounded-lg text-violet-200 focus:outline-none focus:border-violet-400 font-mono text-[11px]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-semibold text-slate-300 mb-1">Duration / Tag (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 10 Modules • 38 Hours OR v2.4 • 450 MB Zip"
+                          value={formDuration}
+                          onChange={(e) => setFormDuration(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono text-[11px]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-semibold text-amber-300 mb-1">Special Bonus Offer (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Includes FREE Premium Cheat Sheet PDF ($49 Value)"
+                          value={formBonus}
+                          onChange={(e) => setFormBonus(e.target.value)}
+                          className="w-full px-3.5 py-2 bg-slate-900 border border-amber-800/60 rounded-lg text-amber-200 focus:outline-none focus:border-amber-500 text-[11px]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-300 mb-1">Description</label>
+                      <textarea
+                        rows={3}
+                        placeholder="Detailed product description (software features, course modules, or PDF summary)..."
+                        value={formDescription}
+                        onChange={(e) => setFormDescription(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 leading-relaxed"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-300 mb-1">Key Features (Comma-separated)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Lifetime Access, Source Code Included, Instant Download"
+                        value={formFeatures}
+                        onChange={(e) => setFormFeatures(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono text-[11px]"
+                      />
+                    </div>
                   </div>
+                )}
 
-                  <div>
-                    <label className="block font-semibold text-slate-300 mb-1">What Learners Say / Student Reviews (Name | Comment - 1 per line)</label>
-                    <textarea
-                      rows={2}
-                      placeholder={"Amit Sharma | Excellent hands-on practical labs!\nPriya Verma | Very clear explanation and great support."}
-                      value={formTestimonials}
-                      onChange={(e) => setFormTestimonials(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono text-[11px]"
-                    />
+                {/* TAB 3: SOFTWARE & MEDIA */}
+                {activeFormTab === 'software' && (
+                  <div className="space-y-4 animate-in fade-in duration-150">
+                    {/* Software Category Specific Section: Installation Process */}
+                    <div className={`p-4 rounded-xl border transition-all ${
+                      formCategory.toLowerCase().includes('software')
+                        ? 'bg-emerald-950/30 border-emerald-500/40 shadow-lg shadow-emerald-950/20'
+                        : 'bg-slate-900/60 border-slate-800'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="font-bold text-xs flex items-center gap-1.5 text-emerald-400">
+                          🛠️ Installation Process & Setup Guide {formCategory.toLowerCase().includes('software') ? '(Recommended for Software)' : '(Optional)'}
+                        </label>
+                        {formCategory.toLowerCase().includes('software') && (
+                          <span className="text-[10px] font-bold font-mono px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-md">
+                            SOFTWARE CATEGORY ACTIVE
+                          </span>
+                        )}
+                      </div>
+                      <textarea
+                        rows={4}
+                        placeholder={"Step 1: Download zip from Google Drive link.\nStep 2: Extract archive & run setup.exe as Admin.\nStep 3: Paste key into key.txt file in C:\\Program Files\\..."}
+                        value={formInstallationProcess}
+                        onChange={(e) => setFormInstallationProcess(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-emerald-200 focus:outline-none focus:border-emerald-500 font-mono text-[11px] leading-relaxed"
+                      />
+                    </div>
+
+                    {/* Photo Gallery Screenshots (Optional - Conditional Rendering) */}
+                    <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-xl space-y-2">
+                      <label className="block font-bold text-xs text-cyan-300 flex items-center gap-1.5">
+                        🖼️ Product Screenshots / Photo Gallery (Image URLs - 1 per line)
+                      </label>
+                      <textarea
+                        rows={4}
+                        placeholder={"https://example.com/screenshot1.jpg\nhttps://example.com/screenshot2.jpg\nhttps://example.com/demo.png"}
+                        value={formGalleryImages}
+                        onChange={(e) => setFormGalleryImages(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-cyan-200 focus:outline-none focus:border-cyan-500 font-mono text-[11px] leading-relaxed"
+                      />
+                      <p className="text-[10px] text-slate-400">
+                        ⚡ Jin products me aap image links daalenge, sirf unhi me product page par photo gallery section automatic render hoga!
+                      </p>
+                    </div>
                   </div>
+                )}
 
-                  <div>
-                    <label className="block font-semibold text-slate-300 mb-1">FAQs (Question? | Answer - 1 per line)</label>
-                    <textarea
-                      rows={3}
-                      placeholder={"Is this course beginner friendly? | Yes, it starts from absolute basics.\nHow long do I get access? | You get lifetime access to all updates."}
-                      value={formFaqs}
-                      onChange={(e) => setFormFaqs(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono text-[11px]"
-                    />
+                {/* TAB 4: MODULES & FAQS */}
+                {activeFormTab === 'content' && (
+                  <div className="space-y-4 animate-in fade-in duration-150">
+                    <div>
+                      <label className="block font-semibold text-slate-300 mb-1">Course Content / Modules (1 per line)</label>
+                      <textarea
+                        rows={3}
+                        placeholder={"Module 01: Setup & Environment\nModule 02: Core Security Labs\nModule 03: Production Deployment"}
+                        value={formModules}
+                        onChange={(e) => setFormModules(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono text-[11px]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-300 mb-1">What Learners Say / Student Reviews (Name | Comment - 1 per line)</label>
+                      <textarea
+                        rows={3}
+                        placeholder={"Amit Sharma | Excellent hands-on practical labs!\nPriya Verma | Very clear explanation and great support."}
+                        value={formTestimonials}
+                        onChange={(e) => setFormTestimonials(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono text-[11px]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-300 mb-1">FAQs (Question? | Answer - 1 per line)</label>
+                      <textarea
+                        rows={3}
+                        placeholder={"Is this course beginner friendly? | Yes, it starts from absolute basics.\nHow long do I get access? | You get lifetime access to all updates."}
+                        value={formFaqs}
+                        onChange={(e) => setFormFaqs(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono text-[11px]"
+                      />
+                    </div>
                   </div>
-                </div>
-
+                )}
               </div>
 
-              {/* Action Buttons Footer */}
-              <div className="flex items-center justify-end gap-3 border-t border-slate-800/80 pt-4 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-6 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-bold transition-colors shadow-lg shadow-violet-600/30 flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  {submitting ? 'Saving to DB...' : editingCourse ? 'Update Product' : 'Create & Save Product'}
-                </button>
+              {/* Action Buttons Footer (Sticky) */}
+              <div className="flex items-center justify-between border-t border-slate-800 p-4 px-6 bg-[#0d0f19] shrink-0">
+                <div className="flex items-center gap-2">
+                  {activeFormTab !== 'basic' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const tabs: Array<'basic' | 'access' | 'software' | 'content'> = ['basic', 'access', 'software', 'content'];
+                        const prevIdx = tabs.indexOf(activeFormTab) - 1;
+                        if (prevIdx >= 0) setActiveFormTab(tabs[prevIdx]);
+                      }}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-lg font-semibold transition-colors cursor-pointer text-xs"
+                    >
+                      ← Back
+                    </button>
+                  )}
+                  {activeFormTab !== 'content' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const tabs: Array<'basic' | 'access' | 'software' | 'content'> = ['basic', 'access', 'software', 'content'];
+                        const nextIdx = tabs.indexOf(activeFormTab) + 1;
+                        if (nextIdx < tabs.length) setActiveFormTab(tabs[nextIdx]);
+                      }}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-lg font-semibold transition-colors cursor-pointer text-xs"
+                    >
+                      Next Tab →
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold transition-colors cursor-pointer text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-5 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-bold transition-colors shadow-lg shadow-violet-600/30 flex items-center gap-2 cursor-pointer disabled:opacity-50 text-xs"
+                  >
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    {submitting ? 'Saving to DB...' : editingCourse ? 'Update Product' : 'Create & Save Product'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
