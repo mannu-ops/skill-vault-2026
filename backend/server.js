@@ -1421,6 +1421,11 @@ async function sendPurchaseWhatsApp({ toPhone, customerName, paymentId, items })
     return { success: false, reason: 'Invalid phone number' };
   }
 
+  // Remove leading 0 if present (e.g. 09044900518 -> 9044900518)
+  if (cleanPhone.startsWith('0')) {
+    cleanPhone = cleanPhone.replace(/^0+/, '');
+  }
+
   // Add default country code (91 for India if 10 digits)
   if (cleanPhone.length === 10) {
     cleanPhone = `91${cleanPhone}`;
