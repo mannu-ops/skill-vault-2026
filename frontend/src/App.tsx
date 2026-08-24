@@ -1535,7 +1535,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                       }`}
                   >
                     <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                    {cart.isInCart(course.id) ? 'Added to Cart (Click to Remove)' : 'Add to Cart'}
+                    {cart.isInCart(course.id) ? 'Remove from Cart' : 'Add to Cart'}
                   </button>
                 </div>
 
