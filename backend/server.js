@@ -1789,6 +1789,77 @@ app.get('/api/test-email', async (req, res) => {
   }
 });
 
+/**
+ * Send server-side conversion event to Meta Conversions API (CAPI)
+ */
+async function sendMetaCapiEvent({ eventName, eventId, userData = {}, customData = {}, clientIp, userAgent }) {
+  const pixelId = process.env.META_PIXEL_ID || process.env.VITE_META_PIXEL_ID;
+  const accessToken = process.env.META_CAPI_ACCESS_TOKEN;
+
+  if (!pixelId || !accessToken) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`ℹ️ [Meta CAPI Notice]: META_PIXEL_ID or META_CAPI_ACCESS_TOKEN not set in environment. CAPI event (${eventName}) skipped.`);
+    }
+    return { success: false, reason: 'Missing credentials' };
+  }
+
+  try {
+    const user_data = {};
+    if (userData.email) {
+      user_data.em = crypto.createHash('sha256').update(userData.email.trim().toLowerCase()).digest('hex');
+    }
+    if (userData.phone) {
+      const cleanPh = String(userData.phone).replace(/\D/g, '');
+      if (cleanPh) {
+        user_data.ph = crypto.createHash('sha256').update(cleanPh).digest('hex');
+      }
+    }
+    if (userData.firstName) {
+      user_data.fn = crypto.createHash('sha256').update(userData.firstName.trim().toLowerCase()).digest('hex');
+    }
+    if (userData.lastName) {
+      user_data.ln = crypto.createHash('sha256').update(userData.lastName.trim().toLowerCase()).digest('hex');
+    }
+    if (userData.externalId) {
+      user_data.external_id = crypto.createHash('sha256').update(String(userData.externalId)).digest('hex');
+    }
+    if (clientIp) user_data.client_ip_address = clientIp;
+    if (userAgent) user_data.client_user_agent = userAgent;
+
+    const payload = {
+      data: [
+        {
+          event_name: eventName,
+          event_time: Math.floor(Date.now() / 1000),
+          event_id: eventId,
+          action_source: 'website',
+          user_data,
+          custom_data: customData,
+        }
+      ]
+    };
+
+    const url = `https://graph.facebook.com/v21.0/${pixelId}/events?access_token=${accessToken}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const resData = await res.json();
+    if (res.ok) {
+      console.log(`✅ [Meta CAPI Success]: Event ${eventName} (${eventId}) sent to Meta!`);
+      return { success: true, data: resData };
+    } else {
+      console.error(`❌ [Meta CAPI Error]:`, resData);
+      return { success: false, error: resData };
+    }
+  } catch (err) {
+    console.error(`❌ [Meta CAPI Exception]:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 // DIAGNOSTIC ENDPOINT TO SIMULATE & TEST FULL WEBHOOK PIPELINE DIRECTLY IN BROWSER
 app.get('/api/test-webhook', async (req, res) => {
   const email = req.query.email || 'learner@example.com';
@@ -1998,6 +2069,35 @@ app.post('/api/checkout/verify-payment', async (req, res) => {
       items
     }).catch(err => console.error('Verify-payment WhatsApp execution error:', err.message));
   }
+
+  // Trigger Meta Conversions API (CAPI) Server-Side Purchase Event
+  const capiEventId = req.body.eventId || `evt_pur_${paymentId}`;
+  const totalPurchaseValue = items.reduce((sum, item) => {
+    const rawPrice = item.price !== undefined ? item.price : (item.priceInr || item.price_inr || '299');
+    return sum + (parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 0);
+  }, 0);
+
+  sendMetaCapiEvent({
+    eventName: 'Purchase',
+    eventId: capiEventId,
+    userData: {
+      email: customerEmail,
+      phone: customerPhone,
+      firstName: customerName ? customerName.split(' ')[0] : undefined,
+      lastName: customerName ? customerName.split(' ').slice(1).join(' ') : undefined,
+    },
+    customData: {
+      content_ids: items.map(i => String(i.id || i.courseId)),
+      content_name: items.map(i => i.name || i.title).join(', '),
+      content_type: 'product',
+      num_items: items.length,
+      value: Math.round(totalPurchaseValue),
+      currency: 'INR',
+      order_id: paymentId,
+    },
+    clientIp: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
+    userAgent: req.headers['user-agent']
+  }).catch(err => console.error('Verify-payment CAPI execution error:', err.message));
 
   const firstDriveUrl = items.length > 0 ? await getCourseDriveUrl(items[0]) : 'https://drive.google.com';
 

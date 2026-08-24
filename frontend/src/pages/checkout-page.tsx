@@ -20,6 +20,13 @@ import {
 import { Course } from '@/data/courses';
 import { getApiUrl } from '@/config';
 import { PaymentSuccessModal } from '@/components/payment-success-modal';
+import {
+  trackInitiateCheckout,
+  trackAddPaymentInfo,
+  trackPurchase,
+  setUserProperties,
+  generateEventId,
+} from '@/lib/meta-pixel';
 
 interface CheckoutPageProps {
   user: any;
@@ -294,6 +301,19 @@ export function CheckoutPage({
   }, 0);
   const finalTotal = Math.max(0, Math.round(rawSubtotal));
 
+  // Fire InitiateCheckout Meta Pixel Event
+  useEffect(() => {
+    if (itemsToCheckout.length > 0 && finalTotal >= 0) {
+      trackInitiateCheckout({
+        contentIds: itemsToCheckout.map((i) => String(i.id)),
+        contentName: itemsToCheckout.map((i) => i.title).join(', '),
+        numItems: itemsToCheckout.length,
+        value: finalTotal,
+        currency: 'INR',
+      });
+    }
+  }, [itemsToCheckout.length, finalTotal]);
+
   // Helper to load Razorpay SDK dynamically
   const loadRazorpayScript = () => {
     return new Promise<boolean>((resolve) => {
@@ -328,6 +348,19 @@ export function CheckoutPage({
       setPaymentError('Please enter a valid Mobile/WhatsApp number.');
       return;
     }
+
+    // Update Meta Advanced Matching user data & fire AddPaymentInfo event
+    setUserProperties({
+      email: buyerEmail.trim(),
+      phone: buyerPhone.trim(),
+      firstName: buyerName.split(' ')[0] || buyerName,
+      lastName: buyerName.split(' ').slice(1).join(' ') || undefined,
+    });
+    trackAddPaymentInfo({
+      contentIds: itemsToCheckout.map((i) => String(i.id)),
+      value: finalTotal,
+      currency: 'INR',
+    });
 
     setIsProcessing(true);
 
@@ -383,6 +416,7 @@ export function CheckoutPage({
           handler: async function (response: any) {
             setIsProcessing(true);
             try {
+              const eventId = generateEventId();
               const verifyRes = await fetch(getApiUrl('/api/checkout/verify-payment'), {
                 method: 'POST',
                 headers: authHeaders,
@@ -394,6 +428,7 @@ export function CheckoutPage({
                   customerName: effectiveCustomerName,
                   customerEmail: buyerEmail.trim(),
                   customerPhone: buyerPhone.trim(),
+                  eventId, // Event ID for CAPI deduplication
                 }),
               });
 
@@ -407,6 +442,20 @@ export function CheckoutPage({
                   }
                 });
                 const payId = response.razorpay_payment_id || `pay_${Date.now()}`;
+                
+                // Track Purchase Meta Conversion Event
+                trackPurchase(
+                  {
+                    contentIds: itemsToCheckout.map((i) => String(i.id)),
+                    contentName: itemsToCheckout.map((i) => i.title).join(', '),
+                    numItems: itemsToCheckout.length,
+                    value: finalTotal,
+                    currency: 'INR',
+                    orderId: payId,
+                  },
+                  eventId
+                );
+
                 const driveParam = verifyData.driveUrl ? `&driveUrl=${encodeURIComponent(verifyData.driveUrl)}` : '';
                 setLocation(`/payment-success?payment_id=${encodeURIComponent(payId)}&email=${encodeURIComponent(buyerEmail.trim())}&amount=${finalTotal}${driveParam}`);
               } else {

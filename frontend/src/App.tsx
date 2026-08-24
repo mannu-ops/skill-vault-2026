@@ -54,6 +54,8 @@ import { CheckoutPage } from './pages/checkout-page';
 import { PaymentSuccessPage } from './pages/payment-success-page';
 import { PaymentFailedPage } from './pages/payment-failed-page';
 import { PurchasesPage } from './pages/purchases-page';
+import { MetaPixelTracker } from './components/meta-pixel-tracker';
+import { trackAddToCart, trackCompleteRegistration, trackSearch, trackViewContent } from './lib/meta-pixel';
 
 const queryClient = new QueryClient();
 
@@ -334,6 +336,7 @@ function useAuth() {
     localStorage.setItem('sv_user_token', userToken);
     localStorage.setItem('sv_user_data', JSON.stringify(userData));
     fetchProfile(userToken);
+    trackCompleteRegistration({ method: 'AuthModal', status: 'success' });
     setAuthNotice(`🎉 Welcome back, ${userData.name || userData.email.split('@')[0]}! Logged in successfully.`);
     setTimeout(() => setAuthNotice(''), 4500);
   };
@@ -492,6 +495,13 @@ function useCart(user?: any, availableCourses?: Course[]) {
     setCartItems((prev) => {
       if (prev.some((c) => c.id === course.id)) return prev;
       return [...prev, course];
+    });
+    trackAddToCart({
+      contentId: course.id,
+      contentName: course.title,
+      category: course.category,
+      value: parseFloat(String(course.price || '0').replace(/[^0-9.]/g, '')),
+      currency: 'INR',
     });
   };
 
@@ -2117,6 +2127,7 @@ function Router() {
 
   return (
     <>
+      <MetaPixelTracker user={auth.user} />
       <Switch>
         <Route path="/admin" component={AdminPanelPage} />
         <Route path="/admin-panel" component={AdminPanelPage} />

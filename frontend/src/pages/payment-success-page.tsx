@@ -20,6 +20,25 @@ export function PaymentSuccessPage({ user, onOpenMyPurchases }: PaymentSuccessPa
 
   const [isOpen, setIsOpen] = useState(true);
 
+  useEffect(() => {
+    if (paymentId) {
+      const trackingKey = `meta_tracked_${paymentId}`;
+      if (!sessionStorage.getItem(trackingKey)) {
+        import('@/lib/meta-pixel').then(({ trackPurchase }) => {
+          trackPurchase({
+            contentIds: ['digital_asset_purchase'],
+            contentName: 'Skill Vault Purchase',
+            numItems: 1,
+            value: totalAmountInr,
+            currency: 'INR',
+            orderId: paymentId,
+          });
+          sessionStorage.setItem(trackingKey, 'true');
+        });
+      }
+    }
+  }, [paymentId, totalAmountInr]);
+
   const handleClose = () => {
     setIsOpen(false);
     setLocation('/');

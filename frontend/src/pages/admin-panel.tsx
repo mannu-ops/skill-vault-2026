@@ -551,7 +551,7 @@ export default function AdminPanelPage() {
       setFormDuration(course.duration || '');
       setFormFeatures(course.features ? course.features.join(', ') : '');
       setFormBonus(course.bonus || '');
-      setFormInstallationProcess(course.installationProcess || (course as any).installation_process || '');
+      setFormInstallationProcess((course as any).installationProcess || (course as any).installation_process || '');
       const gallery = (course as any).galleryImages || (course as any).gallery_images;
       setFormGalleryImages(Array.isArray(gallery) ? gallery.join('\n') : (typeof gallery === 'string' ? JSON.parse(gallery).join('\n') : ''));
       setFormModules(course.modules ? course.modules.map(m => typeof m === 'string' ? m : m.title).join('\n') : '');
