@@ -1204,29 +1204,60 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
           <div className="site-shell grid gap-8 sm:gap-12 lg:grid-cols-[1fr_360px]">
             {/* LEFT COLUMN: ABOUT, SYLLABUS, PROJECTS, FAQS */}
             <div className="space-y-8 sm:space-y-12">
-              {/* Overview */}
+              {/* Overview / About This Product */}
               {(course.description || (course.skills && course.skills.length > 0)) && (
-                <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-5 sm:p-7 md:p-8">
+                <div className="rounded-2xl border border-slate-800/90 bg-[#0c0e17] p-5 sm:p-7 md:p-8 shadow-xl shadow-slate-950/20">
                   {course.description && (
                     <>
-                      <h2 className="font-display text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-slate-100 mb-4">About This Product</h2>
-                      <p className="text-xs sm:text-sm md:text-base lg:text-lg leading-relaxed text-slate-300">
-                        {course.description}
-                      </p>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="eyebrow text-[10px] sm:text-xs text-violet-400">Overview</span>
+                      </div>
+                      <h2 className="font-display text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-slate-100 mb-5">
+                        About This Product
+                      </h2>
+                      <div className="space-y-4 text-xs sm:text-sm md:text-base leading-relaxed text-slate-300">
+                        {course.description.split('\n').filter((line) => line.trim().length > 0).map((para, idx) => {
+                          const trimmed = para.trim();
+                          const isBullet = trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*') || /^\d+\./.test(trimmed);
+                          const cleanText = isBullet ? trimmed.replace(/^[•\-\*\d\.]+\s*/, '') : trimmed;
+
+                          if (isBullet) {
+                            return (
+                              <div key={idx} className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-slate-900/70 border border-slate-800/80 hover:border-slate-700/80 transition-colors">
+                                <div className="mt-0.5 shrink-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-300">
+                                  <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                </div>
+                                <span className="text-xs sm:text-sm md:text-base text-slate-200 leading-relaxed font-medium">
+                                  {cleanText}
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <p key={idx} className="leading-relaxed sm:leading-7 text-slate-300">
+                              {trimmed}
+                            </p>
+                          );
+                        })}
+                      </div>
                     </>
                   )}
 
                   {course.skills && course.skills.length > 0 && (
-                    <>
-                      <h3 className="font-mono-custom text-xs sm:text-sm uppercase tracking-wider text-slate-500 mt-8 mb-3">Key Features & Technologies</h3>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="mt-8 pt-6 border-t border-slate-800/80">
+                      <h3 className="font-mono-custom text-xs sm:text-sm uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-violet-400" /> Key Features & Technologies
+                      </h3>
+                      <div className="flex flex-wrap gap-2.5">
                         {course.skills.map((skill) => (
-                          <span key={skill} className="rounded-lg border border-slate-800 bg-slate-900/90 px-3 py-1.5 font-mono-custom text-xs sm:text-sm md:text-base text-slate-200">
+                          <span key={skill} className="rounded-xl border border-slate-800 bg-slate-900/90 px-3.5 py-2 font-mono-custom text-xs sm:text-sm text-slate-200 hover:border-violet-500/40 hover:bg-slate-800/80 transition-all flex items-center gap-2 shadow-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-violet-400/80" />
                             {skill}
                           </span>
                         ))}
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
               )}
