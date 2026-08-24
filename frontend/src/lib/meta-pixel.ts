@@ -158,9 +158,6 @@ export function initMetaPixel(pixelId: string = DEFAULT_PIXEL_ID, userData?: Use
     window.fbq('init', targetPixelId);
   }
 
-  // Track initial PageView event right after fbq init
-  window.fbq('track', 'PageView');
-
   window.__META_PIXEL_INITIALIZED__ = true;
 
   if (import.meta.env.DEV) {

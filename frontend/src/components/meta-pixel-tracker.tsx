@@ -27,17 +27,10 @@ export function MetaPixelTracker({ user, pixelId }: MetaPixelTrackerProps) {
     }
   }, [pixelId]);
 
-  // Track PageView on SPA route changes
+  // Track PageView on initial page load and every SPA route change
   useEffect(() => {
-    if (prevLocationRef.current === null) {
-      prevLocationRef.current = location;
-      return;
-    }
-
-    if (prevLocationRef.current !== location) {
-      prevLocationRef.current = location;
-      trackPageView(location);
-    }
+    trackPageView(location);
+    prevLocationRef.current = location;
   }, [location]);
 
   // Update user properties when user state changes
