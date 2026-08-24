@@ -1799,7 +1799,6 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
                                 <span className="font-display text-2xl font-bold text-slate-100">₹{course.price}</span>
                                 <span className="font-mono-custom text-xs text-slate-500 line-through">₹{course.originalPrice}</span>
                               </div>
-                              <span className="font-mono-custom text-[10px] text-slate-500">{course.modulesCount} Modules</span>
                             </div>
 
                             <div className="grid grid-cols-2 gap-2">
