@@ -223,7 +223,7 @@ function CheckoutButton({
       type="button"
       onClick={handleCheckout}
       data-testid={`button-checkout-${course?.id || courseId || 'default'}`}
-      className={`glow-button inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-violet-300 px-4 text-xs sm:text-sm font-bold text-slate-950 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-wait disabled:opacity-70 cursor-pointer w-full ${className}`}
+      className={`glow-button inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-violet-300 px-4 text-xs sm:text-sm md:text-base font-bold text-slate-950 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-wait disabled:opacity-70 cursor-pointer w-full ${className}`}
       whileHover={{ scale: 1.05, y: -2 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.2 }}
@@ -1093,7 +1093,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
       <main className="grid min-h-[100dvh] place-items-center bg-[#090a10] px-6 text-center">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs font-mono text-slate-400">Loading course curriculum...</p>
+          <p className="text-xs sm:text-sm md:text-base font-mono text-slate-400">Loading course curriculum...</p>
         </div>
       </main>
     );
@@ -1103,12 +1103,12 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
     return (
       <main className="grid min-h-[100dvh] place-items-center bg-[#090a10] px-6 text-center">
         <div>
-          <p className="eyebrow">Course Not Found</p>
-          <h1 className="mt-4 font-display text-4xl font-semibold text-slate-100">Course does not exist</h1>
+          <p className="eyebrow text-[10px] sm:text-xs md:text-sm">Course Not Found</p>
+          <h1 className="mt-4 font-display text-2xl sm:text-4xl md:text-5xl font-semibold text-slate-100">Course does not exist</h1>
           <button
             type="button"
             onClick={() => setLocation('/')}
-            className="mt-6 rounded-lg bg-violet-300 px-5 py-2.5 text-sm font-bold text-slate-950"
+            className="mt-6 rounded-lg bg-violet-300 px-5 py-2.5 text-xs sm:text-sm md:text-base font-bold text-slate-950 cursor-pointer"
           >
             Return to All Courses
           </button>
@@ -1135,14 +1135,14 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
 
       <main className="pt-24 pb-24">
         {/* COURSE BREADCRUMB & TOP HEADER */}
-        <section className="border-b border-slate-800/80 bg-[#0c0e17] py-10 sm:py-14">
+        <section className="border-b border-slate-800/80 bg-[#0c0e17] py-8 sm:py-12 md:py-16">
           <div className="site-shell max-w-5xl">
             <button
               type="button"
               onClick={() => setLocation('/')}
-              className="inline-flex items-center gap-2 rounded-md border border-slate-800 bg-slate-900/80 px-3 py-1.5 font-mono-custom text-xs text-slate-400 hover:border-slate-700 hover:text-white transition mb-6 cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-md border border-slate-800 bg-slate-900/80 px-3 py-1.5 font-mono-custom text-xs sm:text-sm text-slate-400 hover:border-slate-700 hover:text-white transition mb-6 cursor-pointer"
             >
-              <ArrowLeft size={14} /> Back to All Courses
+              <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Back to All Courses
             </button>
 
             {/* FULL WIDTH RESPONSIVE IMAGE DIRECTLY ABOVE TITLE */}
@@ -1158,33 +1158,33 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
 
             <div>
               <div className="flex flex-wrap items-center gap-3 mb-4">
-                <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${theme.badge}`}>
-                  <IconComponent size={14} /> {course.category}
+                <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs sm:text-sm md:text-base font-medium ${theme.badge}`}>
+                  <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" /> {course.category}
                 </span>
                 {course.badge && (
-                  <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 font-mono-custom text-xs text-violet-300">
+                  <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 font-mono-custom text-xs sm:text-sm md:text-base text-violet-300">
                     {course.badge}
                   </span>
                 )}
-                <span className="font-mono-custom text-xs text-slate-500">{course.level}</span>
+                <span className="font-mono-custom text-xs sm:text-sm md:text-base text-slate-500">{course.level}</span>
               </div>
 
-              <h1 className="font-display text-3xl sm:text-5xl font-semibold tracking-tight text-slate-100">
+              <h1 className="font-display text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-slate-100 leading-tight">
                 {course.title}
               </h1>
-              <p className="mt-3 text-base sm:text-lg text-slate-400 leading-relaxed max-w-3xl">
+              <p className="mt-3 text-sm sm:text-base md:text-lg lg:text-xl text-slate-400 leading-relaxed max-w-3xl">
                 {course.subtitle}
               </p>
 
-              <div className="mt-6 flex flex-wrap items-center gap-6 font-mono-custom text-xs text-slate-400">
+              <div className="mt-6 flex flex-wrap items-center gap-4 sm:gap-6 font-mono-custom text-xs sm:text-sm md:text-base text-slate-400">
                 <span className="flex items-center gap-1.5">
-                  <Clock size={14} className={theme.accentText} /> {course.duration}
+                  <Clock className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${theme.accentText}`} /> {course.duration}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <BookOpen size={14} className={theme.accentText} /> {course.modulesCount} Complete Modules
+                  <BookOpen className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${theme.accentText}`} /> {course.modulesCount} Complete Modules
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <ShieldCheck size={14} className={theme.accentText} /> Instant Delivery
+                  <ShieldCheck className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${theme.accentText}`} /> Instant Delivery
                 </span>
               </div>
             </div>
@@ -1192,17 +1192,17 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
         </section>
 
         {/* MAIN DETAILS & STICKY BUY BOX GRID */}
-        <section className="py-12 sm:py-16">
-          <div className="site-shell grid gap-12 lg:grid-cols-[1fr_360px]">
+        <section className="py-8 sm:py-12 md:py-16">
+          <div className="site-shell grid gap-8 sm:gap-12 lg:grid-cols-[1fr_360px]">
             {/* LEFT COLUMN: ABOUT, SYLLABUS, PROJECTS, FAQS */}
-            <div className="space-y-12">
+            <div className="space-y-8 sm:space-y-12">
               {/* Overview */}
               {(course.description || (course.skills && course.skills.length > 0)) && (
-                <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-6 sm:p-8">
+                <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-5 sm:p-7 md:p-8">
                   {course.description && (
                     <>
-                      <h2 className="font-display text-xl font-semibold text-slate-100 mb-4">About This Product</h2>
-                      <p className="text-sm sm:text-base leading-relaxed text-slate-300">
+                      <h2 className="font-display text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-slate-100 mb-4">About This Product</h2>
+                      <p className="text-xs sm:text-sm md:text-base lg:text-lg leading-relaxed text-slate-300">
                         {course.description}
                       </p>
                     </>
@@ -1210,10 +1210,10 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
 
                   {course.skills && course.skills.length > 0 && (
                     <>
-                      <h3 className="font-mono-custom text-xs uppercase tracking-wider text-slate-500 mt-8 mb-3">Key Features & Technologies</h3>
+                      <h3 className="font-mono-custom text-xs sm:text-sm uppercase tracking-wider text-slate-500 mt-8 mb-3">Key Features & Technologies</h3>
                       <div className="flex flex-wrap gap-2">
                         {course.skills.map((skill) => (
-                          <span key={skill} className="rounded-lg border border-slate-800 bg-slate-900/90 px-3 py-1.5 font-mono-custom text-xs text-slate-200">
+                          <span key={skill} className="rounded-lg border border-slate-800 bg-slate-900/90 px-3 py-1.5 font-mono-custom text-xs sm:text-sm md:text-base text-slate-200">
                             {skill}
                           </span>
                         ))}
@@ -1225,13 +1225,13 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
 
               {/* Syllabus / Modules */}
               {course.modules && course.modules.length > 0 && (
-                <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-6 sm:p-8">
+                <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-5 sm:p-7 md:p-8">
                   <div className="flex items-center justify-between border-b border-slate-800/80 pb-4 mb-6">
                     <div>
-                      <p className="eyebrow">Course Content</p>
-                      <h2 className="font-display text-2xl font-semibold text-slate-100">Course Syllabus & Modules</h2>
+                      <p className="eyebrow text-[10px] sm:text-xs md:text-sm">Course Content</p>
+                      <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-semibold text-slate-100">Course Syllabus & Modules</h2>
                     </div>
-                    <span className="font-mono-custom text-xs text-slate-500">{course.modulesCount} In-Depth Lessons</span>
+                    <span className="font-mono-custom text-xs sm:text-sm md:text-base text-slate-500">{course.modulesCount} In-Depth Lessons</span>
                   </div>
 
                   <div className="divide-y divide-slate-800/80">
@@ -1240,25 +1240,25 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                         <button
                           type="button"
                           onClick={() => setOpenModule(openModule === idx ? -1 : idx)}
-                          className="flex w-full items-center justify-between py-3 text-left transition hover:text-violet-300 cursor-pointer"
+                          className="flex w-full items-center justify-between py-3 text-left transition hover:text-violet-300 cursor-pointer gap-2"
                         >
-                          <div className="flex items-center gap-3.5">
-                            <span className={`font-mono-custom text-xs font-bold ${theme.accentText}`}>
+                          <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                            <span className={`font-mono-custom text-xs sm:text-sm md:text-base font-bold shrink-0 ${theme.accentText}`}>
                               {mod.number || String(idx + 1).padStart(2, '0')}
                             </span>
-                            <span className="font-display text-base font-semibold text-slate-200">
+                            <span className="font-display text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-slate-200 truncate">
                               {mod.title}
                             </span>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <span className="inline-flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900/90 px-2.5 py-1 font-mono-custom text-[11px] text-slate-400">
+                          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                            <span className="inline-flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900/90 px-2 sm:px-2.5 py-1 font-mono-custom text-[10px] sm:text-xs md:text-sm text-slate-400">
                               <LockKeyhole size={12} className="text-amber-400" /> Locked
                             </span>
                             <ChevronDown size={18} className={`text-slate-500 transition-transform ${openModule === idx ? 'rotate-180' : ''}`} />
                           </div>
                         </button>
                         {openModule === idx && (
-                          <div className="pb-4 pl-9 text-sm leading-relaxed text-slate-400">
+                          <div className="pb-4 pl-9 text-xs sm:text-sm md:text-base lg:text-lg leading-relaxed text-slate-400">
                             {mod.detail}
                           </div>
                         )}
@@ -1268,21 +1268,19 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                 </div>
               )}
 
-
-
               {/* Software Installation Guide (Only displays if filled by admin) */}
               {Boolean((course.installationProcess || (course as any).installation_process) && String(course.installationProcess || (course as any).installation_process).trim().length > 0) && (
-                <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-6 sm:p-8 space-y-4">
+                <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-5 sm:p-7 md:p-8 space-y-4">
                   <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
-                    <div className="flex items-center gap-2 text-emerald-300 font-mono-custom text-xs font-bold uppercase tracking-wider">
+                    <div className="flex items-center gap-2 text-emerald-300 font-mono-custom text-xs sm:text-sm md:text-base font-bold uppercase tracking-wider">
                       <Terminal className="w-4 h-4 text-emerald-400" /> Software Installation & Setup Guide
                     </div>
-                    <span className="text-[10px] font-mono-custom font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] sm:text-xs md:text-sm font-mono-custom font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                       Step-by-Step Instructions
                     </span>
                   </div>
 
-                  <div className="font-mono text-xs sm:text-sm text-emerald-100 bg-[#070a14] border border-emerald-900/60 rounded-xl p-4 sm:p-5 leading-relaxed whitespace-pre-wrap selection:bg-emerald-500 selection:text-black">
+                  <div className="font-mono text-xs sm:text-sm md:text-base lg:text-lg text-emerald-100 bg-[#070a14] border border-emerald-900/60 rounded-xl p-4 sm:p-5 leading-relaxed whitespace-pre-wrap selection:bg-emerald-500 selection:text-black">
                     {course.installationProcess || (course as any).installation_process}
                   </div>
                 </div>
@@ -1299,15 +1297,15 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                 const currentImg = selectedGalleryImg || galleryList[0];
 
                 return (
-                  <div className="rounded-2xl border border-cyan-500/30 bg-[#0c0e17] p-6 sm:p-8 space-y-6">
+                  <div className="rounded-2xl border border-cyan-500/30 bg-[#0c0e17] p-5 sm:p-7 md:p-8 space-y-6">
                     <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                       <div>
-                        <p className="eyebrow text-cyan-400">Visual Tour</p>
-                        <h2 className="font-display text-2xl font-semibold text-slate-100 flex items-center gap-2">
+                        <p className="eyebrow text-[10px] sm:text-xs md:text-sm text-cyan-400">Visual Tour</p>
+                        <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-semibold text-slate-100 flex items-center gap-2">
                           📸 Product Screenshots & Visual Gallery
                         </h2>
                       </div>
-                      <span className="text-xs font-mono-custom font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1 rounded-full">
+                      <span className="text-xs sm:text-sm md:text-base font-mono-custom font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1 rounded-full">
                         {galleryList.length} Photo{galleryList.length === 1 ? '' : 's'}
                       </span>
                     </div>
@@ -1323,9 +1321,9 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                       <button
                         type="button"
                         onClick={() => { setSelectedGalleryImg(currentImg); setIsLightboxOpen(true); }}
-                        className="absolute bottom-3 right-3 bg-slate-950/80 hover:bg-slate-900 text-cyan-300 border border-cyan-500/40 text-xs font-bold font-mono-custom px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
+                        className="absolute bottom-3 right-3 bg-slate-950/80 hover:bg-slate-900 text-cyan-300 border border-cyan-500/40 text-xs sm:text-sm md:text-base font-bold font-mono-custom px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
                       >
-                        <Maximize2 className="w-3.5 h-3.5" /> Fullscreen View
+                        <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Fullscreen View
                       </button>
                     </div>
 
@@ -1368,11 +1366,11 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                 );
               })()}
               {course.bonus && (
-                <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-6 sm:p-8">
-                  <div className="flex items-center gap-2 text-amber-300 font-mono-custom text-xs font-bold uppercase tracking-wider mb-2">
+                <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-5 sm:p-7 md:p-8">
+                  <div className="flex items-center gap-2 text-amber-300 font-mono-custom text-xs sm:text-sm md:text-base font-bold uppercase tracking-wider mb-2">
                     🎁 Special Bonus Included
                   </div>
-                  <p className="text-sm sm:text-base font-semibold text-slate-100 leading-relaxed">
+                  <p className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-slate-100 leading-relaxed">
                     {course.bonus}
                   </p>
                 </div>
@@ -1380,16 +1378,16 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
 
               {/* Testimonials */}
               {course.testimonials && course.testimonials.length > 0 && (
-                <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-6 sm:p-8">
-                  <p className="eyebrow">Student Reviews</p>
-                  <h2 className="font-display text-2xl font-semibold text-slate-100 mb-6">What Customers Say</h2>
+                <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-5 sm:p-7 md:p-8">
+                  <p className="eyebrow text-[10px] sm:text-xs md:text-sm">Student Reviews</p>
+                  <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-semibold text-slate-100 mb-6">What Customers Say</h2>
                   <div className="grid gap-4 sm:grid-cols-2">
                     {course.testimonials.map((t) => (
                       <div key={t.name} className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 flex flex-col justify-between">
-                        <p className="text-xs sm:text-sm text-slate-300 italic leading-relaxed">"{t.comment}"</p>
+                        <p className="text-xs sm:text-sm md:text-base lg:text-lg text-slate-300 italic leading-relaxed">"{t.comment}"</p>
                         <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                          <span className="font-display text-xs font-semibold text-slate-100">{t.name}</span>
-                          <span className="text-amber-400 text-xs font-mono-custom">★★★★★</span>
+                          <span className="font-display text-xs sm:text-sm md:text-base font-semibold text-slate-100">{t.name}</span>
+                          <span className="text-amber-400 text-xs sm:text-sm font-mono-custom">★★★★★</span>
                         </div>
                       </div>
                     ))}
@@ -1399,15 +1397,15 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
 
               {/* Course-Specific FAQs */}
               {course.faqs && course.faqs.length > 0 && (
-                <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-6 sm:p-8">
-                  <h2 className="font-display text-xl font-semibold text-slate-100 mb-4">Course FAQ</h2>
+                <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-5 sm:p-7 md:p-8">
+                  <h2 className="font-display text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-slate-100 mb-4">Course FAQ</h2>
                   <div className="divide-y divide-slate-800 border-y border-slate-800">
                     {course.faqs.map(([q, a], idx) => (
                       <div key={q}>
                         <button
                           type="button"
                           onClick={() => setOpenFaq(openFaq === idx ? -1 : idx)}
-                          className="flex w-full items-center justify-between py-4 text-left text-sm font-semibold text-slate-200 hover:text-violet-300 transition-colors cursor-pointer"
+                          className="flex w-full items-center justify-between py-4 text-left text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-slate-200 hover:text-violet-300 transition-colors cursor-pointer gap-2"
                         >
                           <span>{q}</span>
                           <ChevronDown size={17} className={`text-slate-500 transition-transform duration-300 ${openFaq === idx ? 'rotate-180 text-violet-400' : ''}`} />
@@ -1421,7 +1419,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                               transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                               className="overflow-hidden transform-gpu"
                             >
-                              <p className="pb-4 text-xs sm:text-sm leading-relaxed text-slate-400">{a}</p>
+                              <p className="pb-4 text-xs sm:text-sm md:text-base lg:text-lg leading-relaxed text-slate-400">{a}</p>
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -1434,37 +1432,37 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
 
             {/* RIGHT COLUMN: STICKY PRICING & BUY CARD */}
             <div className="lg:sticky lg:top-24 lg:self-start">
-              <div className="rounded-2xl border border-violet-400/30 bg-[#0c0e18] p-6 sm:p-7 shadow-2xl shadow-violet-950/30">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono-custom text-xs uppercase text-violet-300">Enrollment Open</span>
-                  <span className="rounded-full bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-0.5 font-mono-custom text-[10px] text-emerald-300">
+              <div className="rounded-2xl border border-violet-400/30 bg-[#0c0e18] p-5 sm:p-7 shadow-2xl shadow-violet-950/30">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono-custom text-xs sm:text-sm uppercase text-violet-300">Enrollment Open</span>
+                  <span className="rounded-full bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-0.5 font-mono-custom text-[10px] sm:text-xs md:text-sm text-emerald-300">
                     Instant Access
                   </span>
                 </div>
 
                 <div className="mt-5 flex items-baseline gap-2.5">
-                  <span className="font-display text-4xl font-bold text-slate-100">₹{course.price}</span>
-                  <span className="font-mono-custom text-sm text-slate-500 line-through">₹{course.originalPrice}</span>
+                  <span className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-slate-100">₹{course.price}</span>
+                  <span className="font-mono-custom text-xs sm:text-sm md:text-base text-slate-500 line-through">₹{course.originalPrice}</span>
                 </div>
-                <p className="mt-1 text-xs text-slate-400">One-time payment • Lifetime course access</p>
+                <p className="mt-1 text-xs sm:text-sm md:text-base text-slate-400">One-time payment • Lifetime course access</p>
 
                 <div className="my-6 h-px bg-slate-800/80" />
 
-                <div className="space-y-3 text-xs text-slate-300 mb-6">
+                <div className="space-y-3 text-xs sm:text-sm md:text-base text-slate-300 mb-6">
                   <div className="flex items-center gap-2.5">
-                    <CheckCircle2 size={15} className="text-cyan-300 shrink-0" />
+                    <CheckCircle2 className="text-cyan-300 shrink-0 w-4 h-4 sm:w-4.5 sm:h-4.5" />
                     <span>Complete {course.modulesCount} modules syllabus</span>
                   </div>
                   <div className="flex items-center gap-2.5">
-                    <CheckCircle2 size={15} className="text-cyan-300 shrink-0" />
+                    <CheckCircle2 className="text-cyan-300 shrink-0 w-4 h-4 sm:w-4.5 sm:h-4.5" />
                     <span>Hands-on capstone projects & source code</span>
                   </div>
                   <div className="flex items-center gap-2.5">
-                    <CheckCircle2 size={15} className="text-cyan-300 shrink-0" />
+                    <CheckCircle2 className="text-cyan-300 shrink-0 w-4 h-4 sm:w-4.5 sm:h-4.5" />
                     <span>Lifetime access to course updates</span>
                   </div>
                   <div className="flex items-center gap-2.5">
-                    <CheckCircle2 size={15} className="text-cyan-300 shrink-0" />
+                    <CheckCircle2 className="text-cyan-300 shrink-0 w-4 h-4 sm:w-4.5 sm:h-4.5" />
                     <span>Verified Razorpay secure checkout</span>
                   </div>
                 </div>
@@ -1485,17 +1483,17 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                         cart.addToCart(course);
                       }
                     }}
-                    className={`w-full py-3.5 px-4 rounded-xl border font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${cart.isInCart(course.id)
+                    className={`w-full py-3.5 px-4 rounded-xl border font-bold text-xs sm:text-sm md:text-base transition-all flex items-center justify-center gap-2 cursor-pointer ${cart.isInCart(course.id)
                       ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
                       : 'border-slate-800 bg-slate-900/90 text-slate-200 hover:border-violet-500/50 hover:bg-slate-800'
                       }`}
                   >
-                    <ShoppingCart className="w-4 h-4" />
+                    <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                     {cart.isInCart(course.id) ? 'Added to Cart (Click to Remove)' : 'Add to Cart'}
                   </button>
                 </div>
 
-                <p className="mt-4 text-center font-mono-custom text-[10px] text-slate-500">
+                <p className="mt-4 text-center font-mono-custom text-[10px] sm:text-xs md:text-sm text-slate-500">
                   <LockKeyhole size={11} className="inline mr-1" /> 256-bit SSL encrypted checkout
                 </p>
               </div>
@@ -1507,15 +1505,15 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
         <div className="fixed bottom-0 inset-x-0 z-50 flex items-center justify-between gap-3 border-t border-slate-800/90 bg-[#090b14]/95 px-4 py-3 backdrop-blur-md lg:hidden shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
           <div className="flex flex-col shrink-0">
             <div className="flex items-baseline gap-1.5">
-              <span className="font-display text-xl font-bold text-slate-100">₹{course.price}</span>
-              <span className="font-mono-custom text-xs text-slate-500 line-through">₹{course.originalPrice}</span>
+              <span className="font-display text-lg sm:text-xl md:text-2xl font-bold text-slate-100">₹{course.price}</span>
+              <span className="font-mono-custom text-xs sm:text-sm text-slate-500 line-through">₹{course.originalPrice}</span>
             </div>
-            <span className="font-mono-custom text-[10px] text-emerald-400 flex items-center gap-1">
+            <span className="font-mono-custom text-[10px] sm:text-xs text-emerald-400 flex items-center gap-1">
               <ShieldCheck size={11} /> Instant Access
             </span>
           </div>
           <div className="flex-1 max-w-[170px] sm:max-w-xs">
-            <CheckoutButton course={course} courseId={course.id} onAddToCart={cart.addToCart} label="Get Access" onState={setPaymentState} className="text-xs sm:text-sm px-4 py-2.5 min-h-10 font-bold" />
+            <CheckoutButton course={course} courseId={course.id} onAddToCart={cart.addToCart} label="Get Access" onState={setPaymentState} className="text-xs sm:text-sm md:text-base px-4 py-2.5 min-h-10 font-bold" />
           </div>
         </div>
       </main>
