@@ -1120,9 +1120,9 @@ export default function AdminPanelPage() {
 
   // DASHBOARD RENDER
   return (
-    <div className="min-h-screen bg-[#06070a] text-slate-100 font-sans p-4 md:p-8">
+    <div className="min-h-screen bg-[#06070a] text-slate-100 font-sans p-3 sm:p-6 md:p-8 w-full max-w-full overflow-x-hidden">
       {/* Top Bar */}
-      <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6 min-w-0">
         <div>
           <button
             onClick={() => setLocation('/')}
@@ -1130,7 +1130,7 @@ export default function AdminPanelPage() {
           >
             <ArrowLeft className="w-4 h-4 mr-1" /> Back to Main Site
           </button>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2 flex-wrap">
             <span>Skill Vault Admin Panel</span>
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
               Authenticated
@@ -1141,7 +1141,7 @@ export default function AdminPanelPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             onClick={fetchData}
             disabled={loading}
@@ -1175,7 +1175,7 @@ export default function AdminPanelPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="w-full min-w-0 max-w-7xl mx-auto space-y-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-[#0d0f19] border border-slate-800/80 rounded-xl p-5 shadow-xl relative overflow-hidden">
@@ -1226,7 +1226,7 @@ export default function AdminPanelPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-slate-800 gap-4 sm:gap-8 text-xs sm:text-sm font-semibold overflow-x-auto">
+        <div className="flex border-b border-slate-800 gap-3 sm:gap-8 text-xs sm:text-sm font-semibold overflow-x-auto scrollbar-none w-full max-w-full pb-0.5">
           <button
             onClick={() => setActiveTab('products')}
             className={`pb-4 border-b-2 transition-colors flex items-center gap-2 cursor-pointer shrink-0 ${activeTab === 'products'
