@@ -1109,7 +1109,16 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
     const queryState = new URLSearchParams(window.location.search).get('payment');
     if (queryState === 'success' || queryState === 'pending') setPaymentState('pending');
     if (queryState === 'cancelled') setPaymentState('cancelled');
-  }, [params.id]);
+    if (course) {
+      trackViewContent({
+        contentId: course.id,
+        contentName: course.title,
+        category: course.category,
+        value: parseFloat(String(course.price || '0').replace(/[^0-9.]/g, '')),
+        currency: 'INR',
+      });
+    }
+  }, [params.id, course?.id]);
 
   if (loading && !course) {
     return (
