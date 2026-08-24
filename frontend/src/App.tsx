@@ -1281,7 +1281,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                 <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-5 sm:p-7 md:p-8 space-y-4">
                   <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
                     <div className="flex items-center gap-2 text-emerald-300 font-mono-custom text-xs sm:text-sm md:text-base font-bold uppercase tracking-wider">
-                      <Terminal className="w-4 h-4 text-emerald-400" /> Software Installation & Setup Guide
+                      <Terminal className="w-4 h-4 text-emerald-400" />Setup Guide
                     </div>
                     <span className="text-[10px] sm:text-xs md:text-sm font-mono-custom font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                       Step-by-Step Instructions
@@ -1343,8 +1343,8 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                           type="button"
                           onClick={() => setSelectedGalleryImg(imgUrl)}
                           className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-[#07080e] ${currentImg === imgUrl
-                              ? 'border-cyan-400 ring-2 ring-cyan-500/50 scale-105'
-                              : 'border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-600'
+                            ? 'border-cyan-400 ring-2 ring-cyan-500/50 scale-105'
+                            : 'border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-600'
                             }`}
                         >
                           <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
