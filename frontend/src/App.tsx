@@ -41,7 +41,9 @@ import {
   UserPlus,
   ShoppingCart,
   ShieldAlert,
-  Maximize2
+  Maximize2,
+  Instagram,
+  Facebook
 } from 'lucide-react';
 import { Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
 import { COURSES, type Course, type CourseModule } from './data/courses';
@@ -1568,6 +1570,28 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
         <div className="site-shell flex flex-col sm:flex-row items-center justify-between gap-4 font-mono-custom text-xs text-slate-500">
           <Brand onClick={() => setLocation('/')} />
           <p>© 2026 SKILL VAULT STORE • ALL RIGHTS RESERVED</p>
+          <div className="flex items-center gap-3">
+            <a
+              href="https://www.instagram.com/theskillvaults/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-pink-400 hover:border-pink-500/40 hover:bg-slate-800/80 transition-all cursor-pointer"
+              aria-label="Instagram"
+              title="Follow us on Instagram"
+            >
+              <Instagram className="w-4 h-4" />
+            </a>
+            <a
+              href="https://www.facebook.com/profile.php?id=61593149424859"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-blue-400 hover:border-blue-500/40 hover:bg-slate-800/80 transition-all cursor-pointer"
+              aria-label="Facebook"
+              title="Follow us on Facebook"
+            >
+              <Facebook className="w-4 h-4" />
+            </a>
+          </div>
         </div>
       </footer>
 
@@ -2024,14 +2048,29 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
       <footer className="border-t border-slate-800/70 py-8 bg-[#08090e]">
         <div className="site-shell flex flex-col sm:flex-row items-center justify-between gap-4 font-mono-custom text-xs text-slate-500">
           <Brand onClick={() => smoothScrollTo('#top')} />
-          <p>© 2026 SKILL VAULT ACADEMY • ALL RIGHTS RESERVED</p>
-          <button
-            type="button"
-            onClick={() => setLocation('/admin')}
-            className="hover:text-violet-400 cursor-pointer transition-colors text-[11px] flex items-center gap-1.5"
-          >
-            <span>🔐</span> Admin Portal
-          </button>
+          <p>© 2026 SKILL VAULT STORE • ALL RIGHTS RESERVED</p>
+          <div className="flex items-center gap-3">
+            <a
+              href="https://www.instagram.com/theskillvaults/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-pink-400 hover:border-pink-500/40 hover:bg-slate-800/80 transition-all cursor-pointer"
+              aria-label="Instagram"
+              title="Follow us on Instagram"
+            >
+              <Instagram className="w-4 h-4" />
+            </a>
+            <a
+              href="https://www.facebook.com/profile.php?id=61593149424859"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-blue-400 hover:border-blue-500/40 hover:bg-slate-800/80 transition-all cursor-pointer"
+              aria-label="Facebook"
+              title="Follow us on Facebook"
+            >
+              <Facebook className="w-4 h-4" />
+            </a>
+          </div>
         </div>
       </footer>
 
