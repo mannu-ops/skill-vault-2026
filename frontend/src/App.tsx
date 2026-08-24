@@ -1181,9 +1181,6 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                   <Clock className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${theme.accentText}`} /> {course.duration}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <BookOpen className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${theme.accentText}`} /> {course.modulesCount} Complete Modules
-                </span>
-                <span className="flex items-center gap-1.5">
                   <ShieldCheck className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${theme.accentText}`} /> Instant Delivery
                 </span>
               </div>
@@ -1334,11 +1331,10 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                           key={idx}
                           type="button"
                           onClick={() => setSelectedGalleryImg(imgUrl)}
-                          className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-[#07080e] ${
-                            currentImg === imgUrl
+                          className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-[#07080e] ${currentImg === imgUrl
                               ? 'border-cyan-400 ring-2 ring-cyan-500/50 scale-105'
                               : 'border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-600'
-                          }`}
+                            }`}
                         >
                           <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
                         </button>
@@ -2208,7 +2204,7 @@ function AuthHeartbeatListener() {
             localStorage.removeItem('sv_user_token');
             localStorage.removeItem('sv_user_data');
             localStorage.removeItem('sv_user');
-            
+
             const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
             window.location.href = `${baseUrl}/?revoked=true`;
           }
