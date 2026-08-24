@@ -76,6 +76,7 @@ const CATEGORIES = [
   'All Products',
   'Course',
   'Software',
+  'Architecture & Design',
   'Game',
   'Notes',
   'Hacks',

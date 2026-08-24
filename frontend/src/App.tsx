@@ -61,6 +61,7 @@ const CATEGORIES = [
   'All Products',
   'Course',
   'Software',
+  'Architecture & Design',
   'Game',
   'Notes',
   'Hacks',
@@ -621,6 +622,13 @@ function Header({
                   </button>
                   <button
                     type="button"
+                    onClick={() => navTo('#catalog', 'Architecture & Design')}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                  >
+                    <span>📐</span> Architecture & Design
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => navTo('#catalog', 'Notes')}
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
                   >
@@ -773,6 +781,9 @@ function Header({
             </button>
             <button type="button" onClick={() => navTo('#catalog', 'Software')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
               <span>💻 Software</span>
+            </button>
+            <button type="button" onClick={() => navTo('#catalog', 'Architecture & Design')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+              <span>📐 Architecture & Design</span>
             </button>
             <button type="button" onClick={() => navTo('#catalog', 'Notes')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
               <span>📚 Notes / PDFs</span>
