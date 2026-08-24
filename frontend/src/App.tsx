@@ -1182,7 +1182,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                 <span className="font-mono-custom text-xs sm:text-sm md:text-base text-slate-500">{course.level}</span>
               </div>
 
-              <h1 className="font-display text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-slate-100 leading-tight">
+              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-slate-100 leading-snug">
                 {course.title}
               </h1>
               <p className="mt-3 text-sm sm:text-base md:text-lg lg:text-xl text-slate-400 leading-relaxed max-w-3xl">
