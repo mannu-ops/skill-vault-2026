@@ -1541,10 +1541,15 @@ async function initBaileysWhatsApp() {
 
     const { makeWASocket, DisconnectReason } = baileys;
     const { state, saveCreds } = await useDbAuthState();
+    const pinoMod = await import('pino').catch(() => null);
+    const quietLogger = pinoMod ? (pinoMod.default || pinoMod)({ level: 'silent' }) : undefined;
 
     baileysSock = makeWASocket({
       auth: state,
-      printQRInTerminal: true,
+      logger: quietLogger,
+      printQRInTerminal: false,
+      connectTimeoutMs: 60000,
+      defaultQueryTimeoutMs: 60000,
       browser: ['Skill Vault Store', 'Chrome', '1.0.0']
     });
 
