@@ -118,6 +118,10 @@ export function initMetaPixel(pixelId: string = DEFAULT_PIXEL_ID, userData?: Use
 
   window.__META_PIXEL_ID__ = targetPixelId;
 
+  if (window.__META_PIXEL_INITIALIZED__ && (!userData || Object.keys(userData).length === 0)) {
+    return true;
+  }
+
   // Inject Meta Pixel script if not present
   if (!window.fbq) {
     /* eslint-disable */

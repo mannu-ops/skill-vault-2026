@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { initMetaPixel, trackPageView, setUserProperties, DEFAULT_PIXEL_ID } from '@/lib/meta-pixel';
 
@@ -9,6 +9,7 @@ interface MetaPixelTrackerProps {
 
 export function MetaPixelTracker({ user, pixelId }: MetaPixelTrackerProps) {
   const [location] = useLocation();
+  const isInitialMount = useRef(true);
 
   // Initialize Meta Pixel on startup
   useEffect(() => {
@@ -26,8 +27,12 @@ export function MetaPixelTracker({ user, pixelId }: MetaPixelTrackerProps) {
     }
   }, [pixelId]);
 
-  // Track PageView on route changes
+  // Track PageView on SPA route changes (skips initial load to prevent duplicate 2000ms window error)
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     trackPageView(location);
   }, [location]);
 
