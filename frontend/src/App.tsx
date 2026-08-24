@@ -1451,26 +1451,34 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                   <span className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-slate-100">₹{course.price}</span>
                   <span className="font-mono-custom text-xs sm:text-sm md:text-base text-slate-500 line-through">₹{course.originalPrice}</span>
                 </div>
-                <p className="mt-1 text-xs sm:text-sm md:text-base text-slate-400">One-time payment • Lifetime course access</p>
+                <p className="mt-1 text-xs sm:text-sm md:text-base text-slate-400">One-time payment • Lifetime product access</p>
 
                 <div className="my-6 h-px bg-slate-800/80" />
 
                 <div className="space-y-3 text-xs sm:text-sm md:text-base text-slate-300 mb-6">
                   <div className="flex items-center gap-2.5">
                     <CheckCircle2 className="text-cyan-300 shrink-0 w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                    <span>Complete {course.modulesCount} modules syllabus</span>
+                    <span>
+                      {course.category === 'Course' && course.modulesCount > 0
+                        ? `Complete ${course.modulesCount} modules curriculum`
+                        : 'Instant access to full product files'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <CheckCircle2 className="text-cyan-300 shrink-0 w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                    <span>Hands-on capstone projects & source code</span>
+                    <span>
+                      {course.category === 'Course'
+                        ? 'Hands-on projects & source code'
+                        : 'Complete assets, source code & documentation'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <CheckCircle2 className="text-cyan-300 shrink-0 w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                    <span>Lifetime access to course updates</span>
+                    <span>Lifetime access & free future updates</span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <CheckCircle2 className="text-cyan-300 shrink-0 w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                    <span>Verified Razorpay secure checkout</span>
+                    <span>100% Verified Razorpay secure checkout</span>
                   </div>
                 </div>
 
