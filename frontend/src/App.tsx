@@ -180,10 +180,10 @@ function Brand({ onClick }: { onClick?: () => void }) {
       data-testid="button-brand"
       className="group flex items-center gap-2 text-left cursor-pointer shrink-0 transition-opacity hover:opacity-90"
     >
-      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white font-black text-xs sm:text-sm shadow-md">
+      <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white font-black text-xs sm:text-sm md:text-base shadow-md">
         SV
       </div>
-      <span className="font-display font-black tracking-tight text-sm sm:text-base text-white">
+      <span className="font-display font-black tracking-tight text-sm sm:text-base md:text-lg lg:text-xl text-white">
         SKILL<span className="text-violet-400">VAULT</span>
       </span>
     </button>
@@ -571,11 +571,11 @@ function Header({
       <div className="site-shell flex h-[68px] items-center justify-between">
         <Brand onClick={() => navTo('#top')} />
 
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav className="hidden items-center gap-4 md:gap-6 md:flex">
           <button
             type="button"
             onClick={() => navTo('#catalog', 'All Products')}
-            className="nav-link text-xs font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+            className="nav-link text-xs md:text-sm lg:text-base font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
           >
             All Products
           </button>
@@ -583,7 +583,7 @@ function Header({
           <button
             type="button"
             onClick={() => navTo('#catalog', 'Course')}
-            className="nav-link text-xs font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+            className="nav-link text-xs md:text-sm lg:text-base font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
           >
             Courses
           </button>
@@ -591,7 +591,7 @@ function Header({
           <button
             type="button"
             onClick={() => navTo('#catalog', 'Software')}
-            className="nav-link text-xs font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+            className="nav-link text-xs md:text-sm lg:text-base font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
           >
             Software
           </button>
@@ -605,53 +605,53 @@ function Header({
             <button
               type="button"
               onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
-              className="nav-link inline-flex items-center gap-1 text-xs font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors py-2"
+              className="nav-link inline-flex items-center gap-1 text-xs md:text-sm lg:text-base font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors py-2"
             >
-              More <ChevronDown size={13} className={`transition-transform duration-200 ${moreDropdownOpen ? 'rotate-180 text-violet-300' : ''}`} />
+              More <ChevronDown className={`w-3.5 h-3.5 md:w-4 md:h-4 transition-transform duration-200 ${moreDropdownOpen ? 'rotate-180 text-violet-300' : ''}`} />
             </button>
 
             {moreDropdownOpen && (
-              <div className="absolute left-0 top-full pt-1.5 w-44 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="absolute left-0 top-full pt-1.5 w-48 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="rounded-xl border border-slate-800 bg-[#0c0e17]/95 p-1.5 shadow-2xl shadow-violet-950/60 backdrop-blur-xl">
                   <button
                     type="button"
                     onClick={() => navTo('#catalog', 'All Products')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
                   >
                     <span>🔥</span> All Products
                   </button>
                   <button
                     type="button"
                     onClick={() => navTo('#catalog', 'Architecture & Design')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
                   >
                     <span>📐</span> Architecture & Design
                   </button>
                   <button
                     type="button"
                     onClick={() => navTo('#catalog', 'Notes')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
                   >
                     <span>📚</span> Notes / PDFs
                   </button>
                   <button
                     type="button"
                     onClick={() => navTo('#catalog', 'Hacks')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
                   >
                     <span>⚡</span> Hacks & Tools
                   </button>
                   <button
                     type="button"
                     onClick={() => navTo('#catalog', 'Game')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
                   >
                     <span>🎮</span> Games
                   </button>
                   <button
                     type="button"
                     onClick={() => navTo('#catalog', 'Blog')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
                   >
                     <span>📝</span> Blogs
                   </button>
@@ -663,7 +663,7 @@ function Header({
           <button
             type="button"
             onClick={() => navTo('#why-us')}
-            className="nav-link text-xs font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+            className="nav-link text-xs md:text-sm lg:text-base font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
           >
             Why Us
           </button>
@@ -671,7 +671,7 @@ function Header({
           <button
             type="button"
             onClick={() => navTo('#faq')}
-            className="nav-link text-xs font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+            className="nav-link text-xs md:text-sm lg:text-base font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
           >
             FAQ
           </button>
@@ -707,7 +707,7 @@ function Header({
 
 
           {/* Desktop Auth Section */}
-          <div className="hidden items-center gap-2.5 md:flex ml-1">
+          <div className="hidden items-center gap-2 sm:gap-2.5 md:flex ml-1">
             {!user ? (
               <>
                 <motion.button
@@ -715,18 +715,18 @@ function Header({
                   onClick={() => onOpenAuthModal('login')}
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.96 }}
-                  className="text-xs font-semibold text-slate-300 hover:text-white px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 transform-gpu"
+                  className="text-xs md:text-sm font-semibold text-slate-300 hover:text-white px-2.5 sm:px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 transform-gpu"
                 >
-                  <LogIn className="w-3.5 h-3.5" /> Log In
+                  <LogIn className="w-3.5 h-3.5 md:w-4 md:h-4" /> Log In
                 </motion.button>
                 <motion.button
                   type="button"
                   onClick={() => onOpenAuthModal('signup')}
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.96 }}
-                  className="text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white px-3.5 py-1.5 rounded-lg shadow-lg shadow-violet-600/20 transition-all cursor-pointer flex items-center gap-1.5 transform-gpu"
+                  className="text-xs md:text-sm font-bold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white px-3 sm:px-3.5 py-1.5 rounded-lg shadow-lg shadow-violet-600/20 transition-all cursor-pointer flex items-center gap-1.5 transform-gpu"
                 >
-                  <UserPlus className="w-3.5 h-3.5" /> Sign Up
+                  <UserPlus className="w-3.5 h-3.5 md:w-4 md:h-4" /> Sign Up
                 </motion.button>
               </>
             ) : (
@@ -734,13 +734,13 @@ function Header({
                 <button
                   type="button"
                   onClick={() => setLocation('/purchases')}
-                  className="text-xs font-semibold text-slate-200 bg-slate-900 border border-slate-800 hover:border-violet-500/50 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="text-xs md:text-sm font-semibold text-slate-200 bg-slate-900 border border-slate-800 hover:border-violet-500/50 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
                 >
-                  <ShoppingBag className="w-3.5 h-3.5 text-violet-400" /> My Purchases
+                  <ShoppingBag className="w-3.5 h-3.5 md:w-4 md:h-4 text-violet-400" /> My Purchases
                 </button>
                 <div className="flex items-center gap-2 border-l border-slate-800 pl-2">
-                  <span className="text-xs font-bold text-violet-300 bg-violet-500/10 border border-violet-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
-                    <User className="w-3 h-3" /> {user.name || user.email.split('@')[0]}
+                  <span className="text-xs md:text-sm font-bold text-violet-300 bg-violet-500/10 border border-violet-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <User className="w-3 h-3 md:w-3.5 md:h-3.5" /> {user.name || user.email.split('@')[0]}
                   </span>
                   <button
                     type="button"
@@ -773,31 +773,31 @@ function Header({
         <div className="border-t border-slate-800 bg-[#0b0d14] px-5 py-4 md:hidden">
           <div className="site-shell flex flex-col gap-1">
 
-            <button type="button" onClick={() => navTo('#catalog', 'All Products')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+            <button type="button" onClick={() => navTo('#catalog', 'All Products')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm md:text-base font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
               <span>🔥 All Products</span>
             </button>
-            <button type="button" onClick={() => navTo('#catalog', 'Course')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+            <button type="button" onClick={() => navTo('#catalog', 'Course')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm md:text-base font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
               <span>🎓 Courses</span>
             </button>
-            <button type="button" onClick={() => navTo('#catalog', 'Software')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+            <button type="button" onClick={() => navTo('#catalog', 'Software')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm md:text-base font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
               <span>💻 Software</span>
             </button>
-            <button type="button" onClick={() => navTo('#catalog', 'Architecture & Design')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+            <button type="button" onClick={() => navTo('#catalog', 'Architecture & Design')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm md:text-base font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
               <span>📐 Architecture & Design</span>
             </button>
-            <button type="button" onClick={() => navTo('#catalog', 'Notes')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+            <button type="button" onClick={() => navTo('#catalog', 'Notes')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm md:text-base font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
               <span>📚 Notes / PDFs</span>
             </button>
-            <button type="button" onClick={() => navTo('#catalog', 'Hacks')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+            <button type="button" onClick={() => navTo('#catalog', 'Hacks')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm md:text-base font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
               <span>⚡ Hacks & Tools</span>
             </button>
-            <button type="button" onClick={() => navTo('#catalog', 'Game')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+            <button type="button" onClick={() => navTo('#catalog', 'Game')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm md:text-base font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
               <span>🎮 Games</span>
             </button>
-            <button type="button" onClick={() => navTo('#why-us')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+            <button type="button" onClick={() => navTo('#why-us')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm md:text-base font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
               <span>⭐ Why Us</span>
             </button>
-            <button type="button" onClick={() => navTo('#faq')} className="border-b border-slate-800/70 py-3 text-left text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
+            <button type="button" onClick={() => navTo('#faq')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm md:text-base font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
               <span>❓ FAQ</span>
             </button>
             {!user ? (
@@ -805,14 +805,14 @@ function Header({
                 <button
                   type="button"
                   onClick={() => { close(); onOpenAuthModal('login'); }}
-                  className="flex-1 py-2.5 text-xs font-semibold text-slate-200 bg-slate-900 border border-slate-800 rounded-lg text-center cursor-pointer flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2.5 text-xs sm:text-sm font-semibold text-slate-200 bg-slate-900 border border-slate-800 rounded-lg text-center cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <span>🔑</span> Log In
                 </button>
                 <button
                   type="button"
                   onClick={() => { close(); onOpenAuthModal('signup'); }}
-                  className="flex-1 py-2.5 text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-lg text-center cursor-pointer flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2.5 text-xs sm:text-sm font-bold bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-lg text-center cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <span>✨</span> Sign Up
                 </button>
@@ -822,14 +822,14 @@ function Header({
                 <button
                   type="button"
                   onClick={() => { close(); setLocation('/purchases'); }}
-                  className="w-full py-2.5 text-xs font-semibold text-slate-200 bg-slate-900 border border-slate-800 rounded-lg text-center cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-2.5 text-xs sm:text-sm font-semibold text-slate-200 bg-slate-900 border border-slate-800 rounded-lg text-center cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span>🛍️</span> My Purchases
                 </button>
                 <button
                   type="button"
                   onClick={() => { close(); onLogout(); }}
-                  className="w-full py-2 text-xs font-semibold text-red-400 text-center cursor-pointer flex items-center justify-center gap-1.5"
+                  className="w-full py-2 text-xs sm:text-sm font-semibold text-red-400 text-center cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <span>🚪</span> Logout ({user.name || user.email})
                 </button>
