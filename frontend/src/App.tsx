@@ -1302,7 +1302,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                       <div>
                         <p className="eyebrow text-[10px] sm:text-xs md:text-sm text-cyan-400">Visual Tour</p>
                         <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-semibold text-slate-100 flex items-center gap-2">
-                          📸 Product Screenshots & Visual Gallery
+                          📸 Gallery
                         </h2>
                       </div>
                       <span className="text-xs sm:text-sm md:text-base font-mono-custom font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1 rounded-full">
