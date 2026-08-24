@@ -118,9 +118,7 @@ export function initMetaPixel(pixelId: string = DEFAULT_PIXEL_ID, userData?: Use
 
   window.__META_PIXEL_ID__ = targetPixelId;
 
-  // If window.fbq already exists (e.g. initialized in index.html snippet), avoid duplicate fbq('init') call
-  if (window.fbq) {
-    window.__META_PIXEL_INITIALIZED__ = true;
+  if (window.__META_PIXEL_INITIALIZED__) {
     if (userData && Object.keys(userData).length > 0) {
       setUserProperties(userData);
     }
@@ -128,26 +126,28 @@ export function initMetaPixel(pixelId: string = DEFAULT_PIXEL_ID, userData?: Use
   }
 
   // Inject Meta Pixel script if not present
-  /* eslint-disable */
-  const n: any = (window.fbq = function () {
-    n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
-  });
-  if (!window._fbq) window._fbq = n;
-  n.push = n;
-  n.loaded = true;
-  n.version = '2.0';
-  n.queue = [];
+  if (!window.fbq) {
+    /* eslint-disable */
+    const n: any = (window.fbq = function () {
+      n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+    });
+    if (!window._fbq) window._fbq = n;
+    n.push = n;
+    n.loaded = true;
+    n.version = '2.0';
+    n.queue = [];
 
-  const t = document.createElement('script');
-  t.async = true;
-  t.src = 'https://connect.facebook.net/en_US/fbevents.js';
-  const s = document.getElementsByTagName('script')[0];
-  if (s && s.parentNode) {
-    s.parentNode.insertBefore(t, s);
-  } else {
-    document.head.appendChild(t);
+    const t = document.createElement('script');
+    t.async = true;
+    t.src = 'https://connect.facebook.net/en_US/fbevents.js';
+    const s = document.getElementsByTagName('script')[0];
+    if (s && s.parentNode) {
+      s.parentNode.insertBefore(t, s);
+    } else {
+      document.head.appendChild(t);
+    }
+    /* eslint-enable */
   }
-  /* eslint-enable */
 
   const advancedMatchingData = formatUserData(userData);
 
@@ -157,6 +157,9 @@ export function initMetaPixel(pixelId: string = DEFAULT_PIXEL_ID, userData?: Use
   } else {
     window.fbq('init', targetPixelId);
   }
+
+  // Track initial PageView event right after fbq init
+  window.fbq('track', 'PageView');
 
   window.__META_PIXEL_INITIALIZED__ = true;
 
