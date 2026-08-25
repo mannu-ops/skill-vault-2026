@@ -152,6 +152,7 @@ export function initMetaPixel(pixelId: string = DEFAULT_PIXEL_ID, userData?: Use
   const advancedMatchingData = formatUserData(userData);
 
   // Initialize Pixel ID with optional Advanced Matching user data
+  console.log(`[Meta Pixel Log] 2. Executing fbq('init', '${targetPixelId}')`);
   if (Object.keys(advancedMatchingData).length > 0) {
     window.fbq('init', targetPixelId, advancedMatchingData);
   } else {
@@ -159,13 +160,12 @@ export function initMetaPixel(pixelId: string = DEFAULT_PIXEL_ID, userData?: Use
   }
 
   // Synchronously queue initial PageView right after fbq init
+  console.log(`[Meta Pixel Log] 3. Executing fbq('track', 'PageView')`);
   window.fbq('track', 'PageView');
 
   window.__META_PIXEL_INITIALIZED__ = true;
 
-  if (import.meta.env.DEV) {
-    console.log(`[Meta Pixel] Initialized successfully with Pixel ID: ${targetPixelId}`, advancedMatchingData);
-  }
+  console.log(`[Meta Pixel Log] Initialized successfully with Pixel ID: ${targetPixelId}. callMethod present: ${typeof (window.fbq as any)?.callMethod === 'function'}`);
 
   return true;
 }
@@ -192,14 +192,15 @@ export function setUserProperties(userData: UserData): void {
  * Track Standard PageView
  */
 export function trackPageView(url?: string): void {
-  if (typeof window === 'undefined' || !window.fbq) return;
+  if (typeof window === 'undefined' || !window.fbq) {
+    console.warn('[Meta Pixel Log] trackPageView skipped: window.fbq undefined');
+    return;
+  }
   try {
+    console.log(`[Meta Pixel Log] 5. trackPageView executed for route: ${url || window.location.pathname}`);
     window.fbq('track', 'PageView');
-    if (import.meta.env.DEV) {
-      console.log(`[Meta Pixel Event] PageView ${url ? `(${url})` : ''}`);
-    }
   } catch (e) {
-    if (import.meta.env.DEV) console.error('[Meta Pixel] PageView error:', e);
+    console.error('[Meta Pixel Log] PageView error:', e);
   }
 }
 

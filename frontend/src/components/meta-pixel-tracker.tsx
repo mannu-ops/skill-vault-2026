@@ -14,6 +14,7 @@ export function MetaPixelTracker({ user, pixelId }: MetaPixelTrackerProps) {
   // Initialize Meta Pixel on startup (runs init + initial PageView)
   useEffect(() => {
     const activePixelId = pixelId || DEFAULT_PIXEL_ID;
+    console.log('[Meta Pixel Log] 1. Before initMetaPixel call with Pixel ID:', activePixelId);
     if (activePixelId) {
       const userData = user ? {
         email: user.email,
@@ -23,7 +24,8 @@ export function MetaPixelTracker({ user, pixelId }: MetaPixelTrackerProps) {
         externalId: user.id || user._id,
       } : undefined;
 
-      initMetaPixel(activePixelId, userData);
+      const res = initMetaPixel(activePixelId, userData);
+      console.log('[Meta Pixel Log] 4. After initMetaPixel call. Result:', res, 'callMethod exists:', typeof (window as any).fbq?.callMethod === 'function');
     }
   }, [pixelId]);
 
