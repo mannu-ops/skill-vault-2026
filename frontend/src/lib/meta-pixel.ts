@@ -16,7 +16,7 @@ declare global {
 }
 
 // Default fallback Pixel ID (can be overridden via VITE_META_PIXEL_ID or backend config)
-export const DEFAULT_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID || '1050246971041721';
+export const DEFAULT_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID || '869048799472498';
 
 /**
  * Generate a unique event ID for deduplicating events between Client Meta Pixel and Server CAPI
