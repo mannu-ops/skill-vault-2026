@@ -217,6 +217,29 @@ export function getTestEventCode(): string | undefined {
 }
 
 /**
+ * Helper to execute window.fbq('track', eventName, payload, options) with optional test_event_code & eventID
+ */
+export function sendFbqTrack(eventName: string, payload?: any, eventId?: string): void {
+  if (typeof window === 'undefined' || !window.fbq) return;
+  const options: any = {};
+  if (eventId) options.eventID = eventId;
+  const testCode = getTestEventCode();
+  if (testCode) options.test_event_code = testCode;
+
+  try {
+    if (Object.keys(options).length > 0) {
+      window.fbq('track', eventName, payload || {}, options);
+    } else if (payload) {
+      window.fbq('track', eventName, payload);
+    } else {
+      window.fbq('track', eventName);
+    }
+  } catch (e) {
+    console.error(`[Meta Pixel] Error tracking ${eventName}:`, e);
+  }
+}
+
+/**
  * Track Standard PageView
  */
 export function trackPageView(url?: string): void {
@@ -226,13 +249,7 @@ export function trackPageView(url?: string): void {
   }
   try {
     console.log(`[Meta Pixel Log] 5. trackPageView executed for route: ${url || window.location.pathname}`);
-    const testCode = getTestEventCode();
-    if (testCode) {
-      console.log(`[Meta Pixel Log] 🧪 Test Event Code attached: ${testCode}`);
-      window.fbq('track', 'PageView', {}, { test_event_code: testCode });
-    } else {
-      window.fbq('track', 'PageView');
-    }
+    sendFbqTrack('PageView');
   } catch (e) {
     console.error('[Meta Pixel Log] PageView error:', e);
   }
@@ -248,41 +265,26 @@ export function trackViewContent(params: {
   value?: number;
   currency?: string;
 }): void {
-  if (typeof window === 'undefined' || !window.fbq) return;
-  try {
-    const payload = {
-      content_ids: [params.contentId],
-      content_name: params.contentName,
-      content_category: params.category || 'Digital Asset',
-      content_type: 'product',
-      value: params.value || 0,
-      currency: params.currency || 'INR',
-    };
-    window.fbq('track', 'ViewContent', payload);
-    if (import.meta.env.DEV) {
-      console.log('[Meta Pixel Event] ViewContent', payload);
-    }
-  } catch (e) {
-    if (import.meta.env.DEV) console.error('[Meta Pixel] ViewContent error:', e);
-  }
+  const payload = {
+    content_ids: [params.contentId],
+    content_name: params.contentName,
+    content_category: params.category || 'Digital Asset',
+    content_type: 'product',
+    value: params.value || 0,
+    currency: params.currency || 'INR',
+  };
+  sendFbqTrack('ViewContent', payload);
 }
 
 /**
  * Track Search Event
  */
 export function trackSearch(searchQuery: string): void {
-  if (typeof window === 'undefined' || !window.fbq || !searchQuery?.trim()) return;
-  try {
-    const payload = {
-      search_string: searchQuery.trim(),
-    };
-    window.fbq('track', 'Search', payload);
-    if (import.meta.env.DEV) {
-      console.log('[Meta Pixel Event] Search', payload);
-    }
-  } catch (e) {
-    if (import.meta.env.DEV) console.error('[Meta Pixel] Search error:', e);
-  }
+  if (!searchQuery?.trim()) return;
+  const payload = {
+    search_string: searchQuery.trim(),
+  };
+  sendFbqTrack('Search', payload);
 }
 
 /**
@@ -295,23 +297,15 @@ export function trackAddToCart(params: {
   value?: number;
   currency?: string;
 }): void {
-  if (typeof window === 'undefined' || !window.fbq) return;
-  try {
-    const payload = {
-      content_ids: [params.contentId],
-      content_name: params.contentName,
-      content_category: params.category || 'Digital Asset',
-      content_type: 'product',
-      value: params.value || 0,
-      currency: params.currency || 'INR',
-    };
-    window.fbq('track', 'AddToCart', payload);
-    if (import.meta.env.DEV) {
-      console.log('[Meta Pixel Event] AddToCart', payload);
-    }
-  } catch (e) {
-    if (import.meta.env.DEV) console.error('[Meta Pixel] AddToCart error:', e);
-  }
+  const payload = {
+    content_ids: [params.contentId],
+    content_name: params.contentName,
+    content_category: params.category || 'Digital Asset',
+    content_type: 'product',
+    value: params.value || 0,
+    currency: params.currency || 'INR',
+  };
+  sendFbqTrack('AddToCart', payload);
 }
 
 /**
@@ -324,23 +318,15 @@ export function trackInitiateCheckout(params: {
   value: number;
   currency?: string;
 }): void {
-  if (typeof window === 'undefined' || !window.fbq) return;
-  try {
-    const payload = {
-      content_ids: params.contentIds,
-      content_name: params.contentName || 'Cart Checkout',
-      content_type: 'product',
-      num_items: params.numItems,
-      value: params.value,
-      currency: params.currency || 'INR',
-    };
-    window.fbq('track', 'InitiateCheckout', payload);
-    if (import.meta.env.DEV) {
-      console.log('[Meta Pixel Event] InitiateCheckout', payload);
-    }
-  } catch (e) {
-    if (import.meta.env.DEV) console.error('[Meta Pixel] InitiateCheckout error:', e);
-  }
+  const payload = {
+    content_ids: params.contentIds,
+    content_name: params.contentName || 'Cart Checkout',
+    content_type: 'product',
+    num_items: params.numItems,
+    value: params.value,
+    currency: params.currency || 'INR',
+  };
+  sendFbqTrack('InitiateCheckout', payload);
 }
 
 /**
@@ -351,21 +337,13 @@ export function trackAddPaymentInfo(params: {
   value: number;
   currency?: string;
 }): void {
-  if (typeof window === 'undefined' || !window.fbq) return;
-  try {
-    const payload = {
-      content_ids: params.contentIds,
-      content_type: 'product',
-      value: params.value,
-      currency: params.currency || 'INR',
-    };
-    window.fbq('track', 'AddPaymentInfo', payload);
-    if (import.meta.env.DEV) {
-      console.log('[Meta Pixel Event] AddPaymentInfo', payload);
-    }
-  } catch (e) {
-    if (import.meta.env.DEV) console.error('[Meta Pixel] AddPaymentInfo error:', e);
-  }
+  const payload = {
+    content_ids: params.contentIds,
+    content_type: 'product',
+    value: params.value,
+    currency: params.currency || 'INR',
+  };
+  sendFbqTrack('AddPaymentInfo', payload);
 }
 
 /**
