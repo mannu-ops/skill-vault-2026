@@ -9,7 +9,7 @@ interface MetaPixelTrackerProps {
 
 export function MetaPixelTracker({ user, pixelId }: MetaPixelTrackerProps) {
   const [location] = useLocation();
-  const prevLocationRef = useRef<string | null>(null);
+  const isInitialMount = useRef(true);
 
   // Initialize Meta Pixel on startup (runs init + initial PageView)
   useEffect(() => {
@@ -27,10 +27,13 @@ export function MetaPixelTracker({ user, pixelId }: MetaPixelTrackerProps) {
     }
   }, [pixelId]);
 
-  // Track PageView on initial page load and every SPA route change
+  // Track PageView on subsequent SPA route changes
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     trackPageView(location);
-    prevLocationRef.current = location;
   }, [location]);
 
   // Update user properties when user state changes
