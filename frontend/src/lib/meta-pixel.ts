@@ -170,7 +170,13 @@ export function initMetaPixel(pixelId: string = DEFAULT_PIXEL_ID, userData?: Use
 
   // Synchronously queue initial PageView right after fbq init
   console.log(`[Meta Pixel Log] 3. Executing fbq('track', 'PageView')`);
-  window.fbq('track', 'PageView');
+  const testCode = getTestEventCode();
+  if (testCode) {
+    console.log(`[Meta Pixel Log] 🧪 Initial PageView using Test Event Code: ${testCode}`);
+    window.fbq('track', 'PageView', {}, { test_event_code: testCode });
+  } else {
+    window.fbq('track', 'PageView');
+  }
 
   window.__META_PIXEL_INITIALIZED__ = true;
 
@@ -198,6 +204,19 @@ export function setUserProperties(userData: UserData): void {
 }
 
 /**
+ * Extract Meta Test Event Code from URL query param (?test_event_code=TEST12345) or .env
+ */
+export function getTestEventCode(): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const searchParams = new URLSearchParams(window.location.search);
+    const codeFromUrl = searchParams.get('test_event_code');
+    if (codeFromUrl) return codeFromUrl;
+  } catch (e) {}
+  return import.meta.env.VITE_META_TEST_EVENT_CODE || undefined;
+}
+
+/**
  * Track Standard PageView
  */
 export function trackPageView(url?: string): void {
@@ -207,7 +226,13 @@ export function trackPageView(url?: string): void {
   }
   try {
     console.log(`[Meta Pixel Log] 5. trackPageView executed for route: ${url || window.location.pathname}`);
-    window.fbq('track', 'PageView');
+    const testCode = getTestEventCode();
+    if (testCode) {
+      console.log(`[Meta Pixel Log] 🧪 Test Event Code attached: ${testCode}`);
+      window.fbq('track', 'PageView', {}, { test_event_code: testCode });
+    } else {
+      window.fbq('track', 'PageView');
+    }
   } catch (e) {
     console.error('[Meta Pixel Log] PageView error:', e);
   }
