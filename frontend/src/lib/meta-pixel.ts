@@ -140,6 +140,15 @@ export function initMetaPixel(pixelId: string = DEFAULT_PIXEL_ID, userData?: Use
     const t = document.createElement('script');
     t.async = true;
     t.src = 'https://connect.facebook.net/en_US/fbevents.js';
+
+    t.onload = () => {
+      console.log(`[Meta Pixel Log] 🚀 fbevents.js ASYNC LOAD COMPLETE! callMethod present: ${typeof (window.fbq as any)?.callMethod === 'function'}`);
+    };
+
+    t.onerror = (err) => {
+      console.error('[Meta Pixel Log] ❌ fbevents.js FAILED TO LOAD (Blocked by AdBlocker/Brave/CSP):', err);
+    };
+
     const s = document.getElementsByTagName('script')[0];
     if (s && s.parentNode) {
       s.parentNode.insertBefore(t, s);
