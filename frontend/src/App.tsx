@@ -1288,7 +1288,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                 <div className="rounded-2xl border border-slate-800 bg-[#0c0e17] p-5 sm:p-7 md:p-8">
                   <div className="flex items-center justify-between border-b border-slate-800/80 pb-4 mb-6">
                     <div>
-                      <p className="eyebrow text-[10px] sm:text-xs md:text-sm">Course Content</p>
+                      <p className="eyebrow text-[10px] sm:text-xs md:text-sm">Product Content</p>
                       <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-semibold text-slate-100">Product Content</h2>
                     </div>
                     <span className="font-mono-custom text-xs sm:text-sm md:text-base text-slate-500">{course.modulesCount} Contents</span>
