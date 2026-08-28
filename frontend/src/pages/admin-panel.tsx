@@ -1897,7 +1897,6 @@ export default function AdminPanelPage() {
                               updated[idx] = {
                                 ...updated[idx],
                                 selectedProductId: pId,
-                                id: found.id,
                                 title: found.title,
                                 originalPrice: String(found.priceInr || found.originalPriceInr || ''),
                                 category: found.category || 'Software & Tools',

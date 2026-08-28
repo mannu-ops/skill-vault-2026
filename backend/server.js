@@ -679,26 +679,80 @@ app.delete('/api/admin/purchases/:id', authenticateToken, async (req, res) => {
 
 // Helper to resolve real drive URL for any item (Product or Bonus Offer)
 async function resolveDriveUrl(item) {
+  if (!item) return 'https://drive.google.com';
   let url = item.driveUrl || item.drive_url || '';
-  if (!url || url.trim() === '' || url.trim() === 'https://drive.google.com' || url.trim() === 'https://drive.google.com/') {
-    const itemId = item.id || item.courseId || item.selectedProductId || '';
-    if (itemId && isDbConnected()) {
+  if (url && url.trim().startsWith('http') && url.trim() !== 'https://drive.google.com' && url.trim() !== 'https://drive.google.com/') {
+    return url.trim();
+  }
+
+  const itemId = item.id || item.courseId || item.selectedProductId || item.selected_product_id || '';
+  if (itemId) {
+    if (isDbConnected()) {
       try {
+        // 1. Check products table
         const pRes = await query('SELECT drive_url FROM products WHERE id = $1', [itemId]);
-        if (pRes.rows.length > 0 && pRes.rows[0].drive_url) {
-          url = pRes.rows[0].drive_url;
-        } else {
-          const bRes = await query('SELECT drive_url FROM bonus_offers WHERE id = $1', [itemId]);
-          if (bRes.rows.length > 0 && bRes.rows[0].drive_url) {
-            url = bRes.rows[0].drive_url;
+        if (pRes.rows.length > 0 && pRes.rows[0].drive_url && pRes.rows[0].drive_url.trim().startsWith('http')) {
+          return pRes.rows[0].drive_url.trim();
+        }
+
+        // 2. Check bonus_offers table
+        const bRes = await query('SELECT drive_url, selected_product_id FROM bonus_offers WHERE id = $1', [itemId]);
+        if (bRes.rows.length > 0) {
+          const bRow = bRes.rows[0];
+          if (bRow.drive_url && bRow.drive_url.trim().startsWith('http') && bRow.drive_url.trim() !== 'https://drive.google.com') {
+            return bRow.drive_url.trim();
+          }
+          if (bRow.selected_product_id) {
+            const linkedP = await query('SELECT drive_url FROM products WHERE id = $1', [bRow.selected_product_id]);
+            if (linkedP.rows.length > 0 && linkedP.rows[0].drive_url && linkedP.rows[0].drive_url.trim().startsWith('http')) {
+              return linkedP.rows[0].drive_url.trim();
+            }
           }
         }
       } catch (err) {
         console.error('Failed to resolve drive_url from DB:', err.message);
       }
     }
+
+    // 3. Fallback: check inMemoryDb products
+    const memP = inMemoryDb.products.find(p => p && p.id === itemId);
+    if (memP && memP.driveUrl && memP.driveUrl.trim().startsWith('http')) {
+      return memP.driveUrl.trim();
+    }
+
+    // 4. Fallback: check inMemoryDb bonuses
+    const memB = inMemoryDb.bonuses.find(b => b && b.id === itemId);
+    if (memB) {
+      if (memB.driveUrl && memB.driveUrl.trim().startsWith('http') && memB.driveUrl.trim() !== 'https://drive.google.com') {
+        return memB.driveUrl.trim();
+      }
+      if (memB.selectedProductId) {
+        const linkedMemP = inMemoryDb.products.find(p => p && p.id === memB.selectedProductId);
+        if (linkedMemP && linkedMemP.driveUrl && linkedMemP.driveUrl.trim().startsWith('http')) {
+          return linkedMemP.driveUrl.trim();
+        }
+      }
+    }
   }
-  return url || 'https://drive.google.com';
+
+  // 5. If item itself has selectedProductId / selected_product_id
+  const selProdId = item.selectedProductId || item.selected_product_id;
+  if (selProdId) {
+    if (isDbConnected()) {
+      try {
+        const pRes = await query('SELECT drive_url FROM products WHERE id = $1', [selProdId]);
+        if (pRes.rows.length > 0 && pRes.rows[0].drive_url && pRes.rows[0].drive_url.trim().startsWith('http')) {
+          return pRes.rows[0].drive_url.trim();
+        }
+      } catch (e) {}
+    }
+    const memP = inMemoryDb.products.find(p => p && p.id === selProdId);
+    if (memP && memP.driveUrl && memP.driveUrl.trim().startsWith('http')) {
+      return memP.driveUrl.trim();
+    }
+  }
+
+  return (url && url.startsWith('http')) ? url : 'https://drive.google.com';
 }
 
 // GET BONUS OFFER CONFIG (Reads individual bonus_offers rows)
@@ -1318,21 +1372,7 @@ app.post('/api/checkout/create-order', async (req, res) => {
 });
 
 async function getCourseDriveUrl(item) {
-  if (!item) return 'https://drive.google.com';
-  if (item.driveUrl && item.driveUrl.startsWith('http')) return item.driveUrl;
-  if (item.drive_url && item.drive_url.startsWith('http')) return item.drive_url;
-  const courseId = item.id || item.courseId;
-  if (courseId) {
-    try {
-      if (isDbConnected()) {
-        const res = await query('SELECT drive_url FROM products WHERE id = $1', [courseId]);
-        if (res.rows.length > 0 && res.rows[0].drive_url) return res.rows[0].drive_url;
-      }
-    } catch (e) { }
-    const memProduct = inMemoryDb.products.find(p => p.id === courseId);
-    if (memProduct && memProduct.driveUrl) return memProduct.driveUrl;
-  }
-  return 'https://drive.google.com';
+  return await resolveDriveUrl(item);
 }
 
 // RESEND HTTP EMAIL DELIVERY SERVICE - PURE PLAIN TEXT
