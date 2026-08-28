@@ -27,7 +27,8 @@ import {
   Sparkles,
   Link,
   ShieldAlert,
-  ShieldCheck
+  ShieldCheck,
+  Calendar
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 
@@ -204,7 +205,16 @@ export default function AdminPanelPage() {
   const [courseSearch, setCourseSearch] = useState('');
   const [buyerSearch, setBuyerSearch] = useState('');
   const [buyerFilterType, setBuyerFilterType] = useState<'all' | 'guest' | 'registered'>('all');
+  const [buyerDatePreset, setBuyerDatePreset] = useState<'all' | 'today' | 'yesterday' | '7days' | '30days' | 'thisMonth' | 'custom'>('all');
+  const [buyerStartDate, setBuyerStartDate] = useState('');
+  const [buyerEndDate, setBuyerEndDate] = useState('');
   const [userSearch, setUserSearch] = useState('');
+
+  const resetBuyerDateFilter = () => {
+    setBuyerDatePreset('all');
+    setBuyerStartDate('');
+    setBuyerEndDate('');
+  };
 
   // Pagination State
   const [coursesPage, setCoursesPage] = useState(1);
@@ -933,7 +943,7 @@ export default function AdminPanelPage() {
     return matchesCategory && matchesSearch;
   });
 
-  // Pure Sales & Purchases Log Filter with Guest vs Registered Filter
+  // Pure Sales & Purchases Log Filter with Guest vs Registered Filter & Date Filtering
   const filteredPurchases = useMemo(() => {
     const q = (buyerSearch || '').toLowerCase().trim();
     let list = Array.isArray(purchases) ? purchases : [];
@@ -942,6 +952,60 @@ export default function AdminPanelPage() {
       list = list.filter((p) => p && p.userEmail && !users.some((u) => u && u.email && u.email.toLowerCase().trim() === p.userEmail.toLowerCase().trim()));
     } else if (buyerFilterType === 'registered') {
       list = list.filter((p) => p && p.userEmail && users.some((u) => u && u.email && u.email.toLowerCase().trim() === p.userEmail.toLowerCase().trim()));
+    }
+
+    if (buyerDatePreset !== 'all' || buyerStartDate || buyerEndDate) {
+      const now = new Date();
+      let startDateObj: Date | null = null;
+      let endDateObj: Date | null = null;
+
+      if (buyerDatePreset === 'today') {
+        startDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        endDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      } else if (buyerDatePreset === 'yesterday') {
+        const y = new Date(now);
+        y.setDate(y.getDate() - 1);
+        startDateObj = new Date(y.getFullYear(), y.getMonth(), y.getDate(), 0, 0, 0, 0);
+        endDateObj = new Date(y.getFullYear(), y.getMonth(), y.getDate(), 23, 59, 59, 999);
+      } else if (buyerDatePreset === '7days') {
+        const d7 = new Date(now);
+        d7.setDate(d7.getDate() - 6);
+        startDateObj = new Date(d7.getFullYear(), d7.getMonth(), d7.getDate(), 0, 0, 0, 0);
+        endDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      } else if (buyerDatePreset === '30days') {
+        const d30 = new Date(now);
+        d30.setDate(d30.getDate() - 29);
+        startDateObj = new Date(d30.getFullYear(), d30.getMonth(), d30.getDate(), 0, 0, 0, 0);
+        endDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      } else if (buyerDatePreset === 'thisMonth') {
+        startDateObj = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        endDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      } else if (buyerDatePreset === 'custom') {
+        if (buyerStartDate) {
+          const [sY, sM, sD] = buyerStartDate.split('-').map(Number);
+          if (sY && sM && sD) {
+            startDateObj = new Date(sY, sM - 1, sD, 0, 0, 0, 0);
+          }
+        }
+        if (buyerEndDate) {
+          const [eY, eM, eD] = buyerEndDate.split('-').map(Number);
+          if (eY && eM && eD) {
+            endDateObj = new Date(eY, eM - 1, eD, 23, 59, 59, 999);
+          }
+        }
+      }
+
+      list = list.filter((p) => {
+        if (!p) return false;
+        const rawDate = p.createdAt || (p as any).created_at;
+        if (!rawDate) return false;
+        const itemDate = new Date(rawDate);
+        if (isNaN(itemDate.getTime())) return false;
+
+        if (startDateObj && itemDate < startDateObj) return false;
+        if (endDateObj && itemDate > endDateObj) return false;
+        return true;
+      });
     }
 
     if (!q) return list;
@@ -962,7 +1026,11 @@ export default function AdminPanelPage() {
         paymentId.toLowerCase().includes(q)
       );
     });
-  }, [purchases, users, buyerSearch, buyerFilterType]);
+  }, [purchases, users, buyerSearch, buyerFilterType, buyerDatePreset, buyerStartDate, buyerEndDate]);
+
+  useEffect(() => {
+    setPurchasesPage(1);
+  }, [buyerSearch, buyerFilterType, buyerDatePreset, buyerStartDate, buyerEndDate]);
 
   // Unified Customers List (Combines Registered Account Users and Guest Checkout Buyers)
   const combinedCustomers = useMemo(() => {
@@ -1424,29 +1492,118 @@ export default function AdminPanelPage() {
         {activeTab === 'buyers' && (
           <div className="space-y-6">
             {/* Search & Filter Bar */}
-            <div className="bg-[#0d0f19] border border-slate-800/80 p-4 rounded-xl flex flex-col sm:flex-row gap-4 justify-between items-stretch sm:items-center">
-              <div className="relative flex-1 max-w-md">
-                <Search className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-                <input
-                  type="text"
-                  placeholder="Search by buyer email, phone, name, or payment ID..."
-                  value={buyerSearch}
-                  onChange={(e) => setBuyerSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-xs bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500"
-                />
+            <div className="bg-[#0d0f19] border border-slate-800/80 p-4 rounded-xl space-y-4 shadow-lg">
+              <div className="flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center">
+                {/* Search Input */}
+                <div className="relative flex-1 max-w-md">
+                  <Search className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="Search by buyer email, phone, name, or payment ID..."
+                    value={buyerSearch}
+                    onChange={(e) => setBuyerSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 text-xs bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 transition-colors"
+                  />
+                </div>
+
+                {/* Filter Controls */}
+                <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                  {/* Buyer Type */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 font-semibold shrink-0">Type:</span>
+                    <select
+                      value={buyerFilterType}
+                      onChange={(e) => setBuyerFilterType(e.target.value as any)}
+                      className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-violet-500 cursor-pointer"
+                    >
+                      <option value="all">All Buyers ({purchases.length})</option>
+                      <option value="guest">🛒 Guest Only ({purchases.filter(p => !users.some(u => u?.email?.toLowerCase().trim() === p?.userEmail?.toLowerCase().trim())).length})</option>
+                      <option value="registered">👤 Registered Only ({purchases.filter(p => users.some(u => u?.email?.toLowerCase().trim() === p?.userEmail?.toLowerCase().trim())).length})</option>
+                    </select>
+                  </div>
+
+                  {/* Date Range Preset */}
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                    <span className="text-slate-400 font-semibold shrink-0">Date Filter:</span>
+                    <select
+                      value={buyerDatePreset}
+                      onChange={(e) => {
+                        const val = e.target.value as any;
+                        setBuyerDatePreset(val);
+                        if (val !== 'custom') {
+                          setBuyerStartDate('');
+                          setBuyerEndDate('');
+                        }
+                      }}
+                      className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-violet-500 cursor-pointer font-medium"
+                    >
+                      <option value="all">📅 All Time</option>
+                      <option value="today">📌 Today</option>
+                      <option value="yesterday">↩️ Yesterday</option>
+                      <option value="7days">🗓️ Last 7 Days</option>
+                      <option value="30days">🗓️ Last 30 Days</option>
+                      <option value="thisMonth">📅 This Month</option>
+                      <option value="custom">⚙️ Custom Range...</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2.5 text-xs">
-                <span className="text-slate-400 font-semibold shrink-0">Filter Buyer Type:</span>
-                <select
-                  value={buyerFilterType}
-                  onChange={(e) => setBuyerFilterType(e.target.value as any)}
-                  className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-violet-500 cursor-pointer"
-                >
-                  <option value="all">All Buyers ({purchases.length})</option>
-                  <option value="guest">🛒 Guest Checkout Buyers Only ({purchases.filter(p => !users.some(u => u?.email?.toLowerCase().trim() === p?.userEmail?.toLowerCase().trim())).length})</option>
-                  <option value="registered">👤 Registered Account Buyers Only ({purchases.filter(p => users.some(u => u?.email?.toLowerCase().trim() === p?.userEmail?.toLowerCase().trim())).length})</option>
-                </select>
+              {/* Custom Date Pickers & Active Filter Summary Row */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800/60 text-xs">
+                {buyerDatePreset === 'custom' ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-slate-400 text-[11px] font-medium">From:</span>
+                    <input
+                      type="date"
+                      value={buyerStartDate}
+                      onChange={(e) => setBuyerStartDate(e.target.value)}
+                      className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-violet-500 text-xs cursor-pointer"
+                    />
+                    <span className="text-slate-400 text-[11px] font-medium">To:</span>
+                    <input
+                      type="date"
+                      value={buyerEndDate}
+                      onChange={(e) => setBuyerEndDate(e.target.value)}
+                      className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-violet-500 text-xs cursor-pointer"
+                    />
+                  </div>
+                ) : (
+                  <div className="text-slate-400 text-[11px] flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-slate-500" />
+                    <span>
+                      {buyerDatePreset === 'all' && 'Showing all historical transactions.'}
+                      {buyerDatePreset === 'today' && 'Filtering transactions created today.'}
+                      {buyerDatePreset === 'yesterday' && 'Filtering transactions created yesterday.'}
+                      {buyerDatePreset === '7days' && 'Filtering transactions from the last 7 days.'}
+                      {buyerDatePreset === '30days' && 'Filtering transactions from the last 30 days.'}
+                      {buyerDatePreset === 'thisMonth' && 'Filtering transactions for the current month.'}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 ml-auto">
+                  <div className="px-3 py-1 bg-violet-500/10 border border-violet-500/20 rounded-full text-violet-300 font-medium text-[11px] flex items-center gap-1.5">
+                    <span>Summary:</span>
+                    <span className="font-bold text-white">{filteredPurchases.length} Sales</span>
+                    <span>•</span>
+                    <span className="font-bold text-emerald-400">
+                      ₹{filteredPurchases.reduce((sum, p) => sum + (Number(p?.amountPaidInr ?? (p as any)?.amount_paid_inr) || 0), 0).toLocaleString()}
+                    </span>
+                  </div>
+
+                  {(buyerDatePreset !== 'all' || buyerStartDate || buyerEndDate) && (
+                    <button
+                      onClick={resetBuyerDateFilter}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-colors flex items-center gap-1 text-[11px] cursor-pointer"
+                      title="Clear Date Filter"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      Reset Dates
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
