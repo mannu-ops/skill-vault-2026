@@ -287,6 +287,11 @@ export default function AdminPanelPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 25 * 1024 * 1024) {
+      setFormError('File is too large. Please select an image under 25MB.');
+      return;
+    }
+
     setUploadingBanner(true);
     setFormError('');
 
@@ -313,11 +318,18 @@ export default function AdminPanelPage() {
         })
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
       if (res.ok && (data.imageUrl || data.url)) {
         setFormImageUrl(data.imageUrl || data.url);
       } else {
-        setFormError(data.message || data.error || 'Failed to upload image to ImageKit');
+        const errMsg = data.message || data.error || (res.status === 413 ? 'Image size is too large for server.' : `Upload failed with status ${res.status}`);
+        setFormError(errMsg);
       }
     } catch (err: any) {
       console.error('ImageKit Upload Error:', err);
@@ -340,6 +352,10 @@ export default function AdminPanelPage() {
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        if (file.size > 25 * 1024 * 1024) {
+          throw new Error(`File "${file.name}" is larger than 25MB.`);
+        }
+
         const base64Data = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
@@ -361,9 +377,18 @@ export default function AdminPanelPage() {
           })
         });
 
-        const data = await res.json();
+        let data: any = {};
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
+
         if (res.ok && (data.imageUrl || data.url)) {
           uploadedUrls.push(data.imageUrl || data.url);
+        } else {
+          const errMsg = data.message || data.error || (res.status === 413 ? 'Gallery image size is too large.' : `Failed to upload ${file.name}`);
+          throw new Error(errMsg);
         }
       }
 
@@ -2293,7 +2318,7 @@ export default function AdminPanelPage() {
                           />
                         </label>
                       </div>
-                      {formImageUrl && (
+                      {formImageUrl && (formImageUrl.startsWith('http://') || formImageUrl.startsWith('https://') || formImageUrl.startsWith('data:') || formImageUrl.startsWith('/')) && (
                         <div className="mt-2.5 relative rounded-xl overflow-hidden border border-slate-800 h-32 bg-slate-950 flex items-center justify-center group">
                           <img
                             src={formImageUrl}

@@ -34,10 +34,12 @@ if (razorpayKeyId && razorpayKeySecret) {
 
 app.use(cors({ origin: '*' }));
 app.use(express.json({
+  limit: '50mb',
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Security Headers Middleware
 app.use((req, res, next) => {
@@ -2445,9 +2447,16 @@ app.use((req, res) => {
 // CENTRALIZED GLOBAL EXPRESS ERROR HANDLER
 app.use((err, req, res, _next) => {
   console.error(`💥 [UNHANDLED EXPRESS ERROR] on ${req.method} ${req.url}:`, err);
-  res.status(err.status || 500).json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'production' ? 'An internal server error occurred.' : (err.message || 'Something went wrong'),
+  const status = err.status || err.statusCode || 500;
+  let message = err.message || 'Something went wrong';
+  if (err.type === 'entity.too.large' || status === 413) {
+    message = 'File or payload too large. Please upload an image under 50MB.';
+  } else if (process.env.NODE_ENV === 'production' && status === 500) {
+    message = 'An internal server error occurred.';
+  }
+  res.status(status).json({
+    error: status === 413 ? 'Payload Too Large' : (status === 404 ? 'Not Found' : 'Server Error'),
+    message,
     timestamp: new Date().toISOString()
   });
 });
