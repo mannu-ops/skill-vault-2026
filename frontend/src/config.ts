@@ -15,13 +15,14 @@ function getLocalApiBase() {
 }
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "https://api.theskillvault.store";
+  import.meta.env.VITE_API_BASE_URL || getLocalApiBase();
 
 export function getApiUrl(path: string): string {
   if (!path) return API_BASE_URL;
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || getLocalApiBase();
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  const base = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+  const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   return `${base}${cleanPath}`;
 }
 

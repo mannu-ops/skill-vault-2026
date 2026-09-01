@@ -414,6 +414,7 @@ export default function AdminPanelPage() {
       if (data.token) {
         localStorage.setItem('sv_admin_token', data.token);
         setToken(data.token);
+        fetchData(data.token);
       }
     } catch (err: any) {
       setLoginError(err.message || 'Login failed');
@@ -428,11 +429,12 @@ export default function AdminPanelPage() {
     setLoginPassword('');
   };
 
-  const fetchData = async () => {
-    if (!token) return;
+  const fetchData = async (overrideToken?: string) => {
+    const activeToken = overrideToken || token;
+    if (!activeToken) return;
     setLoading(true);
 
-    const authHeaders = { Authorization: `Bearer ${token}` };
+    const authHeaders = { Authorization: `Bearer ${activeToken}` };
 
     try {
       // 1. Fetch Stats
@@ -601,9 +603,9 @@ export default function AdminPanelPage() {
 
   useEffect(() => {
     if (token) {
-      fetchData();
+      fetchData(token);
     }
-  }, []);
+  }, [token]);
 
   const handleOpenModal = (course?: CourseItem) => {
     setFormError('');
