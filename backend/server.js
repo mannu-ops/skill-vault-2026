@@ -391,6 +391,116 @@ app.delete(['/api/admin/products/:id', '/api/admin/courses/:id'], authenticateTo
   res.json({ message: 'Product deleted successfully and removed from user carts' });
 });
 
+// IMAGEKIT AUTHENTICATION PARAMETERS GENERATOR (FOR FRONTEND DIRECT UPLOADS)
+app.get('/api/admin/imagekit-auth', authenticateToken, (req, res) => {
+  try {
+    const privateKey = process.env.IMAGEKIT_PRIVATE_KEY || '';
+    const token = req.query.token || crypto.randomUUID();
+    const expire = req.query.expire || (Math.floor(Date.now() / 1000) + 2400).toString();
+    const signature = crypto.createHmac('sha1', privateKey).update(token + expire).digest('hex');
+
+    res.json({
+      token,
+      expire,
+      signature,
+      publicKey: process.env.IMAGEKIT_PUBLIC_KEY || '',
+      urlEndpoint: (process.env.IMAGEKIT_URL_ENDPOINT || 'https://ik.imagekit.io/e1wrzy1j2').replace(/\/$/, '')
+    });
+  } catch (err) {
+    console.error('ImageKit auth error:', err);
+    res.status(500).json({ message: 'Failed to generate ImageKit authentication tokens' });
+  }
+});
+
+// IMAGEKIT SERVER-SIDE UPLOAD ENDPOINT
+app.post(['/api/admin/upload-image', '/api/admin/upload-banner'], authenticateToken, async (req, res) => {
+  try {
+    const { file, fileName, folder = '/products' } = req.body;
+    if (!file) {
+      return res.status(400).json({ message: 'Image data or URL is required' });
+    }
+
+    const privateKey = process.env.IMAGEKIT_PRIVATE_KEY || '';
+    const urlEndpoint = (process.env.IMAGEKIT_URL_ENDPOINT || 'https://ik.imagekit.io/e1wrzy1j2').replace(/\/$/, '');
+    const authHeader = 'Basic ' + Buffer.from(privateKey + ':').toString('base64');
+
+    const formData = new FormData();
+
+    if (typeof file === 'string' && file.startsWith('data:')) {
+      const parts = file.split(';base64,');
+      const mime = parts[0].replace('data:', '');
+      const buffer = Buffer.from(parts[1], 'base64');
+      const blob = new Blob([buffer], { type: mime });
+      formData.append('file', blob, fileName || 'upload.png');
+    } else if (typeof file === 'string' && file.startsWith('http')) {
+      const fetchRes = await fetch(file);
+      if (!fetchRes.ok) {
+        return res.status(400).json({ message: 'Failed to download image from source URL' });
+      }
+      const arrayBuffer = await fetchRes.arrayBuffer();
+      const blob = new Blob([arrayBuffer]);
+      formData.append('file', blob, fileName || 'upload.png');
+    } else {
+      formData.append('file', file);
+    }
+
+    formData.append('fileName', fileName || `img_${Date.now()}.png`);
+    formData.append('folder', folder);
+    formData.append('useUniqueFileName', 'true');
+    formData.append('isPrivateFile', 'false');
+
+    const ikRes = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
+      method: 'POST',
+      headers: { Authorization: authHeader },
+      body: formData
+    });
+
+    const ikData = await ikRes.json();
+    if (!ikRes.ok) {
+      return res.status(ikRes.status).json({ message: ikData.message || 'ImageKit upload failed' });
+    }
+
+    const cleanPath = ikData.filePath.startsWith('/') ? ikData.filePath : `/${ikData.filePath}`;
+    const cleanUrl = `${urlEndpoint}${cleanPath}`;
+
+    res.json({
+      url: cleanUrl,
+      imageUrl: cleanUrl,
+      fileId: ikData.fileId,
+      name: ikData.name,
+      filePath: ikData.filePath,
+      thumbnailUrl: ikData.thumbnailUrl
+    });
+  } catch (err) {
+    console.error('ImageKit upload error:', err);
+    res.status(500).json({ message: err.message || 'Image upload error' });
+  }
+});
+
+// IMAGEKIT DELETE ENDPOINT
+app.delete('/api/admin/delete-image/:fileId', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const privateKey = process.env.IMAGEKIT_PRIVATE_KEY || '';
+    const authHeader = 'Basic ' + Buffer.from(privateKey + ':').toString('base64');
+
+    const delRes = await fetch(`https://api.imagekit.io/v1/files/${fileId}`, {
+      method: 'DELETE',
+      headers: { Authorization: authHeader }
+    });
+
+    if (!delRes.ok && delRes.status !== 404) {
+      const errData = await delRes.json();
+      return res.status(delRes.status).json({ message: errData.message || 'ImageKit deletion failed' });
+    }
+
+    res.json({ success: true, message: 'Image successfully deleted from ImageKit' });
+  } catch (err) {
+    console.error('ImageKit delete error:', err);
+    res.status(500).json({ message: err.message || 'Deletion error' });
+  }
+});
+
 // BACKGROUND HEARTBEAT & REAL-TIME AUTHORIZATION CHECK
 app.get('/api/auth/heartbeat', authenticateToken, async (req, res) => {
   try {

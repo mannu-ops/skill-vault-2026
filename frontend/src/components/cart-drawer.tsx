@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import type { Course } from '../data/courses';
+import { getImageThumbnail } from '../lib/imagekit';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -24,76 +25,56 @@ export function CartDrawer({
     return sum + numericPrice;
   }, 0);
 
+  if (!isOpen) return null;
+
   return (
-    <motion.div
-      className="fixed inset-0 z-50 overflow-hidden"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18, ease: 'linear' }}
-    >
-      {/* High-Performance Dark Backdrop (No GPU blur filter lag) */}
-      <motion.div
-        className="absolute inset-0 bg-black/80 cursor-pointer"
+    <div className="fixed inset-0 z-50 overflow-hidden">
+      {/* Backdrop */}
+      <div
         onClick={onClose}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.18 }}
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
       />
-      
-      {/* Drawer Container */}
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10 w-full justify-end pointer-events-none">
-        {/* Hardware Accelerated Drawer Content */}
+
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
         <motion.div
-          className="w-full sm:max-w-md bg-[#0b0d19] border-l border-slate-800/90 shadow-2xl flex flex-col relative h-full pointer-events-auto transform-gpu"
           initial={{ x: '100%' }}
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
-          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          className="w-screen max-w-md bg-slate-950 border-l border-slate-800/80 shadow-2xl flex flex-col justify-between"
         >
-          {/* Subtle Radial Gradient Glow (Zero GPU filter penalty) */}
-          <div className="absolute top-0 right-0 w-72 h-72 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-violet-600/15 via-transparent to-transparent pointer-events-none" />
-
           {/* Header */}
-          <div className="p-4 sm:p-6 border-b border-slate-800/80 flex items-center justify-between relative z-10 bg-[#0b0d19]">
+          <div className="p-4 sm:p-6 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/40">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
                 <ShoppingBag className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                  Shopping Cart
-                  <span className="text-xs bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded-full font-mono">
-                    {items.length}
-                  </span>
-                </h2>
-                <p className="text-slate-400 text-[11px] sm:text-xs">Review your selected digital assets</p>
+                <h2 className="text-lg font-bold text-white">Your Cart</h2>
+                <p className="text-xs text-slate-400">
+                  {items.length} {items.length === 1 ? 'item' : 'items'} ready for checkout
+                </p>
               </div>
             </div>
-
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 p-2 rounded-full transition-colors cursor-pointer"
-              aria-label="Close Cart"
+              className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Items List */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 sm:space-y-4">
+          {/* Cart Items List */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
             {items.length === 0 ? (
-              <div className="py-16 sm:py-20 text-center text-slate-400 space-y-4">
-                <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-slate-600">
+              <div className="h-full flex flex-col items-center justify-center text-center py-12">
+                <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 mb-4">
                   <ShoppingBag className="w-8 h-8" />
                 </div>
-                <div>
-                  <h3 className="text-base font-semibold text-slate-200">Your Cart is Empty</h3>
-                  <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-                    Explore our digital catalog and add video courses, software, or tools to your cart.
-                  </p>
-                </div>
+                <h3 className="text-base font-semibold text-slate-300 mb-1">Your cart is empty</h3>
+                <p className="text-xs text-slate-500 max-w-[220px]">
+                  Explore our digital catalog and unlock top-tier developer assets today.
+                </p>
               </div>
             ) : (
               <div className="space-y-3 sm:space-y-4">
@@ -107,9 +88,10 @@ export function CartDrawer({
                       if (itemImg) {
                         return (
                           <img
-                            src={itemImg}
+                            src={getImageThumbnail(itemImg, 150)}
                             alt={item.title}
                             className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-xl border border-slate-800 shrink-0 bg-slate-950 shadow-md"
+                            loading="lazy"
                           />
                         );
                       }
@@ -201,6 +183,6 @@ export function CartDrawer({
           )}
         </motion.div>
       </div>
-    </motion.div>
+    </div>
   );
 }

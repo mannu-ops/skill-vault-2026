@@ -27,6 +27,7 @@ import {
   setUserProperties,
   generateEventId,
 } from '@/lib/meta-pixel';
+import { getImageThumbnail } from '@/lib/imagekit';
 
 interface CheckoutPageProps {
   user: any;
@@ -594,9 +595,10 @@ export function CheckoutPage({
                       if (itemImg) {
                         return (
                           <img
-                            src={itemImg}
+                            src={getImageThumbnail(itemImg, 150)}
                             alt={item.title}
                             className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover bg-slate-950 shrink-0 border border-slate-800 shadow-sm"
+                            loading="lazy"
                           />
                         );
                       }

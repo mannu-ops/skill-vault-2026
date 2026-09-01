@@ -279,6 +279,7 @@ export default function AdminPanelPage() {
   const [formGalleryImages, setFormGalleryImages] = useState('');
   const [activeFormTab, setActiveFormTab] = useState<'basic' | 'access' | 'software' | 'content'>('basic');
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -290,32 +291,94 @@ export default function AdminPanelPage() {
     setFormError('');
 
     try {
-      const makeRequest = async (baseUrl: string) => {
-        const formData = new FormData();
-        formData.append('banner', file);
-        const targetUrl = getApiUrl(baseUrl ? `${baseUrl}/api/admin/upload-banner` : '/api/admin/upload-banner');
-        return await fetch(targetUrl, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          body: formData
-        });
-      };
+      // Convert file to base64 Data URL for robust cross-environment upload
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
 
-      let res = await makeRequest('');
+      const targetUrl = getApiUrl('/api/admin/upload-image');
+      const res = await fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          file: base64Data,
+          fileName: file.name,
+          folder: '/products'
+        })
+      });
 
       const data = await res.json();
-      if (res.ok && data.imageUrl) {
-        setFormImageUrl(data.imageUrl);
+      if (res.ok && (data.imageUrl || data.url)) {
+        setFormImageUrl(data.imageUrl || data.url);
       } else {
-        setFormError(data.error || 'Failed to upload image banner');
+        setFormError(data.message || data.error || 'Failed to upload image to ImageKit');
       }
     } catch (err: any) {
-      console.error('Upload Error:', err);
-      setFormError(err.message || 'Error uploading file');
+      console.error('ImageKit Upload Error:', err);
+      setFormError(err.message || 'Error uploading file to ImageKit');
     } finally {
       setUploadingBanner(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingGallery(true);
+    setFormError('');
+
+    try {
+      const uploadedUrls: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        const targetUrl = getApiUrl('/api/admin/upload-image');
+        const res = await fetch(targetUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            file: base64Data,
+            fileName: file.name,
+            folder: '/products'
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && (data.imageUrl || data.url)) {
+          uploadedUrls.push(data.imageUrl || data.url);
+        }
+      }
+
+      if (uploadedUrls.length > 0) {
+        setFormGalleryImages(prev => {
+          const existing = prev.trim();
+          const toAdd = uploadedUrls.join('\n');
+          return existing ? `${existing}\n${toAdd}` : toAdd;
+        });
+      }
+    } catch (err: any) {
+      console.error('Gallery Upload Error:', err);
+      setFormError(err.message || 'Error uploading gallery files');
+    } finally {
+      setUploadingGallery(false);
       if (e.target) e.target.value = '';
     }
   };
@@ -2196,21 +2259,32 @@ export default function AdminPanelPage() {
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-indigo-300 mb-1">Product Banner Image</label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block font-semibold text-indigo-300">Product Banner Image</label>
+                        {formImageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setFormImageUrl('')}
+                            className="text-xs text-rose-400 hover:text-rose-300 underline cursor-pointer"
+                          >
+                            Remove Banner
+                          </button>
+                        )}
+                      </div>
                       <div className="flex gap-2">
                         <input
                           type="text"
-                          placeholder="Image URL or upload below..."
+                          placeholder="Image URL or upload directly from PC..."
                           value={formImageUrl}
                           onChange={(e) => setFormImageUrl(e.target.value)}
-                          className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono"
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 font-mono text-xs"
                         />
-                        <label className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg cursor-pointer text-xs font-semibold shrink-0 flex items-center gap-1.5 transition-colors shadow-md shadow-indigo-600/20">
+                        <label className="px-3.5 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-lg cursor-pointer text-xs font-semibold shrink-0 flex items-center gap-1.5 transition-all shadow-md shadow-violet-600/20 active:scale-95">
                           {uploadingBanner ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                          {uploadingBanner ? "Uploading..." : "Upload File"}
+                          {uploadingBanner ? "Uploading..." : "Upload from PC"}
                           <input
                             type="file"
-                            accept="image/*"
+                            accept="image/png, image/jpeg, image/webp, image/gif"
                             onChange={handleFileUpload}
                             disabled={uploadingBanner}
                             className="hidden"
@@ -2218,7 +2292,7 @@ export default function AdminPanelPage() {
                         </label>
                       </div>
                       {formImageUrl && (
-                        <div className="mt-2.5 relative rounded-xl overflow-hidden border border-slate-800 h-28 bg-slate-950 flex items-center justify-center">
+                        <div className="mt-2.5 relative rounded-xl overflow-hidden border border-slate-800 h-32 bg-slate-950 flex items-center justify-center group">
                           <img
                             src={formImageUrl}
                             alt="Banner Preview"
@@ -2227,8 +2301,20 @@ export default function AdminPanelPage() {
                               (e.target as HTMLElement).style.display = 'none';
                             }}
                           />
-                          <span className="absolute bottom-1.5 right-2 text-[10px] bg-slate-900/80 px-2 py-0.5 rounded text-slate-300 border border-slate-700">
-                            Live Banner Preview
+                          <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <label className="px-2.5 py-1 bg-violet-600 hover:bg-violet-500 text-white rounded-md text-xs font-semibold cursor-pointer shadow">
+                              Change Image
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileUpload}
+                                disabled={uploadingBanner}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
+                          <span className="absolute bottom-1.5 right-2 text-[10px] bg-slate-900/90 px-2 py-0.5 rounded text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> ImageKit CDN Active
                           </span>
                         </div>
                       )}
@@ -2349,13 +2435,27 @@ export default function AdminPanelPage() {
                     </div>
 
                     {/* Photo Gallery Screenshots (Optional - Conditional Rendering) */}
-                    <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-xl space-y-2">
-                      <label className="block font-bold text-xs text-cyan-300 flex items-center gap-1.5">
-                        🖼️ Product Screenshots / Photo Gallery (Image URLs - 1 per line)
-                      </label>
+                    <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="block font-bold text-xs text-cyan-300 flex items-center gap-1.5">
+                          🖼️ Product Screenshots / Photo Gallery
+                        </label>
+                        <label className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg cursor-pointer text-xs font-semibold shrink-0 flex items-center gap-1.5 transition-all shadow-md shadow-cyan-600/20 active:scale-95">
+                          {uploadingGallery ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                          {uploadingGallery ? "Uploading..." : "Upload from PC (Multi)"}
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/png, image/jpeg, image/webp, image/gif"
+                            onChange={handleGalleryUpload}
+                            disabled={uploadingGallery}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
                       <textarea
                         rows={4}
-                        placeholder={"https://example.com/screenshot1.jpg\nhttps://example.com/screenshot2.jpg\nhttps://example.com/demo.png"}
+                        placeholder={"https://ik.imagekit.io/.../screenshot1.png\nhttps://ik.imagekit.io/.../screenshot2.png"}
                         value={formGalleryImages}
                         onChange={(e) => setFormGalleryImages(e.target.value)}
                         className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-cyan-200 focus:outline-none focus:border-cyan-500 font-mono text-[11px] leading-relaxed"

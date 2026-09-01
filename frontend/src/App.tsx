@@ -56,6 +56,7 @@ import { PaymentFailedPage } from './pages/payment-failed-page';
 import { PurchasesPage } from './pages/purchases-page';
 import { MetaPixelTracker } from './components/meta-pixel-tracker';
 import { trackAddToCart, trackCompleteRegistration, trackSearch, trackViewContent } from './lib/meta-pixel';
+import { getImageThumbnail, getImageBanner } from './lib/imagekit';
 
 const queryClient = new QueryClient();
 
@@ -1181,9 +1182,10 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
             {course.imageUrl && (
               <div className="w-full overflow-hidden rounded-2xl border border-slate-700/80 bg-[#07080e] p-1.5 mb-8 shadow-2xl shadow-violet-950/40 flex items-center justify-center">
                 <img
-                  src={course.imageUrl}
+                  src={getImageBanner(course.imageUrl, 1200)}
                   alt={course.title}
                   className="w-full h-auto max-h-[550px] object-contain rounded-xl bg-[#07080e] mx-auto block"
+                  loading="eager"
                 />
               </div>
             )}
@@ -1373,7 +1375,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                     {/* Main Featured Image Preview */}
                     <div className="relative group overflow-hidden rounded-2xl border border-slate-800 bg-[#07080e] aspect-video flex items-center justify-center shadow-xl">
                       <img
-                        src={currentImg}
+                        src={getImageBanner(currentImg, 1200)}
                         alt="Product Gallery Preview"
                         className="w-full h-full object-contain cursor-zoom-in transition-transform duration-500 group-hover:scale-105"
                         onClick={() => { setSelectedGalleryImg(currentImg); setIsLightboxOpen(true); }}
@@ -1399,7 +1401,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                             : 'border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-600'
                             }`}
                         >
-                          <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                          <img src={getImageThumbnail(imgUrl, 300)} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" />
                         </button>
                       ))}
                     </div>
@@ -1415,7 +1417,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                           <X className="w-6 h-6" />
                         </button>
                         <img
-                          src={selectedGalleryImg}
+                          src={getImageBanner(selectedGalleryImg, 1800)}
                           alt="Fullscreen Product View"
                           className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl border border-cyan-500/30"
                         />
@@ -1857,9 +1859,10 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
                             {course.imageUrl && (
                               <div className="-mx-5 -mt-5 mb-4 overflow-hidden border-b border-slate-800/90 bg-[#07080e] rounded-t-2xl aspect-video">
                                 <img
-                                  src={course.imageUrl}
+                                  src={getImageThumbnail(course.imageUrl, 600)}
                                   alt={course.title}
                                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                  loading="lazy"
                                 />
                               </div>
                             )}
