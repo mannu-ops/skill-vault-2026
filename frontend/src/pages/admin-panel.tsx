@@ -283,6 +283,80 @@ export default function AdminPanelPage() {
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Helper to upload image directly to ImageKit (bypassing server proxy / 413 limits) with server fallback
+  const uploadImageFile = async (file: File, folder: string = '/products'): Promise<string> => {
+    // 1. Try Direct Upload to ImageKit via Authentication Endpoint
+    try {
+      const authRes = await fetch(getApiUrl('/api/admin/imagekit-auth'), {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (authRes.ok) {
+        const authData = await authRes.json();
+        if (authData.publicKey && authData.signature && authData.token) {
+          const ikFormData = new FormData();
+          ikFormData.append('file', file);
+          ikFormData.append('fileName', file.name);
+          ikFormData.append('publicKey', authData.publicKey);
+          ikFormData.append('signature', authData.signature);
+          ikFormData.append('expire', authData.expire);
+          ikFormData.append('token', authData.token);
+          ikFormData.append('folder', folder);
+          ikFormData.append('useUniqueFileName', 'true');
+
+          const ikRes = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
+            method: 'POST',
+            body: ikFormData
+          });
+          const ikData = await ikRes.json().catch(() => ({}));
+          if (ikRes.ok && (ikData.url || ikData.filePath)) {
+            const urlEndpoint = (authData.urlEndpoint || 'https://ik.imagekit.io/e1wrzy1j2').replace(/\/$/, '');
+            const filePath = (ikData.filePath || '').startsWith('/') ? ikData.filePath : `/${ikData.filePath || ''}`;
+            return ikData.url || `${urlEndpoint}${filePath}`;
+          }
+        }
+      }
+    } catch (directErr) {
+      console.warn('Direct ImageKit upload failed, trying server fallback:', directErr);
+    }
+
+    // 2. Fallback to server endpoint
+    const base64Data = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const targetUrl = getApiUrl('/api/admin/upload-image');
+    const res = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        file: base64Data,
+        fileName: file.name,
+        folder
+      })
+    });
+
+    let data: any = {};
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
+
+    if (res.ok && (data.imageUrl || data.url)) {
+      return data.imageUrl || data.url;
+    }
+
+    throw new Error(data.message || data.error || (res.status === 413 ? 'Image size is too large for the server proxy. Please choose a smaller image.' : `Upload failed with status ${res.status}`));
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -296,41 +370,8 @@ export default function AdminPanelPage() {
     setFormError('');
 
     try {
-      // Convert file to base64 Data URL for robust cross-environment upload
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      const targetUrl = getApiUrl('/api/admin/upload-image');
-      const res = await fetch(targetUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          file: base64Data,
-          fileName: file.name,
-          folder: '/products'
-        })
-      });
-
-      let data: any = {};
-      try {
-        data = await res.json();
-      } catch {
-        data = {};
-      }
-
-      if (res.ok && (data.imageUrl || data.url)) {
-        setFormImageUrl(data.imageUrl || data.url);
-      } else {
-        const errMsg = data.message || data.error || (res.status === 413 ? 'Image size is too large for server.' : `Upload failed with status ${res.status}`);
-        setFormError(errMsg);
-      }
+      const uploadedUrl = await uploadImageFile(file, '/products');
+      setFormImageUrl(uploadedUrl);
     } catch (err: any) {
       console.error('ImageKit Upload Error:', err);
       setFormError(err.message || 'Error uploading file to ImageKit');
@@ -355,41 +396,8 @@ export default function AdminPanelPage() {
         if (file.size > 25 * 1024 * 1024) {
           throw new Error(`File "${file.name}" is larger than 25MB.`);
         }
-
-        const base64Data = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-        const targetUrl = getApiUrl('/api/admin/upload-image');
-        const res = await fetch(targetUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            file: base64Data,
-            fileName: file.name,
-            folder: '/products'
-          })
-        });
-
-        let data: any = {};
-        try {
-          data = await res.json();
-        } catch {
-          data = {};
-        }
-
-        if (res.ok && (data.imageUrl || data.url)) {
-          uploadedUrls.push(data.imageUrl || data.url);
-        } else {
-          const errMsg = data.message || data.error || (res.status === 413 ? 'Gallery image size is too large.' : `Failed to upload ${file.name}`);
-          throw new Error(errMsg);
-        }
+        const url = await uploadImageFile(file, '/products');
+        uploadedUrls.push(url);
       }
 
       if (uploadedUrls.length > 0) {
