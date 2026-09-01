@@ -462,8 +462,10 @@ export default function AdminPanelPage() {
     setLoginPassword('');
   };
 
-  const fetchData = async (overrideToken?: string) => {
-    const activeToken = overrideToken || token;
+  const fetchData = async (overrideToken?: string | unknown) => {
+    const activeToken = (typeof overrideToken === 'string' && overrideToken.trim())
+      ? overrideToken.trim()
+      : (token || localStorage.getItem('sv_admin_token') || '');
     if (!activeToken) return;
     setLoading(true);
 
@@ -473,13 +475,17 @@ export default function AdminPanelPage() {
       // 1. Fetch Stats
       try {
         const res = await safeFetch('/api/admin/stats', { headers: authHeaders });
-        if (res.status === 401) {
-          handleLogout();
+        if (res.status === 401 || res.status === 403) {
+          if (activeToken === token) {
+            handleLogout();
+          }
           return;
         }
-        const statsData = await res.json();
-        if (statsData && !statsData.error) {
-          setStats(statsData);
+        if (res.ok) {
+          const statsData = await res.json();
+          if (statsData && !statsData.error) {
+            setStats(statsData);
+          }
         }
       } catch (e) {
         console.error('Failed to fetch stats:', e);
@@ -488,12 +494,14 @@ export default function AdminPanelPage() {
       // 2. Fetch Courses
       try {
         const res = await safeFetch('/api/admin/courses', { headers: authHeaders });
-        const coursesData = await res.json();
-        if (coursesData) {
-          if (Array.isArray(coursesData.courses)) {
-            setCourses(coursesData.courses);
-          } else if (Array.isArray(coursesData)) {
-            setCourses(coursesData);
+        if (res.ok) {
+          const coursesData = await res.json();
+          if (coursesData) {
+            if (Array.isArray(coursesData.courses)) {
+              setCourses(coursesData.courses);
+            } else if (Array.isArray(coursesData)) {
+              setCourses(coursesData);
+            }
           }
         }
       } catch (e) {
@@ -503,12 +511,14 @@ export default function AdminPanelPage() {
       // 3. Fetch Purchases
       try {
         const res = await safeFetch('/api/admin/purchases', { headers: authHeaders });
-        const purchasesData = await res.json();
-        if (purchasesData) {
-          if (Array.isArray(purchasesData.purchases)) {
-            setPurchases(purchasesData.purchases);
-          } else if (Array.isArray(purchasesData)) {
-            setPurchases(purchasesData);
+        if (res.ok) {
+          const purchasesData = await res.json();
+          if (purchasesData) {
+            if (Array.isArray(purchasesData.purchases)) {
+              setPurchases(purchasesData.purchases);
+            } else if (Array.isArray(purchasesData)) {
+              setPurchases(purchasesData);
+            }
           }
         }
       } catch (e) {
@@ -518,10 +528,12 @@ export default function AdminPanelPage() {
       // 4. Fetch Registered Customers / Users
       try {
         const res = await safeFetch('/api/admin/users', { headers: authHeaders });
-        const usersData = await res.json();
-        if (usersData) {
-          const userList = Array.isArray(usersData.users) ? usersData.users : (Array.isArray(usersData.customers) ? usersData.customers : []);
-          setUsers(userList);
+        if (res.ok) {
+          const usersData = await res.json();
+          if (usersData) {
+            const userList = Array.isArray(usersData.users) ? usersData.users : (Array.isArray(usersData.customers) ? usersData.customers : []);
+            setUsers(userList);
+          }
         }
       } catch (e) {
         console.error('Failed to fetch users:', e);
@@ -530,35 +542,36 @@ export default function AdminPanelPage() {
       // 5. Fetch Bonus Product Settings (Supports array of up to 3 bonuses)
       try {
         const res = await safeFetch('/api/bonus-product');
-        const bData = await res.json();
-        if (bData) {
-          let list: any[] = [];
-          if (Array.isArray(bData.bonuses) && bData.bonuses.length > 0) {
-            list = bData.bonuses;
-          } else if (Array.isArray(bData) && bData.length > 0) {
-            list = bData;
-          } else if (bData && typeof bData === 'object' && (bData.title || bData.id)) {
-            list = [{
-              id: bData.id || 'bonus-vip-toolkit',
-              enabled: bData.enabled ?? true,
-              title: bData.title || 'Add VIP Developer Toolkit & Cheat-Sheets',
-              price: bData.price ? String(bData.price) : '149',
-              originalPrice: bData.originalPrice ? String(bData.originalPrice) : '999',
-              category: bData.category || 'Software & Tools',
-              description: bData.description || 'Unlock 50+ scripts, cheat-sheets & tools for just ₹149 extra.',
-              selectedProductId: bData.id || '',
-              imageUrl: bData.imageUrl || '',
-              driveUrl: bData.driveUrl || bData.drive_url || ''
-            }];
-          }
-          if (list.length > 0) {
-            setBonuses(list.slice(0, 3));
+        if (res.ok) {
+          const bData = await res.json();
+          if (bData) {
+            let list: any[] = [];
+            if (Array.isArray(bData.bonuses) && bData.bonuses.length > 0) {
+              list = bData.bonuses;
+            } else if (Array.isArray(bData) && bData.length > 0) {
+              list = bData;
+            } else if (bData && typeof bData === 'object' && (bData.title || bData.id)) {
+              list = [{
+                id: bData.id || 'bonus-vip-toolkit',
+                enabled: bData.enabled ?? true,
+                title: bData.title || 'Add VIP Developer Toolkit & Cheat-Sheets',
+                price: bData.price ? String(bData.price) : '149',
+                originalPrice: bData.originalPrice ? String(bData.originalPrice) : '999',
+                category: bData.category || 'Software & Tools',
+                description: bData.description || 'Unlock 50+ scripts, cheat-sheets & tools for just ₹149 extra.',
+                selectedProductId: bData.id || '',
+                imageUrl: bData.imageUrl || '',
+                driveUrl: bData.driveUrl || bData.drive_url || ''
+              }];
+            }
+            if (list.length > 0) {
+              setBonuses(list.slice(0, 3));
+            }
           }
         }
       } catch (e) {
         console.error('Failed to fetch bonus product config:', e);
       }
-
 
     } finally {
       setLoading(false);
@@ -1310,7 +1323,8 @@ export default function AdminPanelPage() {
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
-            onClick={fetchData}
+            type="button"
+            onClick={() => fetchData()}
             disabled={loading}
             className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-colors cursor-pointer"
           >
