@@ -23,23 +23,20 @@ export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
 
   // Data States
   const [plans, setPlans] = useState<any[]>([]);
-  const [, setActivations] = useState<any[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
 
   const [userEmail, setUserEmail] = useState('');
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
-  // Fetch Plans and Activations for Storefront
+  // Fetch Plans for Storefront
   useEffect(() => {
     let isMounted = true;
 
     async function loadData() {
       const dbPlans = await fetchPlans();
-      const dbActivations = await fetchActivations();
       if (isMounted) {
         setPlans(dbPlans || []);
-        setActivations(dbActivations || []);
         if (dbPlans && dbPlans.length > 0) {
           setSelectedPlan(dbPlans[0]);
         } else {
@@ -57,12 +54,9 @@ export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
     setIsPaymentOpen(true);
   };
 
-  const handlePaymentSuccess = async () => {
+  const handlePaymentSuccess = () => {
     setIsPaymentOpen(false);
     setIsSuccessOpen(true);
-
-    const updatedList = await fetchActivations();
-    setActivations(updatedList || []);
   };
 
   return (
