@@ -1527,8 +1527,7 @@ async function getCourseDriveUrl(item) {
 }
 
 // HOSTINGER BUSINESS EMAIL SMTP DELIVERY SERVICE (NODEMAILER)
-let mailTransporter = null;
-function getMailTransporter() {
+async function getMailTransporter() {
   const host = process.env.SMTP_HOST || 'smtp.hostinger.com';
   const port = Number(process.env.SMTP_PORT) || 465;
   const user = process.env.SMTP_USER || process.env.EMAIL_USER;
@@ -1538,19 +1537,29 @@ function getMailTransporter() {
     return null;
   }
 
-  if (!mailTransporter) {
-    mailTransporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465, // true for 465, false for other ports
-      auth: { user, pass },
-      family: 4, // Explicitly force IPv4 to avoid ENETUNREACH with IPv6 addresses
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
+  // Pre-resolve IPv4 address to completely eliminate Nodemailer IPv6 (ENETUNREACH) connection attempts
+  let connectHost = host;
+  try {
+    const ipv4List = await dns.promises.resolve4(host);
+    if (ipv4List && ipv4List.length > 0) {
+      connectHost = ipv4List[0];
+      console.log(`📡 [SMTP DNS]: Resolved ${host} to IPv4 ${connectHost}`);
+    }
+  } catch (dnsErr) {
+    console.warn(`⚠️ [SMTP DNS]: IPv4 resolution failed for ${host}: ${dnsErr.message}`);
   }
-  return mailTransporter;
+
+  return nodemailer.createTransport({
+    host: connectHost,
+    port,
+    secure: port === 465, // true for 465, false for other ports
+    auth: { user, pass },
+    servername: host, // TLS certificate check uses original host domain
+    tls: {
+      servername: host,
+      rejectUnauthorized: false
+    }
+  });
 }
 
 async function sendPurchaseEmail({ to, customerName, paymentId, items }) {
@@ -1593,7 +1602,7 @@ Skill Vault Team
   `.trim();
 
   // HOSTINGER BUSINESS EMAIL SMTP DISPATCH
-  const transporter = getMailTransporter();
+  const transporter = await getMailTransporter();
   if (transporter) {
     try {
       const fromEmail = process.env.SMTP_FROM || `Skill Vault <${process.env.SMTP_USER || process.env.EMAIL_USER}>`;
