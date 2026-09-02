@@ -1,0 +1,154 @@
+import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
+import { ArrowLeft } from 'lucide-react';
+import Navbar from '../canva/components/Navbar.jsx';
+import Hero from '../canva/components/Hero.jsx';
+import ActivationForm from '../canva/components/ActivationForm.jsx';
+import FeaturesGrid from '../canva/components/FeaturesGrid.jsx';
+import FAQSection from '../canva/components/FAQSection.jsx';
+import PaymentModal from '../canva/components/PaymentModal.jsx';
+import SuccessModal from '../canva/components/SuccessModal.jsx';
+import LiveTicker from '../canva/components/LiveTicker.jsx';
+import Footer from '../canva/components/Footer.jsx';
+import { fetchPlans, fetchActivations } from '../canva/canvaApi.js';
+
+export function CanvaPage() {
+  const [location, setLocation] = useLocation();
+
+  // If user navigates directly to /canva/admin, redirect to SkillVault Admin Dashboard (Canva tab)
+  useEffect(() => {
+    if (location === '/canva/admin') {
+      setLocation('/admin?tab=canva');
+    }
+  }, [location, setLocation]);
+
+  // Data States
+  const [plans, setPlans] = useState<any[]>([]);
+  const [, setActivations] = useState<any[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+
+  const [userEmail, setUserEmail] = useState('');
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+
+  // Fetch Plans and Activations for Storefront
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadData() {
+      const dbPlans = await fetchPlans();
+      const dbActivations = await fetchActivations();
+      if (isMounted) {
+        setPlans(dbPlans || []);
+        setActivations(dbActivations || []);
+        if (dbPlans && dbPlans.length > 0) {
+          setSelectedPlan(dbPlans[0]);
+        } else {
+          setSelectedPlan(null);
+        }
+      }
+    }
+
+    loadData();
+    return () => { isMounted = false; };
+  }, []);
+
+  const handleActivateClick = (email: string) => {
+    setUserEmail(email);
+    setIsPaymentOpen(true);
+  };
+
+  const handlePaymentSuccess = async () => {
+    setIsPaymentOpen(false);
+    setIsSuccessOpen(true);
+
+    const updatedList = await fetchActivations();
+    setActivations(updatedList || []);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#08090E] text-slate-100 font-sans relative selection:bg-cyan-500/30">
+
+      {/* Top Banner to Return to SkillVault Store */}
+      <div className="bg-gradient-to-r from-violet-950/80 via-slate-900 to-cyan-950/80 border-b border-slate-800/80 py-2 px-3 sm:px-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-between text-xs sm:text-sm">
+          <button
+            type="button"
+            onClick={() => setLocation('/')}
+            className="inline-flex items-center gap-1.5 font-semibold text-slate-300 hover:text-white px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-700/80 hover:border-violet-500/50 shadow-sm transition-all cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-violet-400" />
+            <span>Back to SkillVault</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <span className="hidden sm:inline text-slate-400 text-xs">
+              SkillVault Partner Platform
+            </span>
+            <span className="inline-block size-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-emerald-400 text-xs font-bold font-mono">LIVE</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Canva Customer Navbar */}
+      <Navbar onGoHome={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
+
+      {/* Main Content Storefront */}
+      <main className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-16">
+        {/* Above-The-Fold: Hero & Form Visible Without Scrolling */}
+        <section className="min-h-[calc(100vh-6rem)] flex flex-col justify-center py-4 sm:py-6 lg:py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
+            <div className="lg:col-span-6">
+              <Hero />
+            </div>
+            <div className="lg:col-span-6 flex justify-center lg:justify-end">
+              <ActivationForm
+                plans={plans}
+                selectedPlan={selectedPlan}
+                onSelectPlan={setSelectedPlan}
+                onActivate={handleActivateClick}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Value Features & FAQs Below The Fold */}
+        <div className="space-y-12 md:space-y-16 pt-6 sm:pt-10">
+          <FeaturesGrid />
+          <FAQSection />
+        </div>
+      </main>
+
+      {/* Footer */}
+      <Footer onOpenAdmin={() => setLocation('/admin?tab=canva')} />
+
+      {/* Floating Real-Time Activations Ticker */}
+      <LiveTicker />
+
+      {/* Payment Gateway Modal */}
+      {selectedPlan && (
+        <PaymentModal
+          isOpen={isPaymentOpen}
+          onClose={() => setIsPaymentOpen(false)}
+          selectedPlan={selectedPlan}
+          userEmail={userEmail}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
+
+      {/* Success & Invite Link Delivery Modal */}
+      {selectedPlan && (
+        <SuccessModal
+          isOpen={isSuccessOpen}
+          userEmail={userEmail}
+          selectedPlan={selectedPlan}
+          onClose={() => setIsSuccessOpen(false)}
+        />
+      )}
+
+    </div>
+  );
+}
+
+export default CanvaPage;

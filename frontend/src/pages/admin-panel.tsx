@@ -28,9 +28,13 @@ import {
   Link,
   ShieldAlert,
   ShieldCheck,
-  Calendar
+  Calendar,
+  Palette,
+  Crown
 } from 'lucide-react';
 import { useLocation } from 'wouter';
+// @ts-ignore
+import CanvaAdminPanel from '../canva/components/AdminPanel.jsx';
 
 interface AdminStats {
   totalRevenueInr: number;
@@ -154,7 +158,17 @@ export default function AdminPanelPage() {
   const [loginError, setLoginError] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'products' | 'buyers' | 'users' | 'bonus'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'buyers' | 'users' | 'bonus' | 'canva'>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam === 'canva' || window.location.pathname.includes('/canva')) return 'canva';
+      if (tabParam === 'bonus') return 'bonus';
+      if (tabParam === 'buyers') return 'buyers';
+      if (tabParam === 'users') return 'users';
+    }
+    return 'products';
+  });
 
   // Bonus Offer Manager State (Supports up to 3 multiple bonus offers)
   const [bonuses, setBonuses] = useState<Array<{
@@ -1459,6 +1473,16 @@ export default function AdminPanelPage() {
             <Sparkles className="w-4 h-4 text-amber-400" /> 🎁 Bonus Offer Manager
           </button>
 
+          <button
+            onClick={() => setActiveTab('canva')}
+            className={`pb-4 border-b-2 transition-colors flex items-center gap-2 cursor-pointer shrink-0 ${activeTab === 'canva'
+                ? 'border-purple-500 text-purple-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+          >
+            <Palette className="w-4 h-4 text-purple-400" /> 🎨 Canva Pro Manager
+          </button>
+
 
         </div>
 
@@ -2163,6 +2187,15 @@ export default function AdminPanelPage() {
           </div>
         )}
 
+        {/* TAB 5: CANVA PRO OPERATIONS MANAGER */}
+        {activeTab === 'canva' && (
+          <div className="space-y-6">
+            <CanvaAdminPanel
+              embedded={true}
+              onSwitchToStore={() => window.open('/canva', '_blank')}
+            />
+          </div>
+        )}
 
       </div>
 

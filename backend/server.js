@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { initDb, query, isDbConnected, inMemoryDb } from './db.js';
+import canvaRouter from './canvaRoutes.js';
 
 dotenv.config();
 
@@ -48,6 +49,9 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   next();
 });
+
+// Canva Pro Store API Router
+app.use(canvaRouter);
 
 let bonusConfig = {
   enabled: false,
@@ -1694,8 +1698,20 @@ let baileysSock = null;
 let baileysQrDataUrl = null;
 let baileysConnected = false;
 let baileysUserPhone = null;
+let isInitializingBaileys = false;
+let reconnectTimer = null;
 
 async function initBaileysWhatsApp() {
+  if (isInitializingBaileys) {
+    return;
+  }
+  isInitializingBaileys = true;
+
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
   try {
     const baileys = await import('@whiskeysockets/baileys').catch(() => null);
     const QRCode = await import('qrcode').catch(() => null);
@@ -1703,6 +1719,15 @@ async function initBaileysWhatsApp() {
     if (!baileys || !QRCode) {
       console.log('ℹ️ [BAILEYS NOTICE]: Baileys module optional fallback mode active.');
       return;
+    }
+
+    // Clean up previous socket if one exists to prevent socket collisions (Error 440)
+    if (baileysSock) {
+      try {
+        baileysSock.ev.removeAllListeners();
+        baileysSock.end(new Error('Refreshing Baileys session'));
+      } catch (e) { }
+      baileysSock = null;
     }
 
     const { makeWASocket, DisconnectReason } = baileys;
@@ -1741,15 +1766,25 @@ async function initBaileysWhatsApp() {
       if (connection === 'close') {
         baileysConnected = false;
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+        const isReplaced = statusCode === DisconnectReason.connectionReplaced; // 440
+        const isLoggedOut = statusCode === DisconnectReason.loggedOut; // 401
+        const shouldReconnect = !isLoggedOut;
+
         console.log(`⚠️ [BAILEYS DISCONNECTED]: Reconnecting: ${shouldReconnect} (status: ${statusCode})`);
-        if (shouldReconnect) {
-          setTimeout(initBaileysWhatsApp, 5000);
+
+        if (isReplaced) {
+          console.warn('⚠️ [BAILEYS NOTICE]: Connection was replaced (status 440). Another session/server instance (e.g. Render vs Local or WhatsApp Web) is active.');
+          // Don't rapid-loop to avoid colliding with the active instance
+          reconnectTimer = setTimeout(initBaileysWhatsApp, 30000);
+        } else if (shouldReconnect) {
+          reconnectTimer = setTimeout(initBaileysWhatsApp, 5000);
         }
       }
     });
   } catch (err) {
     console.warn('⚠️ [BAILEYS INIT NOTICE]:', err.message);
+  } finally {
+    isInitializingBaileys = false;
   }
 }
 

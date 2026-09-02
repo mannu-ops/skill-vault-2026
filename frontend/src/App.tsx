@@ -57,6 +57,7 @@ import { PurchasesPage } from './pages/purchases-page';
 import { MetaPixelTracker } from './components/meta-pixel-tracker';
 import { trackAddToCart, trackCompleteRegistration, trackSearch, trackViewContent } from './lib/meta-pixel';
 import { getImageThumbnail, getImageBanner } from './lib/imagekit';
+import { CanvaPage } from './pages/canva-page';
 
 const queryClient = new QueryClient();
 
@@ -673,6 +674,25 @@ function Header({
             )}
           </div>
 
+          {/* CHAMAKTA HUA CANVA PRO LINK */}
+          <button
+            type="button"
+            onClick={() => setLocation('/canva')}
+            className="chamakta-canva-badge inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-950/80 via-slate-900 to-cyan-950/80 border border-cyan-400/60 cursor-pointer shadow-lg transform-gpu"
+            title="Instant Canva Pro Activation Portal"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
+            </span>
+            <span className="shimmer-text text-xs md:text-sm font-extrabold tracking-wide uppercase flex items-center gap-1">
+              <span>🎨</span> Canva Pro
+            </span>
+            <span className="text-[10px] bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
+              ₹99
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={() => navTo('#why-us')}
@@ -785,6 +805,20 @@ function Header({
       {menuOpen && (
         <div className="border-t border-slate-800 bg-[#0b0d14] px-5 py-4 md:hidden">
           <div className="site-shell flex flex-col gap-1">
+            {/* CHAMAKTA HUA CANVA PRO MOBILE LINK */}
+            <button
+              type="button"
+              onClick={() => { close(); setLocation('/canva'); }}
+              className="chamakta-canva-badge my-2 py-3 px-3.5 rounded-xl border border-cyan-400/70 bg-gradient-to-r from-purple-950/90 via-slate-900/95 to-cyan-950/90 text-left text-xs sm:text-sm font-bold text-white cursor-pointer flex items-center justify-between shadow-lg"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base">🎨</span>
+                <span className="shimmer-text font-black uppercase tracking-wide">Canva Pro Instant Access</span>
+              </div>
+              <span className="text-[10px] bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black px-2 py-0.5 rounded-full shadow-sm">
+                ₹99 OFFER
+              </span>
+            </button>
 
             <button type="button" onClick={() => navTo('#catalog', 'All Products')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm md:text-base font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
               <span>🔥 All Products</span>
@@ -2141,6 +2175,9 @@ function Router() {
     <>
       <MetaPixelTracker user={auth.user} />
       <Switch>
+        <Route path="/canva" component={CanvaPage} />
+        <Route path="/canva-pro" component={CanvaPage} />
+        <Route path="/canva/admin" component={AdminPanelPage} />
         <Route path="/admin" component={AdminPanelPage} />
         <Route path="/admin-panel" component={AdminPanelPage} />
         <Route path="/course/:id">
