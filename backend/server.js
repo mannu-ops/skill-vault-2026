@@ -1872,6 +1872,19 @@ app.get('/api/admin/whatsapp/qr', (req, res) => {
   `);
 });
 
+// Idempotency cache to prevent duplicate WhatsApp messages (e.g. verify-payment + webhook dual trigger)
+const sentWhatsAppPaymentMap = new Map();
+
+// Clean up old WhatsApp message dedupe entries every 15 minutes
+setInterval(() => {
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  for (const [key, timestamp] of sentWhatsAppPaymentMap.entries()) {
+    if (timestamp < oneHourAgo) {
+      sentWhatsAppPaymentMap.delete(key);
+    }
+  }
+}, 15 * 60 * 1000);
+
 // WHATSAPP PURCHASE NOTIFICATION SERVICE (Supports Baileys Built-in / OpenWA / UltraMsg / GreenAPI / Custom Gateway)
 async function sendPurchaseWhatsApp({ toPhone, customerName, paymentId, items }) {
   if (!toPhone) {
@@ -1893,6 +1906,16 @@ async function sendPurchaseWhatsApp({ toPhone, customerName, paymentId, items })
   // Add default country code (91 for India if 10 digits)
   if (cleanPhone.length === 10) {
     cleanPhone = `91${cleanPhone}`;
+  }
+
+  // Deduplication Guard: If message was already sent for this paymentId, suppress duplicate
+  if (paymentId) {
+    const dedupeKey = `${cleanPhone}_${paymentId}`;
+    if (sentWhatsAppPaymentMap.has(dedupeKey)) {
+      console.log(`⚠️ [WHATSAPP DEDUPE]: Suppressed duplicate WhatsApp message to ${cleanPhone} for payment ${paymentId}`);
+      return { success: true, duplicateSuppressed: true, paymentId };
+    }
+    sentWhatsAppPaymentMap.set(dedupeKey, Date.now());
   }
 
   // Format purchased items with titles & access links
@@ -2284,16 +2307,6 @@ app.post('/api/checkout/verify-payment', async (req, res) => {
         items
       }).catch(err => console.error('Verify-payment WhatsApp execution error:', err.message));
     }
-  }
-
-  // Trigger WhatsApp notification if customer phone is provided
-  if (customerPhone) {
-    sendPurchaseWhatsApp({
-      toPhone: customerPhone,
-      customerName: customerName || 'Learner',
-      paymentId,
-      items
-    }).catch(err => console.error('Verify-payment WhatsApp execution error:', err.message));
   }
 
   // Trigger Meta Conversions API (CAPI) Server-Side Purchase Event
