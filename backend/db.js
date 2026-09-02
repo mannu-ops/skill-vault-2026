@@ -115,7 +115,8 @@ export const inMemoryDb = {
     }
   ],
   purchases: [],
-  reviews: []
+  reviews: [],
+  bonuses: []
 };
 
 // Initial Table Creation & Seed Function

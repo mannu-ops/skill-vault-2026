@@ -873,19 +873,19 @@ async function resolveDriveUrl(item) {
     }
 
     // 5. Fallback: check inMemoryDb products
-    const memP = inMemoryDb.products.find(p => p && p.id === itemId);
+    const memP = (inMemoryDb.products || []).find(p => p && p.id === itemId);
     if (memP && memP.driveUrl && memP.driveUrl.trim().startsWith('http')) {
       return memP.driveUrl.trim();
     }
 
     // 6. Fallback: check inMemoryDb bonuses
-    const memB = inMemoryDb.bonuses.find(b => b && b.id === itemId);
+    const memB = (inMemoryDb.bonuses || []).find(b => b && b.id === itemId);
     if (memB) {
       if (memB.driveUrl && memB.driveUrl.trim().startsWith('http') && memB.driveUrl.trim() !== 'https://drive.google.com') {
         return memB.driveUrl.trim();
       }
       if (memB.selectedProductId) {
-        const linkedMemP = inMemoryDb.products.find(p => p && p.id === memB.selectedProductId);
+        const linkedMemP = (inMemoryDb.products || []).find(p => p && p.id === memB.selectedProductId);
         if (linkedMemP && linkedMemP.driveUrl && linkedMemP.driveUrl.trim().startsWith('http')) {
           return linkedMemP.driveUrl.trim();
         }
