@@ -459,10 +459,41 @@ function useCart(user?: any, availableCourses?: Course[]) {
 
   useEffect(() => {
     if (Array.isArray(availableCourses) && availableCourses.length > 0 && cartItems.length > 0) {
-      const activeIds = new Set(availableCourses.map((c) => c && c.id));
-      const validCart = cartItems.filter((item) => item && item.id && activeIds.has(item.id));
-      if (validCart.length !== cartItems.length) {
-        setCartItems(validCart);
+      const courseMap = new Map(availableCourses.map((c) => [String(c.id).toLowerCase(), c]));
+      let hasChanged = false;
+
+      const syncedCart = cartItems
+        .filter((item) => item && item.id && courseMap.has(String(item.id).toLowerCase()))
+        .map((item) => {
+          const fresh = courseMap.get(String(item.id).toLowerCase());
+          if (!fresh) return item;
+
+          const freshPrice = String(fresh.price || fresh.priceInr || (fresh as any).price_inr || item.price);
+          const freshOrigPrice = String(fresh.originalPrice || fresh.originalPriceInr || (fresh as any).original_price_inr || item.originalPrice);
+          const freshTitle = fresh.title || item.title;
+
+          if (String(item.price) !== freshPrice || String(item.originalPrice) !== freshOrigPrice || item.title !== freshTitle) {
+            hasChanged = true;
+            return {
+              ...item,
+              title: freshTitle,
+              price: freshPrice,
+              originalPrice: freshOrigPrice,
+              imageUrl: fresh.imageUrl || item.imageUrl,
+              driveUrl: fresh.driveUrl || (fresh as any).drive_url || item.driveUrl
+            };
+          }
+          return item;
+        });
+
+      if (hasChanged || syncedCart.length !== cartItems.length) {
+        setCartItems(syncedCart);
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(syncedCart));
+          if (!user?.id) {
+            localStorage.setItem('sv_cart_items', JSON.stringify(syncedCart));
+          }
+        } catch { }
       }
     }
   }, [availableCourses, cartItems.length]);

@@ -119,12 +119,54 @@ export function CheckoutPage({
   }, [user]);
 
   const [directCourseItem, setDirectCourseItem] = useState<Course | null>(null);
+  const [liveCatalog, setLiveCatalog] = useState<any[]>([]);
 
   // Fetch Admin Bonus Offer settings & direct course details
   useEffect(() => {
     const fetchCheckoutData = async () => {
       setLoading(true);
       try {
+        // Always fetch live courses catalog so cart & direct items always have latest live prices
+        try {
+          const res = await fetch(getApiUrl('/api/courses'));
+          if (res.ok) {
+            const data = await res.json();
+            const list = Array.isArray(data) ? data : (data.products || data.courses || []);
+            setLiveCatalog(list);
+
+            const urlId = getDirectCourseId();
+            if (urlId) {
+              const found = list.find((c: any) => String(c.id).toLowerCase() === String(urlId).toLowerCase());
+              if (found) {
+                const formattedItem: Course = {
+                  ...found,
+                  id: found.id,
+                  title: found.title,
+                  subtitle: found.subtitle || '',
+                  description: found.description || '',
+                  category: found.category || 'Digital Product',
+                  level: 'Beginner to Advanced',
+                  price: String(found.price || found.priceInr || found.price_inr || '299'),
+                  originalPrice: String(found.originalPrice || found.originalPriceInr || found.original_price_inr || '999'),
+                  duration: found.duration || 'Lifetime Access',
+                  modulesCount: (found.modules && Array.isArray(found.modules)) ? found.modules.length : 1,
+                  iconName: 'Sparkles',
+                  themeColor: 'violet',
+                  skills: found.features || ['Instant Access'],
+                  modules: found.modules || [],
+                  projects: [],
+                  faqs: found.faqs || []
+                };
+                setDirectCourseItem(formattedItem);
+              }
+            } else {
+              setDirectCourseItem(null);
+            }
+          }
+        } catch (cErr) {
+          console.error('Failed to fetch live courses in checkout:', cErr);
+        }
+
         // Fetch dynamic bonus product(s) configured by Admin
         const bonusRes = await fetch(getApiUrl('/api/bonus-product'));
         if (bonusRes.ok) {
@@ -168,40 +210,6 @@ export function CheckoutPage({
           setBonusAssets(activeList);
           setBonusEnabled(activeList.length > 0);
         }
-
-        const urlId = getDirectCourseId();
-        if (urlId) {
-          const res = await fetch(getApiUrl('/api/courses'));
-          if (res.ok) {
-            const data = await res.json();
-            const list = Array.isArray(data) ? data : (data.products || data.courses || []);
-            const found = list.find((c: any) => String(c.id).toLowerCase() === String(urlId).toLowerCase());
-            if (found) {
-              const formattedItem: Course = {
-                ...found,
-                id: found.id,
-                title: found.title,
-                subtitle: found.subtitle || '',
-                description: found.description || '',
-                category: found.category || 'Digital Product',
-                level: 'Beginner to Advanced',
-                price: String(found.price || found.priceInr || found.price_inr || '299'),
-                originalPrice: String(found.originalPrice || found.originalPriceInr || found.original_price_inr || '999'),
-                duration: found.duration || 'Lifetime Access',
-                modulesCount: (found.modules && Array.isArray(found.modules)) ? found.modules.length : 1,
-                iconName: 'Sparkles',
-                themeColor: 'violet',
-                skills: found.features || ['Instant Access'],
-                modules: found.modules || [],
-                projects: [],
-                faqs: found.faqs || []
-              };
-              setDirectCourseItem(formattedItem);
-            }
-          }
-        } else {
-          setDirectCourseItem(null);
-        }
       } catch (err) {
         console.error('Error loading checkout data:', err);
       } finally {
@@ -242,21 +250,39 @@ export function CheckoutPage({
     onRemoveCartItem(itemId);
   };
 
-  // Single source of truth for base items:
-  // 1. If cartItems has items, cartItems is the ABSOLUTE source of truth.
-  // 2. Only if cartItems is empty, fallback to direct URL item if not removed.
+  // Single source of truth for base items (always synced with latest catalog price):
   const baseItems = useMemo(() => {
+    let rawItems: Course[] = [];
     if (cartItems && cartItems.length > 0) {
-      return cartItems.filter((item) => item && item.id && !removedItemIds.includes(item.id));
+      rawItems = cartItems.filter((item) => item && item.id && !removedItemIds.includes(item.id));
+    } else {
+      const urlId = getDirectCourseId();
+      if (urlId && directCourseItem && !removedItemIds.includes(directCourseItem.id)) {
+        rawItems = [directCourseItem];
+      }
     }
 
-    const urlId = getDirectCourseId();
-    if (urlId && directCourseItem && !removedItemIds.includes(directCourseItem.id)) {
-      return [directCourseItem];
+    // Always sync every cart item with fresh live database prices to prevent stale localStorage prices
+    if (liveCatalog && liveCatalog.length > 0) {
+      const catalogMap = new Map(liveCatalog.map((c: any) => [String(c.id).toLowerCase(), c]));
+      return rawItems.map((item) => {
+        const fresh = catalogMap.get(String(item.id).toLowerCase());
+        if (fresh) {
+          const freshPrice = String(fresh.price || fresh.priceInr || fresh.price_inr || item.price);
+          const freshOrigPrice = String(fresh.originalPrice || fresh.originalPriceInr || fresh.original_price_inr || item.originalPrice);
+          return {
+            ...item,
+            title: fresh.title || item.title,
+            price: freshPrice,
+            originalPrice: freshOrigPrice
+          };
+        }
+        return item;
+      });
     }
 
-    return [];
-  }, [directCourseItem, cartItems, removedItemIds]);
+    return rawItems;
+  }, [directCourseItem, cartItems, removedItemIds, liveCatalog]);
   // Available bonus offers (excluding items already in base cart)
   const availableBonusOffers = useMemo(() => {
     if (!bonusLoaded || !bonusEnabled || bonusAssets.length === 0) return [];
