@@ -7,6 +7,16 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { initDb, query, isDbConnected, inMemoryDb } from './db.js';
 import nodemailer from 'nodemailer';
+import dns from 'dns';
+
+// Force Node.js to prefer IPv4 over IPv6 to avoid ENETUNREACH on systems without IPv6 routing
+try {
+  if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder('ipv4first');
+  }
+} catch (dnsErr) {
+  // Ignore in environments where not supported
+}
 
 dotenv.config();
 
@@ -1534,6 +1544,7 @@ function getMailTransporter() {
       port,
       secure: port === 465, // true for 465, false for other ports
       auth: { user, pass },
+      family: 4, // Explicitly force IPv4 to avoid ENETUNREACH with IPv6 addresses
       tls: {
         rejectUnauthorized: false
       }

@@ -559,13 +559,24 @@ export default function AdminPanelPage() {
                 originalPrice: bData.originalPrice ? String(bData.originalPrice) : '999',
                 category: bData.category || 'Software & Tools',
                 description: bData.description || 'Unlock 50+ scripts, cheat-sheets & tools for just ₹149 extra.',
-                selectedProductId: bData.id || '',
+                selectedProductId: bData.selectedProductId || bData.selected_product_id || '',
                 imageUrl: bData.imageUrl || '',
                 driveUrl: bData.driveUrl || bData.drive_url || ''
               }];
             }
             if (list.length > 0) {
-              setBonuses(list.slice(0, 3));
+              const sanitizedList = list.slice(0, 3).map((b, bIdx) => {
+                const isProductCollision = (Array.isArray(courses) ? courses : []).some(c => c && c.id === b.id);
+                const safeId = (b.id && b.id.startsWith('bonus-') && !isProductCollision)
+                  ? b.id
+                  : `bonus-offer-${bIdx + 1}`;
+                return {
+                  ...b,
+                  id: safeId,
+                  selectedProductId: b.selectedProductId || b.selected_product_id || ''
+                };
+              });
+              setBonuses(sanitizedList);
             }
           }
         }
@@ -2005,9 +2016,16 @@ export default function AdminPanelPage() {
                           const found = (Array.isArray(courses) ? courses : []).find((c) => c && c.id === pId);
                           setBonuses((prev) => {
                             const updated = [...prev];
+                            const existingId = updated[idx]?.id;
+                            const isCollision = (Array.isArray(courses) ? courses : []).some(c => c && c.id === existingId);
+                            const safeId = (existingId && existingId.startsWith('bonus-') && !isCollision && existingId !== pId)
+                              ? existingId
+                              : `bonus-offer-${Date.now()}_${idx + 1}`;
+
                             if (found) {
                               updated[idx] = {
                                 ...updated[idx],
+                                id: safeId,
                                 selectedProductId: pId,
                                 title: found.title,
                                 originalPrice: String(found.priceInr || found.originalPriceInr || ''),
@@ -2019,6 +2037,7 @@ export default function AdminPanelPage() {
                             } else {
                               updated[idx] = {
                                 ...updated[idx],
+                                id: safeId,
                                 selectedProductId: pId
                               };
                             }

@@ -52,6 +52,9 @@ export interface Course {
   galleryImages?: string[];
   testimonials?: CourseTestimonial[];
   imageUrl?: string;
+  driveUrl?: string;
+  selectedProductId?: string;
+  isBonus?: boolean;
   isPublished?: boolean;
   rating?: number;
   students?: string;

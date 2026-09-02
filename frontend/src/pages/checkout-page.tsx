@@ -158,6 +158,8 @@ export function CheckoutPage({
               description: bItem.description || DEFAULT_BONUS_ASSET.description,
               imageUrl: bItem.imageUrl || DEFAULT_BONUS_ASSET.imageUrl,
               driveUrl: bItem.driveUrl || bItem.drive_url || '',
+              selectedProductId: bItem.selectedProductId || bItem.selected_product_id || '',
+              isBonus: true,
               modules: [],
               projects: [],
               faqs: []
