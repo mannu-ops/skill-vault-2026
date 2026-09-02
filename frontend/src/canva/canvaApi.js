@@ -4,12 +4,19 @@ import { getApiUrl } from '../config';
 async function apiFetch(endpoint, options = {}) {
   try {
     const url = getApiUrl(`/api/canva${endpoint}`);
+    const adminToken = typeof window !== 'undefined' ? localStorage.getItem('sv_admin_token') : null;
+    const userToken = typeof window !== 'undefined' ? localStorage.getItem('sv_user_token') : null;
+    const token = adminToken || userToken;
+
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...options.headers
+    };
+
     const res = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      },
-      ...options
+      ...options,
+      headers
     });
 
     const parsed = await res.json().catch(() => null);

@@ -1,7 +1,43 @@
 import { Router } from 'express';
+import jwt from 'jsonwebtoken';
 import { query, isDbConnected } from './db.js';
 
 const router = Router();
+const JWT_SECRET = process.env.JWT_SECRET || 'skillvault_secret_jwt_key_2026_production';
+
+// Helper to verify if request is from an authenticated admin
+export const isUserAdmin = (req) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return false;
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return decoded && (decoded.role === 'admin' || decoded.email === process.env.ADMIN_USERNAME);
+  } catch {
+    return false;
+  }
+};
+
+// Admin authentication middleware - Blocks any non-admin request with 401/403
+export const authenticateAdminToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ success: false, error: 'Authentication required. Please login as Admin.' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ success: false, error: 'Invalid or expired session token.' });
+    }
+    if (user.role !== 'admin' && user.email !== process.env.ADMIN_USERNAME) {
+      return res.status(403).json({ success: false, error: 'Access denied: Admin privileges required.' });
+    }
+    req.user = user;
+    next();
+  });
+};
 
 // In-Memory Fallback Storage (in case database connection is temporarily offline)
 let mockPlans = [
@@ -12,7 +48,7 @@ let mockPlans = [
     price: 199,
     originalPrice: 499,
     badge: 'BEST SELLER',
-    inviteLink: 'https://www.canva.com/brand/join?token=PRO_ANNUAL_INVITE',
+    invite_link: 'https://www.canva.com/brand/join?token=PRO_ANNUAL_INVITE',
     features: ['100M+ Premium Stock Photos & Videos', 'Magic Studio AI Tools Unlocked', 'Remove Background in 1 Click', '100GB Cloud Storage', 'Instant Email Delivery'],
     is_popular: true
   },
@@ -23,7 +59,7 @@ let mockPlans = [
     price: 399,
     originalPrice: 999,
     badge: 'VIP VALUE',
-    inviteLink: 'https://www.canva.com/brand/join?token=LIFETIME_VIP_INVITE',
+    invite_link: 'https://www.canva.com/brand/join?token=LIFETIME_VIP_INVITE',
     features: ['Lifetime Unrestricted Pro Permissions', 'Unlimited Premium Asset Downloads', 'All Future Canva AI Studio Updates', 'Brand Kit & Custom Fonts Support', 'Priority 24/7 Support'],
     is_popular: false
   },
@@ -34,7 +70,7 @@ let mockPlans = [
     price: 99,
     originalPrice: 299,
     badge: 'STARTER',
-    inviteLink: 'https://www.canva.com/brand/join?token=STARTER_30D_INVITE',
+    invite_link: 'https://www.canva.com/brand/join?token=STARTER_30D_INVITE',
     features: ['100M+ Stock Media Unlocked', 'Magic Studio & AI Writer', '1-Click Background Remover', 'Instant Team Invitation'],
     is_popular: false
   }
@@ -43,7 +79,7 @@ let mockPlans = [
 let mockActivations = [
   {
     id: 'act_101',
-    email: 'rahul.sharma@gmail.com',
+    email: 'customer.demo@gmail.com',
     planName: '1 Year Canva Pro',
     amount: 199,
     timestamp: new Date().toLocaleString(),
@@ -53,14 +89,15 @@ let mockActivations = [
 ];
 
 // Helper to format plan row from Neon PostgreSQL
-const formatPlan = (p) => ({
+// Note: inviteLink is ONLY included if includeSecret is true (Admin). For public visitors, it is stripped!
+const formatPlan = (p, includeSecret = false) => ({
   id: p.id,
   name: p.name,
   duration: p.duration,
   price: Number(p.price),
   originalPrice: Number(p.original_price || p.price * 2),
   badge: p.badge || null,
-  inviteLink: p.invite_link,
+  ...(includeSecret ? { inviteLink: p.invite_link || p.inviteLink } : {}),
   features: typeof p.features === 'string' ? JSON.parse(p.features) : (p.features || []),
   is_popular: Boolean(p.is_popular)
 });
@@ -105,15 +142,16 @@ router.get('/api/db-check', handleDbCheck);
 // 2. Canva Subscription Plans Endpoints
 // ==========================================
 const getPlansHandler = async (req, res) => {
+  const isAdmin = isUserAdmin(req);
   try {
     const result = await query('SELECT * FROM canva_plans ORDER BY price ASC');
     if (result && result.rows && result.rows.length > 0) {
-      return res.json({ plans: result.rows.map(formatPlan) });
+      return res.json({ plans: result.rows.map(p => formatPlan(p, isAdmin)) });
     }
   } catch (e) {
     console.error('Neon Canva Plans Fetch Error:', e.message);
   }
-  return res.json({ plans: mockPlans });
+  return res.json({ plans: mockPlans.map(p => formatPlan(p, isAdmin)) });
 };
 
 const createPlanHandler = async (req, res) => {
@@ -247,17 +285,19 @@ const deletePlanHandler = async (req, res) => {
   return res.json({ success: true });
 };
 
+// Public plans listing (inviteLink is automatically hidden/masked unless Admin token is present)
 router.get('/api/canva/plans', getPlansHandler);
 router.get('/api/plans', getPlansHandler);
 
-router.post('/api/canva/plans', createPlanHandler);
-router.post('/api/plans', createPlanHandler);
+// Admin-protected plan management
+router.post('/api/canva/plans', authenticateAdminToken, createPlanHandler);
+router.post('/api/plans', authenticateAdminToken, createPlanHandler);
 
-router.put('/api/canva/plans/:id', updatePlanHandler);
-router.put('/api/plans/:id', updatePlanHandler);
+router.put('/api/canva/plans/:id', authenticateAdminToken, updatePlanHandler);
+router.put('/api/plans/:id', authenticateAdminToken, updatePlanHandler);
 
-router.delete('/api/canva/plans/:id', deletePlanHandler);
-router.delete('/api/plans/:id', deletePlanHandler);
+router.delete('/api/canva/plans/:id', authenticateAdminToken, deletePlanHandler);
+router.delete('/api/plans/:id', authenticateAdminToken, deletePlanHandler);
 
 // ==========================================
 // 3. Canva Activations (Orders) Endpoints
@@ -328,14 +368,15 @@ const deleteActivationHandler = async (req, res) => {
   return res.json({ success: true });
 };
 
-router.get('/api/canva/activations', getActivationsHandler);
-router.get('/api/activations', getActivationsHandler);
+// Admin-protected activations (customer orders)
+router.get('/api/canva/activations', authenticateAdminToken, getActivationsHandler);
+router.get('/api/activations', authenticateAdminToken, getActivationsHandler);
 
 router.post('/api/canva/activations', createActivationHandler);
 router.post('/api/activations', createActivationHandler);
 
-router.delete('/api/canva/activations/:id', deleteActivationHandler);
-router.delete('/api/activations/:id', deleteActivationHandler);
+router.delete('/api/canva/activations/:id', authenticateAdminToken, deleteActivationHandler);
+router.delete('/api/activations/:id', authenticateAdminToken, deleteActivationHandler);
 
 // ==========================================
 // 4. Canva Payments & Analytics Endpoints
@@ -348,15 +389,19 @@ const paymentsAnalyticsHandler = async (req, res) => {
     if (result && result.rows) {
       activationsList = result.rows.map(formatActivation);
     }
-  } catch (e) { }
+  } catch (e) {
+    console.error('Neon Canva Payments Analytics Fetch Error:', e.message);
+  }
 
-  const totalSales = activationsList.reduce((sum, a) => sum + Number(a.amount || 0), 0);
+  const totalSales = activationsList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const totalCommission = Math.round(totalSales * 0.15); // 15% partner commission
+  const adminEarnings = totalSales - totalCommission;
+
   return res.json({
-    success: true,
     analytics: {
       totalSales,
-      platformCommission: 0,
-      adminEarnings: totalSales,
+      adminEarnings,
+      totalCommission,
       totalOrders: activationsList.length,
       successfulCount: activationsList.length,
       pendingCount: 0,
@@ -411,9 +456,11 @@ const verifyPaymentHandler = async (req, res) => {
   return res.json({ success: true, inviteLink });
 };
 
-router.get('/api/canva/payments', paymentsAnalyticsHandler);
-router.get('/api/payments', paymentsAnalyticsHandler);
+// Admin-protected payments analytics
+router.get('/api/canva/payments', authenticateAdminToken, paymentsAnalyticsHandler);
+router.get('/api/payments', authenticateAdminToken, paymentsAnalyticsHandler);
 
+// Public payment order creation and post-payment delivery
 router.post('/api/canva/payments/create-order', createPaymentOrderHandler);
 router.post('/api/payments/create-order', createPaymentOrderHandler);
 
