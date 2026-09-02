@@ -1417,23 +1417,12 @@ app.post('/api/reviews', async (req, res) => {
 app.get('/api/admin/stats', authenticateToken, async (req, res) => {
   try {
     if (isDbConnected()) {
-      const revRes = await query('SELECT COALESCE(SUM(amount_paid_inr), 0) as total_rev, COUNT(*) as total_pur FROM purchases');
-      const canvaRevRes = await query('SELECT COALESCE(SUM(amount), 0) as canva_rev, COUNT(*) as canva_pur FROM canva_activations').catch(() => ({ rows: [{ canva_rev: 0, canva_pur: 0 }] }));
+      const revRes = await query('SELECT SUM(amount_paid_inr) as total_rev, COUNT(*) as total_pur FROM purchases');
       const userRes = await query('SELECT COUNT(*) as total_users FROM users');
       const prodRes = await query('SELECT COUNT(*) as total_prods FROM products');
-
-      const skillVaultRev = Number(revRes.rows[0].total_rev) || 0;
-      const canvaRev = Number(canvaRevRes.rows[0].canva_rev) || 0;
-      const skillVaultOrders = Number(revRes.rows[0].total_pur) || 0;
-      const canvaOrders = Number(canvaRevRes.rows[0].canva_pur) || 0;
-
       return res.json({
-        totalRevenueInr: skillVaultRev + canvaRev,
-        totalPurchases: skillVaultOrders + canvaOrders,
-        skillVaultRevenueInr: skillVaultRev,
-        canvaRevenueInr: canvaRev,
-        skillVaultPurchases: skillVaultOrders,
-        canvaPurchases: canvaOrders,
+        totalRevenueInr: Number(revRes.rows[0].total_rev) || 0,
+        totalPurchases: Number(revRes.rows[0].total_pur) || 0,
         totalUsers: Number(userRes.rows[0].total_users) || 0,
         totalCourses: Number(prodRes.rows[0].total_prods) || 0
       });
@@ -1446,10 +1435,6 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
   res.json({
     totalRevenueInr,
     totalPurchases: inMemoryDb.purchases.length,
-    skillVaultRevenueInr: totalRevenueInr,
-    canvaRevenueInr: 0,
-    skillVaultPurchases: inMemoryDb.purchases.length,
-    canvaPurchases: 0,
     totalUsers: inMemoryDb.users.length,
     totalCourses: inMemoryDb.products.length
   });
