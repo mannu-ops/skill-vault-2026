@@ -797,17 +797,51 @@ async function resolveDriveUrl(item) {
     return url.trim();
   }
 
-  const itemId = item.id || item.courseId || item.selectedProductId || item.selected_product_id || '';
+  // 1. If item has selectedProductId / selected_product_id, check products table for that product first!
+  const selProdId = item.selectedProductId || item.selected_product_id;
+  if (selProdId) {
+    if (isDbConnected()) {
+      try {
+        const pRes = await query('SELECT drive_url FROM products WHERE id = $1', [selProdId]);
+        if (pRes.rows.length > 0 && pRes.rows[0].drive_url && pRes.rows[0].drive_url.trim().startsWith('http')) {
+          return pRes.rows[0].drive_url.trim();
+        }
+      } catch (e) {}
+    }
+    const memP = inMemoryDb.products.find(p => p && p.id === selProdId);
+    if (memP && memP.driveUrl && memP.driveUrl.trim().startsWith('http')) {
+      return memP.driveUrl.trim();
+    }
+  }
+
+  const itemId = item.id || item.courseId || '';
   if (itemId) {
     if (isDbConnected()) {
       try {
-        // 1. Check products table
+        // 2. If it's a bonus offer (starts with bonus- or isBonus), check bonus_offers table first!
+        if (itemId.startsWith('bonus') || item.isBonus) {
+          const bRes = await query('SELECT drive_url, selected_product_id FROM bonus_offers WHERE id = $1', [itemId]);
+          if (bRes.rows.length > 0) {
+            const bRow = bRes.rows[0];
+            if (bRow.drive_url && bRow.drive_url.trim().startsWith('http') && bRow.drive_url.trim() !== 'https://drive.google.com') {
+              return bRow.drive_url.trim();
+            }
+            if (bRow.selected_product_id) {
+              const linkedP = await query('SELECT drive_url FROM products WHERE id = $1', [bRow.selected_product_id]);
+              if (linkedP.rows.length > 0 && linkedP.rows[0].drive_url && linkedP.rows[0].drive_url.trim().startsWith('http')) {
+                return linkedP.rows[0].drive_url.trim();
+              }
+            }
+          }
+        }
+
+        // 3. Check products table
         const pRes = await query('SELECT drive_url FROM products WHERE id = $1', [itemId]);
         if (pRes.rows.length > 0 && pRes.rows[0].drive_url && pRes.rows[0].drive_url.trim().startsWith('http')) {
           return pRes.rows[0].drive_url.trim();
         }
 
-        // 2. Check bonus_offers table
+        // 4. Check bonus_offers table
         const bRes = await query('SELECT drive_url, selected_product_id FROM bonus_offers WHERE id = $1', [itemId]);
         if (bRes.rows.length > 0) {
           const bRow = bRes.rows[0];
@@ -826,13 +860,13 @@ async function resolveDriveUrl(item) {
       }
     }
 
-    // 3. Fallback: check inMemoryDb products
+    // 5. Fallback: check inMemoryDb products
     const memP = inMemoryDb.products.find(p => p && p.id === itemId);
     if (memP && memP.driveUrl && memP.driveUrl.trim().startsWith('http')) {
       return memP.driveUrl.trim();
     }
 
-    // 4. Fallback: check inMemoryDb bonuses
+    // 6. Fallback: check inMemoryDb bonuses
     const memB = inMemoryDb.bonuses.find(b => b && b.id === itemId);
     if (memB) {
       if (memB.driveUrl && memB.driveUrl.trim().startsWith('http') && memB.driveUrl.trim() !== 'https://drive.google.com') {
@@ -844,23 +878,6 @@ async function resolveDriveUrl(item) {
           return linkedMemP.driveUrl.trim();
         }
       }
-    }
-  }
-
-  // 5. If item itself has selectedProductId / selected_product_id
-  const selProdId = item.selectedProductId || item.selected_product_id;
-  if (selProdId) {
-    if (isDbConnected()) {
-      try {
-        const pRes = await query('SELECT drive_url FROM products WHERE id = $1', [selProdId]);
-        if (pRes.rows.length > 0 && pRes.rows[0].drive_url && pRes.rows[0].drive_url.trim().startsWith('http')) {
-          return pRes.rows[0].drive_url.trim();
-        }
-      } catch (e) {}
-    }
-    const memP = inMemoryDb.products.find(p => p && p.id === selProdId);
-    if (memP && memP.driveUrl && memP.driveUrl.trim().startsWith('http')) {
-      return memP.driveUrl.trim();
     }
   }
 
@@ -915,7 +932,10 @@ app.post('/api/admin/bonus-product', authenticateToken, async (req, res) => {
   try {
     if (isDbConnected()) {
       for (const item of bonusList) {
-        const id = item.id || `bonus_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+        let id = item.id;
+        if (!id || !id.startsWith('bonus-') || id === item.selectedProductId) {
+          id = `bonus-offer-${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+        }
         activeIds.push(id);
 
         let itemDriveUrl = item.driveUrl || item.drive_url || '';
@@ -1455,7 +1475,16 @@ app.post('/api/checkout/create-order', async (req, res) => {
           customerEmail: customerEmail || '',
           customerPhone: customerPhone || '',
           itemCount: String(items.length),
-          items: JSON.stringify(items.map(it => ({ id: it.id || it.courseId, name: it.name || it.title, price: it.price || it.priceInr || it.price_inr })))
+          items: JSON.stringify(items.map(it => ({
+            id: it.id || it.courseId,
+            courseId: it.courseId || it.id,
+            selectedProductId: it.selectedProductId || it.selected_product_id || '',
+            isBonus: Boolean(it.isBonus || (it.id && String(it.id).startsWith('bonus'))),
+            name: it.name || it.title,
+            title: it.title || it.name,
+            price: it.price || it.priceInr || it.price_inr,
+            driveUrl: it.driveUrl || it.drive_url || ''
+          })))
         }
       };
 
@@ -1487,10 +1516,33 @@ async function getCourseDriveUrl(item) {
   return await resolveDriveUrl(item);
 }
 
-// RESEND HTTP EMAIL DELIVERY SERVICE - PURE PLAIN TEXT
-async function sendPurchaseEmail({ to, customerName, paymentId, items }) {
-  const resendApiKey = process.env.RESEND_API_KEY;
+// HOSTINGER BUSINESS EMAIL SMTP DELIVERY SERVICE (NODEMAILER)
+let mailTransporter = null;
+function getMailTransporter() {
+  const host = process.env.SMTP_HOST || 'smtp.hostinger.com';
+  const port = Number(process.env.SMTP_PORT) || 465;
+  const user = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
 
+  if (!user || !pass) {
+    return null;
+  }
+
+  if (!mailTransporter) {
+    mailTransporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465, // true for 465, false for other ports
+      auth: { user, pass },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+  }
+  return mailTransporter;
+}
+
+async function sendPurchaseEmail({ to, customerName, paymentId, items }) {
   if (!to || !to.includes('@')) {
     console.error('❌ [EMAIL ERROR]: Invalid or missing recipient email address.');
     return { success: false, error: 'Invalid recipient email' };
@@ -1503,8 +1555,7 @@ async function sendPurchaseEmail({ to, customerName, paymentId, items }) {
     const price = Math.round(parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 299);
     const driveUrl = await getCourseDriveUrl(item);
 
-    return `Item #${idx + 1}: ${title} (Rs. ${price})
-Access Link: ${driveUrl}`;
+    return `Item #${idx + 1}: ${title} (Rs. ${price})\nAccess Link: ${driveUrl}`;
   }));
 
   const itemsText = itemsTextList.join('\n\n');
@@ -1530,70 +1581,28 @@ Best regards,
 Skill Vault Team
   `.trim();
 
-  // 1. BREVO HTTP API (Free 300 emails/day to ANY external recipient email without domain lock)
-  const brevoApiKey = process.env.BREVO_API_KEY;
-  if (brevoApiKey && !brevoApiKey.includes('your_brevo_api_key')) {
+  // HOSTINGER BUSINESS EMAIL SMTP DISPATCH
+  const transporter = getMailTransporter();
+  if (transporter) {
     try {
-      const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'api-key': brevoApiKey.trim(),
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          sender: { name: 'Skill Vault', email: process.env.BREVO_SENDER_EMAIL || process.env.EMAIL_USER || 'temp83725@gmail.com' },
-          to: [{ email: to, name: customerName }],
-          subject: `Your Skill Vault purchase is confirmed — ${paymentId}`,
-          textContent: textContent,
-        }),
+      const fromEmail = process.env.SMTP_FROM || `Skill Vault <${process.env.SMTP_USER || process.env.EMAIL_USER}>`;
+      const info = await transporter.sendMail({
+        from: fromEmail,
+        to: to,
+        subject: `Your Skill Vault purchase is confirmed — ${paymentId}`,
+        text: textContent,
       });
 
-      const brevoData = await brevoRes.json();
-      if (brevoRes.ok) {
-        console.log(`\n📧 [BREVO API SUCCESS]: Confirmation email delivered to ${to} (Message ID: ${brevoData.messageId})`);
-        return { success: true, messageId: brevoData.messageId, provider: 'brevo-http-api' };
-      } else {
-        console.error(`\n❌ [BREVO API ERROR]:`, brevoData);
-      }
-    } catch (brevoErr) {
-      console.error(`\n❌ [BREVO API FETCH ERROR]:`, brevoErr.message);
+      console.log(`\n📧 [HOSTINGER SMTP SUCCESS]: Confirmation email delivered to ${to} (Message ID: ${info.messageId})`);
+      return { success: true, messageId: info.messageId, provider: 'hostinger-smtp' };
+    } catch (smtpErr) {
+      console.error(`\n❌ [HOSTINGER SMTP ERROR]:`, smtpErr.message);
+      return { success: false, error: smtpErr.message };
     }
   }
 
-  // 2. RESEND HTTP API (Bypasses SMTP Port Blocks - Requires verified domain for external recipients)
-  if (resendApiKey && !resendApiKey.includes('your_resend_api_key')) {
-    try {
-      const resendRes = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey.trim()}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL || 'Skill Vault <onboarding@resend.dev>',
-          to: [to],
-          subject: `Your Skill Vault purchase is confirmed — ${paymentId}`,
-          text: textContent,
-        }),
-      });
-
-      const resendData = await resendRes.json();
-      if (resendRes.ok) {
-        console.log(`\n📧 [RESEND API SUCCESS]: Confirmation email delivered to ${to} (ID: ${resendData.id})`);
-        return { success: true, messageId: resendData.id, provider: 'resend-http-api' };
-      } else {
-        console.error(`\n❌ [RESEND API ERROR]:`, resendData);
-        return { success: false, error: resendData.message || 'Resend API Error' };
-      }
-    } catch (resendErr) {
-      console.error(`\n❌ [RESEND API FETCH ERROR]:`, resendErr.message);
-      return { success: false, error: resendErr.message };
-    }
-  }
-
-  console.log(`\n📧 [EMAIL NOTICE]: BREVO_API_KEY / RESEND_API_KEY is not configured in backend/.env. Simulated email to ${to}`);
-  return { status: 'simulated', message: 'Configure BREVO_API_KEY or RESEND_API_KEY in backend/.env to send real emails.' };
+  console.log(`\n📧 [EMAIL NOTICE]: Hostinger SMTP credentials (SMTP_USER / SMTP_PASS) not configured in backend/.env. Simulated email to ${to}`);
+  return { status: 'simulated', message: 'Configure SMTP_USER and SMTP_PASS in backend/.env to send real emails via Hostinger.' };
 }
 
 // POSTGRESQL AUTH STATE ADAPTER FOR BAILEYS (Persists QR session in DB across Render redeploys)
@@ -2147,7 +2156,7 @@ app.post('/api/checkout/verify-payment', async (req, res) => {
       if (isDbConnected()) {
         for (const item of items) {
           const pId = `pur_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-          const courseId = item.id || 'course-default';
+          const courseId = item.selectedProductId || item.selected_product_id || item.courseId || item.id || 'course-default';
           const rawPrice = item.price !== undefined ? item.price : (item.priceInr || item.price_inr || '299');
           const price = Math.round(parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 299);
           const driveUrl = await getCourseDriveUrl(item);
@@ -2187,7 +2196,7 @@ app.post('/api/checkout/verify-payment', async (req, res) => {
 
     // Also update inMemoryDb
     for (const item of items) {
-      const courseId = item.id || 'course-default';
+      const courseId = item.selectedProductId || item.selected_product_id || item.courseId || item.id || 'course-default';
       const rawPrice = item.price !== undefined ? item.price : (item.priceInr || item.price_inr || '299');
       const price = Math.round(parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 299);
       const driveUrl = await getCourseDriveUrl(item);
@@ -2360,7 +2369,7 @@ app.post('/api/checkout/webhook', async (req, res) => {
       if (isDbConnected()) {
         for (const item of itemsToGrant) {
           const pId = `pur_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-          const courseId = item.id || 'course-default';
+          const courseId = item.selectedProductId || item.selected_product_id || item.courseId || item.id || 'course-default';
           const rawPrice = item.price !== undefined ? item.price : (item.priceInr || item.price_inr || '299');
           const price = Math.round(parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 299);
           const driveUrl = await getCourseDriveUrl(item);
@@ -2391,7 +2400,7 @@ app.post('/api/checkout/webhook', async (req, res) => {
 
     // Update inMemoryDb
     for (const item of itemsToGrant) {
-      const courseId = item.id || 'course-default';
+      const courseId = item.selectedProductId || item.selected_product_id || item.courseId || item.id || 'course-default';
       const rawPrice = item.price !== undefined ? item.price : (item.priceInr || item.price_inr || '299');
       const price = Math.round(parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 299);
       const driveUrl = await getCourseDriveUrl(item);
