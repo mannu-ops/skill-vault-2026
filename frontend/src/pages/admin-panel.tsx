@@ -41,6 +41,10 @@ interface AdminStats {
   totalPurchases: number;
   totalUsers: number;
   totalCourses: number;
+  skillVaultRevenueInr?: number;
+  canvaRevenueInr?: number;
+  skillVaultPurchases?: number;
+  canvaPurchases?: number;
 }
 
 interface CourseItem {
@@ -200,7 +204,11 @@ export default function AdminPanelPage() {
     totalRevenueInr: 0,
     totalPurchases: 0,
     totalUsers: 0,
-    totalCourses: 0
+    totalCourses: 0,
+    skillVaultRevenueInr: 0,
+    canvaRevenueInr: 0,
+    skillVaultPurchases: 0,
+    canvaPurchases: 0
   });
 
   const [courses, setCourses] = useState<CourseItem[]>([]);
@@ -1388,22 +1396,30 @@ export default function AdminPanelPage() {
             <div className="absolute top-0 right-0 p-4 text-emerald-500/10">
               <DollarSign className="w-16 h-16" />
             </div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Revenue</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Revenue (All Sales)</p>
             <h2 className="text-2xl md:text-3xl font-extrabold text-emerald-400 mt-2">
               ₹{(Number(stats?.totalRevenueInr) || 0).toLocaleString()}
             </h2>
-            <p className="text-[11px] text-slate-500 mt-1">Generated from Razorpay sales</p>
+            <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-1.5 flex-wrap">
+              <span className="text-violet-300 font-medium">SkillVault: ₹{(Number(stats?.skillVaultRevenueInr) || 0).toLocaleString()}</span>
+              <span>•</span>
+              <span className="text-cyan-300 font-medium">Canva Pro: ₹{(Number(stats?.canvaRevenueInr) || 0).toLocaleString()}</span>
+            </div>
           </div>
 
           <div className="bg-[#0d0f19] border border-slate-800/80 rounded-xl p-5 shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 text-violet-500/10">
               <ShoppingBag className="w-16 h-16" />
             </div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Purchases</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Orders</p>
             <h2 className="text-2xl md:text-3xl font-extrabold text-violet-400 mt-2">
               {stats.totalPurchases}
             </h2>
-            <p className="text-[11px] text-slate-500 mt-1">Confirmed course orders</p>
+            <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-1.5 flex-wrap">
+              <span className="text-violet-300 font-medium">SkillVault: {stats?.skillVaultPurchases || 0}</span>
+              <span>•</span>
+              <span className="text-cyan-300 font-medium">Canva: {stats?.canvaPurchases || 0}</span>
+            </div>
           </div>
 
           <div className="bg-[#0d0f19] border border-slate-800/80 rounded-xl p-5 shadow-xl relative overflow-hidden">
