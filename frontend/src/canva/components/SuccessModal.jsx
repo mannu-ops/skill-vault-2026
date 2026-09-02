@@ -195,7 +195,7 @@ export default function SuccessModal({ isOpen, userEmail, selectedPlan, onClose 
           </div>
 
           {/* 24/7 Replacement Guarantee Note */}
-          <div className="p-3 sm:p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1 text-xs">
+          <div className="p-3 sm:p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1.5 text-xs">
             <div className="flex items-center gap-1.5 text-amber-300 font-bold">
               <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
               <span>24/7 Continuous Access & Replacement Guarantee</span>
@@ -203,6 +203,16 @@ export default function SuccessModal({ isOpen, userEmail, selectedPlan, onClose 
             <p className="text-slate-300 text-[10px] sm:text-[11px] leading-relaxed">
               If you ever face any activation issues or link expiry in the future, simply contact our 24/7 dedicated support team or admin. We provide instant replacement links throughout your subscription.
             </p>
+            <div className="pt-1">
+              <a
+                href="https://wa.me/917652072236?text=Hi%20SkillVault%20Admin,%20I%20need%20assistance%20with%20my%20Canva%20Pro%20activation"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-bold text-[11px] underline"
+              >
+                💬 WhatsApp 24/7 Support: +91 7652072236
+              </a>
+            </div>
           </div>
 
           {/* Close button */}

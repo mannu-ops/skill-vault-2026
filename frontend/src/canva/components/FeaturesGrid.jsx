@@ -61,7 +61,7 @@ export default function FeaturesGrid() {
 
           <div className="w-full md:w-auto flex items-center justify-center shrink-0 pt-2 md:pt-0">
             <a
-              href="https://wa.me/?text=Hi%20Admin,%20I%20need%20a%20replacement%20Canva%20Pro%20invite%20link%20for%20my%20account"
+              href="https://wa.me/917652072236?text=Hi%20SkillVault%20Admin,%20I%20need%20support%20for%20Canva%20Pro"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-heading font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer text-center"

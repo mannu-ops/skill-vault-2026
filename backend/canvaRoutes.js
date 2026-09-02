@@ -544,7 +544,8 @@ HOW TO ACTIVATE YOUR CANVA PRO:
    - Brand Kits & Custom Fonts
 
 NEED ASSISTANCE?
-If you have any questions or need help with activation, simply reply directly to this email. We are happy to help!
+If you have any questions or need help with activation, simply reply directly to this email or contact our 24/7 WhatsApp Support:
+WhatsApp: +91 7652072236 (https://wa.me/917652072236)
 
 Best regards,
 The Skill Vault Team
