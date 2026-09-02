@@ -7,22 +7,70 @@ export default function SuccessModal({ isOpen, userEmail, selectedPlan, onClose 
   const inviteLink = selectedPlan?.inviteLink || `https://www.canva.com/brand/join?token=INVITE_${Math.random().toString(36).substring(2, 10).toUpperCase()}&team=VIP_PRO`;
 
   useEffect(() => {
-    if (isOpen) {
-      // Safe dynamic import for confetti animation
-      import('canvas-confetti')
-        .then((module) => {
-          const confettiFn = module.default || module;
-          confettiFn({
-            particleCount: 120,
-            spread: 80,
-            origin: { y: 0.6 },
-            colors: ['#00F2FE', '#7D2AE8', '#FF007A', '#F59E0B', '#10B981']
-          });
-        })
-        .catch(() => {
-          console.log('Confetti animation fallback');
+    if (!isOpen) return;
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.style.position = 'fixed';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      canvas.style.width = '100vw';
+      canvas.style.height = '100vh';
+      canvas.style.pointerEvents = 'none';
+      canvas.style.zIndex = '99999';
+      document.body.appendChild(canvas);
+
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const colors = ['#00F2FE', '#7D2AE8', '#FF007A', '#F59E0B', '#10B981', '#38BDF8'];
+      const particles = Array.from({ length: 90 }, () => ({
+        x: canvas.width * (0.35 + Math.random() * 0.3),
+        y: canvas.height * 0.45,
+        vx: (Math.random() - 0.5) * 16,
+        vy: -Math.random() * 15 - 5,
+        size: Math.random() * 8 + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        vr: (Math.random() - 0.5) * 10,
+        alpha: 1
+      }));
+
+      let animationFrame;
+      const render = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let active = 0;
+        particles.forEach(p => {
+          if (p.alpha <= 0.01) return;
+          active++;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.38; // gravity
+          p.rotation += p.vr;
+          p.alpha -= 0.009;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rotation * Math.PI) / 180);
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+          ctx.restore();
         });
-    }
+
+        if (active > 0) {
+          animationFrame = requestAnimationFrame(render);
+        } else {
+          canvas.remove();
+        }
+      };
+      animationFrame = requestAnimationFrame(render);
+
+      return () => {
+        cancelAnimationFrame(animationFrame);
+        canvas.remove();
+      };
+    } catch (e) { }
   }, [isOpen]);
 
   if (!isOpen || !selectedPlan) return null;
