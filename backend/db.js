@@ -288,6 +288,12 @@ export async function initDb() {
         invite_link TEXT NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+      ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS plan_name VARCHAR(255);
+      ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+      ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS amount NUMERIC DEFAULT 199;
+      ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS payment_method VARCHAR(100) DEFAULT 'UPI QR';
+      ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS invite_link TEXT;
+      ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
     `);
 
     // Seed default Canva Plans if empty
