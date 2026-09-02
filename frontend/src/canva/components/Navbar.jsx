@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import {
   Menu,
@@ -10,8 +10,14 @@ import {
   ShoppingBag,
   User,
   LogOut,
-  Clock,
-  Sparkles
+  Sparkles,
+  Layers,
+  BookOpen,
+  Code2,
+  FileText,
+  Zap,
+  Gamepad2,
+  PenTool
 } from 'lucide-react';
 
 export default function Navbar({
@@ -24,27 +30,11 @@ export default function Navbar({
 }) {
   const [location, setLocation] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
-
-  const [timeLeft, setTimeLeft] = useState({ minutes: 14, seconds: 59 });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev.seconds > 0) {
-          return { ...prev, seconds: prev.seconds - 1 };
-        } else if (prev.minutes > 0) {
-          return { minutes: prev.minutes - 1, seconds: 59 };
-        }
-        return { minutes: 14, seconds: 59 };
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const [productsDropdownOpen, setProductsDropdownOpen] = useState(false);
 
   const close = () => {
     setMenuOpen(false);
-    setMoreDropdownOpen(false);
+    setProductsDropdownOpen(false);
   };
 
   const navTo = (targetId, category) => {
@@ -52,180 +42,182 @@ export default function Navbar({
     if (category) {
       sessionStorage.setItem('sv_selected_category', category);
     }
-    setLocation('/');
-    setTimeout(() => {
+    const isHome = location === '/' || location === '';
+    if (isHome) {
       const el = document.querySelector(targetId);
       if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }, 150);
+    } else {
+      setLocation('/');
+      setTimeout(() => {
+        const el = document.querySelector(targetId);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 150);
+    }
   };
 
+  const isCanvaPage = location === '/canva' || location === '/canva-pro';
+
   return (
-    <header className="fixed inset-x-0 top-0 z-40 border-b border-slate-800/60 bg-[#090a10]/90 backdrop-blur-xl">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex h-[68px] items-center justify-between">
+    <header className="fixed inset-x-0 top-0 z-40 h-16 border-b border-white/[0.08] bg-[#08090E]/85 backdrop-blur-xl">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between gap-4">
         
-        {/* SKILLVAULT Brand Logo */}
+        {/* Brand Logo */}
         <button
           type="button"
           onClick={() => { close(); setLocation('/'); }}
-          className="group flex items-center gap-2 text-left cursor-pointer shrink-0 transition-opacity hover:opacity-90"
+          className="group flex items-center gap-2.5 text-left cursor-pointer shrink-0 transition-opacity hover:opacity-90"
         >
-          <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white font-black text-xs sm:text-sm md:text-base shadow-md shadow-violet-600/20">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-white font-black text-xs shadow-md shadow-violet-600/20">
             SV
           </div>
-          <span className="font-heading font-black tracking-tight text-sm sm:text-base md:text-lg lg:text-xl text-white">
+          <span className="font-heading font-black tracking-tight text-base sm:text-lg text-white">
             SKILL<span className="text-violet-400">VAULT</span>
           </span>
         </button>
 
-        {/* Desktop Navigation Links */}
-        <nav className="hidden items-center gap-3.5 md:gap-5 lg:gap-6 md:flex">
-          <button
-            type="button"
-            onClick={() => navTo('#catalog', 'All Products')}
-            className="text-xs md:text-sm font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
-          >
-            All Products
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navTo('#catalog', 'Course')}
-            className="text-xs md:text-sm font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
-          >
-            Courses
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navTo('#catalog', 'Software')}
-            className="text-xs md:text-sm font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
-          >
-            Software
-          </button>
-
-          {/* MORE DROPDOWN */}
+        {/* Center Desktop Navigation - Spacious & Organized */}
+        <nav className="hidden md:flex items-center gap-1.5 lg:gap-2">
+          
+          {/* Products Dropdown */}
           <div
             className="relative"
-            onMouseEnter={() => setMoreDropdownOpen(true)}
-            onMouseLeave={() => setMoreDropdownOpen(false)}
+            onMouseEnter={() => setProductsDropdownOpen(true)}
+            onMouseLeave={() => setProductsDropdownOpen(false)}
           >
             <button
               type="button"
-              onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
-              className="inline-flex items-center gap-1 text-xs md:text-sm font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors py-2"
+              onClick={() => setProductsDropdownOpen(!productsDropdownOpen)}
+              className="px-3 py-1.5 rounded-lg text-xs lg:text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/[0.05] transition-all flex items-center gap-1 cursor-pointer"
             >
-              More <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${moreDropdownOpen ? 'rotate-180 text-violet-300' : ''}`} />
+              <span>Products</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${productsDropdownOpen ? 'rotate-180 text-violet-400' : ''}`} />
             </button>
 
-            {moreDropdownOpen && (
-              <div className="absolute left-0 top-full pt-1.5 w-48 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="rounded-xl border border-slate-800 bg-[#0c0e17]/95 p-1.5 shadow-2xl shadow-violet-950/60 backdrop-blur-xl">
+            {productsDropdownOpen && (
+              <div className="absolute left-0 top-full pt-2 w-64 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="rounded-2xl border border-slate-800 bg-[#0d0f19]/95 p-2 shadow-2xl shadow-black/80 backdrop-blur-2xl space-y-0.5">
                   <button
                     type="button"
                     onClick={() => navTo('#catalog', 'All Products')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors text-left"
                   >
-                    <span>🔥</span> All Products
+                    <Layers className="w-4 h-4 text-violet-400 shrink-0" />
+                    <div>
+                      <div className="text-slate-200">All Products</div>
+                      <div className="text-[10px] text-slate-500 font-normal">Browse entire vault</div>
+                    </div>
                   </button>
+
                   <button
                     type="button"
-                    onClick={() => navTo('#catalog', 'Architecture & Design')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    onClick={() => navTo('#catalog', 'Course')}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors text-left"
                   >
-                    <span>📐</span> Architecture & Design
+                    <BookOpen className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div>
+                      <div className="text-slate-200">Video Courses</div>
+                      <div className="text-[10px] text-slate-500 font-normal">Bootcamps & tutorials</div>
+                    </div>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => navTo('#catalog', 'Software')}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors text-left"
+                  >
+                    <Code2 className="w-4 h-4 text-cyan-400 shrink-0" />
+                    <div>
+                      <div className="text-slate-200">Software & Tools</div>
+                      <div className="text-[10px] text-slate-500 font-normal">Scripts & templates</div>
+                    </div>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => navTo('#catalog', 'Notes')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors text-left"
                   >
-                    <span>📚</span> Notes / PDFs
+                    <FileText className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div>
+                      <div className="text-slate-200">Study Notes & PDFs</div>
+                      <div className="text-[10px] text-slate-500 font-normal">Cheat-sheets & roadmaps</div>
+                    </div>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => navTo('#catalog', 'Hacks')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors text-left"
                   >
-                    <span>⚡</span> Hacks & Tools
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navTo('#catalog', 'Game')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
-                  >
-                    <span>🎮</span> Games
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navTo('#catalog', 'Blog')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
-                  >
-                    <span>📝</span> Blogs
+                    <Zap className="w-4 h-4 text-yellow-400 shrink-0" />
+                    <div>
+                      <div className="text-slate-200">Hacks & Cheats</div>
+                      <div className="text-[10px] text-slate-500 font-normal">Productivity boosters</div>
+                    </div>
                   </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* ACTIVE GLOWING CANVA PRO LINK */}
+          {/* Canva Pro Pill - Sleek & Highlighted */}
           <button
             type="button"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-950/80 via-slate-900 to-cyan-950/80 border border-cyan-400/80 cursor-pointer shadow-[0_0_15px_rgba(0,242,254,0.3)] transition-all"
-            title="Active Canva Pro Section"
+            onClick={() => {
+              close();
+              if (isCanvaPage) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              } else {
+                setLocation('/canva');
+              }
+            }}
+            className={`px-3 py-1.5 rounded-full text-xs lg:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              isCanvaPage
+                ? 'bg-gradient-to-r from-purple-600/25 via-cyan-500/25 to-purple-600/25 text-cyan-300 border border-cyan-400/60 shadow-[0_0_12px_rgba(0,242,254,0.25)]'
+                : 'text-slate-300 hover:text-white hover:bg-white/[0.05]'
+            }`}
           >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
-            </span>
-            <span className="text-xs font-extrabold tracking-wide uppercase text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-purple-300">
-              Canva Pro
-            </span>
-            <span className="text-[10px] bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
-              LIVE
+            <span className="size-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span>Canva Pro</span>
+            <span className="text-[10px] bg-gradient-to-r from-cyan-400 to-violet-500 text-slate-950 font-black px-1.5 py-0.2 rounded-full uppercase tracking-tight">
+              VIP
             </span>
           </button>
 
+          {/* Why Us */}
           <button
             type="button"
             onClick={() => navTo('#why-us')}
-            className="text-xs md:text-sm font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+            className="px-3 py-1.5 rounded-lg text-xs lg:text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/[0.05] transition-all cursor-pointer"
           >
             Why Us
           </button>
 
+          {/* FAQ */}
           <button
             type="button"
             onClick={() => navTo('#faq')}
-            className="text-xs md:text-sm font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+            className="px-3 py-1.5 rounded-lg text-xs lg:text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/[0.05] transition-all cursor-pointer"
           >
             FAQ
           </button>
+
         </nav>
 
-        {/* Right Section: Offer Timer, Cart & Auth */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
-
-          {/* Limited Time Offer Badge */}
-          <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-slate-900/90 to-purple-950/40 shadow-sm">
-            <Clock className="w-3 h-3 text-amber-400" />
-            <span className="text-amber-300 text-[10px] font-bold">Ends:</span>
-            <span className="font-mono text-amber-400 font-bold text-xs">
-              {String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
-            </span>
-          </div>
-
+        {/* Right Section: Clean Action Buttons */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          
           {/* Shopping Cart Button */}
           {onOpenCart && (
             <button
               type="button"
               onClick={onOpenCart}
-              className="relative p-2 text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:border-violet-500/40 rounded-xl transition-colors cursor-pointer"
-              title="View Shopping Cart"
+              className="relative p-2 rounded-xl text-slate-300 hover:text-white bg-slate-900/80 border border-slate-800 hover:border-violet-500/40 transition-colors cursor-pointer"
+              title="Shopping Cart"
             >
               <ShoppingCart className="w-4 h-4 text-violet-400" />
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-lg border border-slate-950">
+                <span className="absolute -top-1.5 -right-1.5 bg-violet-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-[#08090E]">
                   {cartCount}
                 </span>
               )}
@@ -233,22 +225,22 @@ export default function Navbar({
           )}
 
           {/* User Auth Section */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2">
             {!user ? (
               <>
                 <button
                   type="button"
                   onClick={() => onOpenAuthModal ? onOpenAuthModal('login') : setLocation('/#login')}
-                  className="text-xs font-semibold text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer"
                 >
-                  <LogIn className="w-3.5 h-3.5" /> Log In
+                  Log In
                 </button>
                 <button
                   type="button"
                   onClick={() => onOpenAuthModal ? onOpenAuthModal('signup') : setLocation('/#signup')}
-                  className="text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white px-3 py-1.5 rounded-lg shadow-md shadow-violet-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-md shadow-violet-600/20 transition-all cursor-pointer"
                 >
-                  <UserPlus className="w-3.5 h-3.5" /> Sign Up
+                  Sign Up
                 </button>
               </>
             ) : (
@@ -256,12 +248,12 @@ export default function Navbar({
                 <button
                   type="button"
                   onClick={() => onOpenMyPurchases ? onOpenMyPurchases() : setLocation('/purchases')}
-                  className="text-xs font-semibold text-slate-200 bg-slate-900 border border-slate-800 hover:border-violet-500/50 px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-200 bg-slate-900 border border-slate-800 hover:border-violet-500/40 transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <ShoppingBag className="w-3.5 h-3.5 text-violet-400" /> My Purchases
                 </button>
                 <div className="flex items-center gap-1.5 border-l border-slate-800 pl-2">
-                  <span className="text-xs font-bold text-violet-300 bg-violet-500/10 border border-violet-500/20 px-2 py-1 rounded-full flex items-center gap-1">
+                  <span className="text-xs font-bold text-violet-300 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
                     <User className="w-3 h-3" /> {user.name || user.email?.split('@')[0]}
                   </span>
                   {onLogout && (
@@ -269,7 +261,7 @@ export default function Navbar({
                       type="button"
                       onClick={onLogout}
                       title="Logout"
-                      className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-900 transition-colors cursor-pointer"
+                      className="text-slate-400 hover:text-rose-400 p-1 rounded-lg hover:bg-slate-900 transition-colors cursor-pointer"
                     >
                       <LogOut className="w-3.5 h-3.5" />
                     </button>
@@ -279,91 +271,85 @@ export default function Navbar({
             )}
           </div>
 
-          {/* Mobile Menu Toggle Button */}
+          {/* Mobile Hamburger Button */}
           <button
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
-            className="grid size-10 place-items-center rounded-xl border border-slate-800 bg-slate-900/80 text-slate-300 md:hidden cursor-pointer"
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            className="p-2 rounded-xl text-slate-300 hover:text-white bg-slate-900/80 border border-slate-800 md:hidden cursor-pointer"
+            aria-label="Toggle navigation menu"
           >
-            {menuOpen ? <X size={19} /> : <Menu size={19} />}
+            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
 
         </div>
 
       </div>
 
-      {/* Mobile Menu Drawer */}
+      {/* Mobile Drawer */}
       {menuOpen && (
-        <div className="border-t border-slate-800 bg-[#0b0d14] px-5 py-4 md:hidden">
-          <div className="max-w-7xl mx-auto flex flex-col gap-1">
+        <div className="border-t border-slate-800 bg-[#0c0e17]/98 px-5 py-4 md:hidden shadow-2xl backdrop-blur-2xl">
+          <div className="space-y-1">
             <button
               type="button"
-              onClick={() => { close(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              className="my-2 py-3 px-3.5 rounded-xl border border-cyan-400/70 bg-gradient-to-r from-purple-950/90 via-slate-900/95 to-cyan-950/90 text-left text-xs sm:text-sm font-bold text-white cursor-pointer flex items-center justify-between shadow-lg"
+              onClick={() => { close(); if (!isCanvaPage) setLocation('/canva'); }}
+              className="w-full py-2.5 px-3 rounded-xl border border-cyan-400/40 bg-gradient-to-r from-purple-950/60 to-cyan-950/60 text-left text-xs font-bold text-white flex items-center justify-between cursor-pointer"
             >
               <div className="flex items-center gap-2">
-                <span className="text-base">🎨</span>
-                <span className="font-black uppercase tracking-wide text-cyan-300">Canva Pro Instant Access</span>
+                <span>🎨</span>
+                <span className="text-cyan-300 font-bold">Canva Pro Portal</span>
               </div>
-              <span className="text-[10px] bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black px-2 py-0.5 rounded-full shadow-sm">
-                ₹99 OFFER
+              <span className="text-[10px] bg-cyan-400 text-slate-950 font-black px-1.5 py-0.5 rounded-full">
+                ₹99
               </span>
             </button>
 
-            <button type="button" onClick={() => navTo('#catalog', 'All Products')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
-              <span>🔥 All Products</span>
+            <button type="button" onClick={() => navTo('#catalog', 'All Products')} className="w-full py-2.5 text-left text-xs font-medium text-slate-300 hover:text-white flex items-center gap-2 border-b border-slate-800/60">
+              <Layers className="w-3.5 h-3.5 text-violet-400" /> All Products
             </button>
-            <button type="button" onClick={() => navTo('#catalog', 'Course')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
-              <span>🎓 Courses</span>
+            <button type="button" onClick={() => navTo('#catalog', 'Course')} className="w-full py-2.5 text-left text-xs font-medium text-slate-300 hover:text-white flex items-center gap-2 border-b border-slate-800/60">
+              <BookOpen className="w-3.5 h-3.5 text-emerald-400" /> Video Courses
             </button>
-            <button type="button" onClick={() => navTo('#catalog', 'Software')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
-              <span>💻 Software</span>
+            <button type="button" onClick={() => navTo('#catalog', 'Software')} className="w-full py-2.5 text-left text-xs font-medium text-slate-300 hover:text-white flex items-center gap-2 border-b border-slate-800/60">
+              <Code2 className="w-3.5 h-3.5 text-cyan-400" /> Software & Tools
             </button>
-            <button type="button" onClick={() => navTo('#catalog', 'Architecture & Design')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
-              <span>📐 Architecture & Design</span>
+            <button type="button" onClick={() => navTo('#why-us')} className="w-full py-2.5 text-left text-xs font-medium text-slate-300 hover:text-white flex items-center gap-2 border-b border-slate-800/60">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Why Us
             </button>
-            <button type="button" onClick={() => navTo('#catalog', 'Notes')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
-              <span>📚 Notes / PDFs</span>
-            </button>
-            <button type="button" onClick={() => navTo('#why-us')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
-              <span>⭐ Why Us</span>
-            </button>
-            <button type="button" onClick={() => navTo('#faq')} className="border-b border-slate-800/70 py-3 text-left text-xs sm:text-sm font-medium text-slate-200 cursor-pointer flex items-center justify-between hover:text-violet-300">
-              <span>❓ FAQ</span>
+            <button type="button" onClick={() => navTo('#faq')} className="w-full py-2.5 text-left text-xs font-medium text-slate-300 hover:text-white flex items-center gap-2 border-b border-slate-800/60">
+              <span>❓</span> FAQ
             </button>
 
             {!user ? (
-              <div className="flex gap-2 pt-3 border-t border-slate-800 mt-2">
+              <div className="flex gap-2 pt-3">
                 <button
                   type="button"
                   onClick={() => { close(); onOpenAuthModal ? onOpenAuthModal('login') : setLocation('/#login'); }}
-                  className="flex-1 py-2.5 text-xs sm:text-sm font-semibold text-slate-200 bg-slate-900 border border-slate-800 rounded-lg text-center cursor-pointer flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2 text-xs font-semibold text-slate-300 bg-slate-900 border border-slate-800 rounded-lg text-center"
                 >
-                  <LogIn className="w-3.5 h-3.5" /> Log In
+                  Log In
                 </button>
                 <button
                   type="button"
                   onClick={() => { close(); onOpenAuthModal ? onOpenAuthModal('signup') : setLocation('/#signup'); }}
-                  className="flex-1 py-2.5 text-xs sm:text-sm font-bold bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-lg text-center cursor-pointer flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2 text-xs font-bold bg-violet-600 text-white rounded-lg text-center"
                 >
-                  <UserPlus className="w-3.5 h-3.5" /> Sign Up
+                  Sign Up
                 </button>
               </div>
             ) : (
-              <div className="pt-3 border-t border-slate-800 mt-2 flex flex-col gap-2">
+              <div className="pt-2 flex flex-col gap-1.5">
                 <button
                   type="button"
                   onClick={() => { close(); onOpenMyPurchases ? onOpenMyPurchases() : setLocation('/purchases'); }}
-                  className="w-full py-2.5 text-xs font-semibold text-slate-200 bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-center gap-2"
+                  className="w-full py-2 text-xs font-semibold text-slate-200 bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-center gap-1.5"
                 >
-                  <ShoppingBag className="w-4 h-4 text-violet-400" /> My Purchases
+                  <ShoppingBag className="w-3.5 h-3.5 text-violet-400" /> My Purchases
                 </button>
                 {onLogout && (
                   <button
                     type="button"
                     onClick={() => { close(); onLogout(); }}
-                    className="w-full py-2 text-xs text-rose-400 hover:text-rose-300 cursor-pointer text-center"
+                    className="w-full py-1 text-xs text-rose-400 text-center"
                   >
                     Log Out
                   </button>

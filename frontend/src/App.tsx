@@ -585,32 +585,8 @@ function Header({
       <div className="site-shell flex h-[68px] items-center justify-between">
         <Brand onClick={() => navTo('#top')} />
 
-        <nav className="hidden items-center gap-4 md:gap-6 md:flex">
-          <button
-            type="button"
-            onClick={() => navTo('#catalog', 'All Products')}
-            className="nav-link text-xs md:text-sm lg:text-base font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
-          >
-            All Products
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navTo('#catalog', 'Course')}
-            className="nav-link text-xs md:text-sm lg:text-base font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
-          >
-            Courses
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navTo('#catalog', 'Software')}
-            className="nav-link text-xs md:text-sm lg:text-base font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
-          >
-            Software
-          </button>
-
-          {/* MORE DROPDOWN */}
+        <nav className="hidden items-center gap-2 lg:gap-3 md:flex">
+          {/* PRODUCTS DROPDOWN */}
           <div
             className="relative"
             onMouseEnter={() => setMoreDropdownOpen(true)}
@@ -619,53 +595,68 @@ function Header({
             <button
               type="button"
               onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
-              className="nav-link inline-flex items-center gap-1 text-xs md:text-sm lg:text-base font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors py-2"
+              className="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/[0.05] transition-all flex items-center gap-1 cursor-pointer"
             >
-              More <ChevronDown className={`w-3.5 h-3.5 md:w-4 md:h-4 transition-transform duration-200 ${moreDropdownOpen ? 'rotate-180 text-violet-300' : ''}`} />
+              <span>Products</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${moreDropdownOpen ? 'rotate-180 text-violet-400' : ''}`} />
             </button>
 
             {moreDropdownOpen && (
-              <div className="absolute left-0 top-full pt-1.5 w-48 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="rounded-xl border border-slate-800 bg-[#0c0e17]/95 p-1.5 shadow-2xl shadow-violet-950/60 backdrop-blur-xl">
+              <div className="absolute left-0 top-full pt-2 w-56 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="rounded-2xl border border-slate-800 bg-[#0c0e17]/98 p-2 shadow-2xl shadow-black/80 backdrop-blur-2xl space-y-0.5">
                   <button
                     type="button"
                     onClick={() => navTo('#catalog', 'All Products')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-white transition-colors text-left"
                   >
                     <span>🔥</span> All Products
                   </button>
                   <button
                     type="button"
-                    onClick={() => navTo('#catalog', 'Architecture & Design')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    onClick={() => navTo('#catalog', 'Course')}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-white transition-colors text-left"
                   >
-                    <span>📐</span> Architecture & Design
+                    <span>🎓</span> Video Courses
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navTo('#catalog', 'Software')}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-white transition-colors text-left"
+                  >
+                    <span>💻</span> Software & Tools
                   </button>
                   <button
                     type="button"
                     onClick={() => navTo('#catalog', 'Notes')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-white transition-colors text-left"
                   >
                     <span>📚</span> Notes / PDFs
                   </button>
                   <button
                     type="button"
                     onClick={() => navTo('#catalog', 'Hacks')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-white transition-colors text-left"
                   >
-                    <span>⚡</span> Hacks & Tools
+                    <span>⚡</span> Hacks & Cheats
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navTo('#catalog', 'Architecture & Design')}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-white transition-colors text-left"
+                  >
+                    <span>📐</span> Architecture & Design
                   </button>
                   <button
                     type="button"
                     onClick={() => navTo('#catalog', 'Game')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-white transition-colors text-left"
                   >
                     <span>🎮</span> Games
                   </button>
                   <button
                     type="button"
                     onClick={() => navTo('#catalog', 'Blog')}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-violet-200 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-white transition-colors text-left"
                   >
                     <span>📝</span> Blogs
                   </button>
@@ -674,29 +665,24 @@ function Header({
             )}
           </div>
 
-          {/* CHAMAKTA HUA CANVA PRO LINK */}
+          {/* CANVA PRO - SLEEK PILL BADGE */}
           <button
             type="button"
             onClick={() => setLocation('/canva')}
-            className="chamakta-canva-badge inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-950/80 via-slate-900 to-cyan-950/80 border border-cyan-400/60 cursor-pointer shadow-lg transform-gpu"
+            className="px-3 py-1.5 rounded-full text-xs md:text-sm font-bold bg-gradient-to-r from-purple-500/15 via-cyan-500/15 to-purple-500/15 border border-cyan-400/40 text-cyan-300 hover:border-cyan-400 hover:shadow-[0_0_12px_rgba(0,242,254,0.2)] transition-all flex items-center gap-1.5 cursor-pointer"
             title="Instant Canva Pro Activation Portal"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
-            </span>
-            <span className="shimmer-text text-xs md:text-sm font-extrabold tracking-wide uppercase flex items-center gap-1">
-              <span>🎨</span> Canva Pro
-            </span>
-            <span className="text-[10px] bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
-              ₹99
+            <span className="size-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span>Canva Pro</span>
+            <span className="text-[10px] bg-gradient-to-r from-cyan-400 to-violet-500 text-slate-950 font-black px-1.5 py-0.2 rounded-full uppercase tracking-tight">
+              VIP
             </span>
           </button>
 
           <button
             type="button"
             onClick={() => navTo('#why-us')}
-            className="nav-link text-xs md:text-sm lg:text-base font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+            className="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/[0.05] transition-all cursor-pointer"
           >
             Why Us
           </button>
@@ -704,7 +690,7 @@ function Header({
           <button
             type="button"
             onClick={() => navTo('#faq')}
-            className="nav-link text-xs md:text-sm lg:text-base font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+            className="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/[0.05] transition-all cursor-pointer"
           >
             FAQ
           </button>
