@@ -375,59 +375,6 @@ export default function AdminPanel({
         </div>
       )}
 
-      {/* Admin Top Header */}
-      <div className="bg-[#0d0f19] p-4 sm:p-6 rounded-2xl border border-purple-500/30 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-[0_0_30px_rgba(125,42,232,0.12)]">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-purple-600 via-cyan-500 to-pink-500 p-0.5 shadow-lg shrink-0">
-            <div className="w-full h-full bg-[#0D0F1A] rounded-[10px] sm:rounded-[14px] flex items-center justify-center text-amber-400">
-              <Crown className="w-5 h-5 sm:w-6 sm:h-6" />
-            </div>
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-heading font-black text-lg sm:text-xl text-white">
-                Canva Pro Manager
-              </h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40 shrink-0">
-                PARTNER PORTAL
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mt-0.5">Manage Canva Pro plans, team invite links, customer activations, and payments</p>
-          </div>
-        </div>
-
-        {/* Storefront Link Bar */}
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <button
-            type="button"
-            onClick={handleCopyStoreLink}
-            className="px-3 py-2 rounded-xl bg-purple-950/60 hover:bg-purple-900/60 border border-purple-500/40 text-cyan-300 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-sm"
-          >
-            {copiedStoreLink ? <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> : <Copy className="w-3.5 h-3.5 shrink-0" />}
-            <span className="truncate">{copiedStoreLink ? 'Copied Link!' : 'Copy Canva Link'}</span>
-          </button>
-
-          <a
-            href="/canva"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 font-bold text-xs text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all"
-          >
-            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">View Canva Store</span>
-          </a>
-
-          {!embedded && onLogout && (
-            <button
-              type="button"
-              onClick={requestLogout}
-              className="px-3 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/40 text-rose-300 text-xs font-bold cursor-pointer text-center transition-colors"
-            >
-              Logout
-            </button>
-          )}
-        </div>
-      </div>
 
       {/* Navigation Tabs Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/60 p-2 rounded-2xl border border-white/10">
