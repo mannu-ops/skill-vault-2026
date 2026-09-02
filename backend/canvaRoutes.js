@@ -119,7 +119,31 @@ const getPlansHandler = async (req, res) => {
 const createPlanHandler = async (req, res) => {
   const { name, duration, price, originalPrice, badge, inviteLink, features, is_popular } = req.body;
   const newId = 'plan_' + Date.now();
-  const formattedFeatures = Array.isArray(features) ? features : [features || 'Full Canva Pro Access'];
+
+  let formattedFeatures = [];
+  if (Array.isArray(features)) {
+    formattedFeatures = features;
+  } else if (typeof features === 'string') {
+    try {
+      const parsed = JSON.parse(features);
+      formattedFeatures = Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      formattedFeatures = features.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+  if (!formattedFeatures.length) {
+    formattedFeatures = ['Full Canva Pro Access', 'Instant Email Delivery'];
+  }
+
+  let link = (inviteLink || '').trim();
+  if (!link) {
+    link = 'https://www.canva.com/brand/join?token=DEFAULT_INVITE';
+  } else if (!link.startsWith('http://') && !link.startsWith('https://')) {
+    link = 'https://' + link;
+  }
+
+  const numPrice = Math.max(0, Number(price) || 199);
+  const numOrigPrice = Math.max(numPrice, Number(originalPrice) || (numPrice * 2));
 
   try {
     const result = await query(`
@@ -128,12 +152,12 @@ const createPlanHandler = async (req, res) => {
       RETURNING *
     `, [
       newId,
-      name,
+      name || 'Canva Pro Plan',
       duration || '365 Days Access',
-      Number(price),
-      Number(originalPrice || price * 2),
+      numPrice,
+      numOrigPrice,
       badge || null,
-      inviteLink || 'https://www.canva.com/brand/join?token=DEFAULT_INVITE',
+      link,
       JSON.stringify(formattedFeatures),
       Boolean(is_popular)
     ]);
@@ -143,27 +167,40 @@ const createPlanHandler = async (req, res) => {
     }
   } catch (e) {
     console.error('Neon Canva Plan Insert Error:', e.message);
+    return res.status(500).json({ success: false, error: e.message });
   }
 
-  const newPlan = {
-    id: newId,
-    name,
-    duration: duration || '365 Days Access',
-    price: Number(price),
-    originalPrice: Number(originalPrice || price * 2),
-    badge: badge || null,
-    inviteLink: inviteLink || 'https://www.canva.com/brand/join?token=DEFAULT_INVITE',
-    features: formattedFeatures,
-    is_popular: Boolean(is_popular)
-  };
-  mockPlans.push(newPlan);
-  return res.json({ success: true, plan: newPlan });
+  return res.status(500).json({ success: false, error: 'Database insert failed' });
 };
 
 const updatePlanHandler = async (req, res) => {
   const { id } = req.params;
   const { name, duration, price, originalPrice, badge, inviteLink, features, is_popular } = req.body;
-  const formattedFeatures = Array.isArray(features) ? features : [features || 'Full Canva Pro Access'];
+
+  let formattedFeatures = [];
+  if (Array.isArray(features)) {
+    formattedFeatures = features;
+  } else if (typeof features === 'string') {
+    try {
+      const parsed = JSON.parse(features);
+      formattedFeatures = Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      formattedFeatures = features.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+  if (!formattedFeatures.length) {
+    formattedFeatures = ['Full Canva Pro Access', 'Instant Email Delivery'];
+  }
+
+  let link = (inviteLink || '').trim();
+  if (!link) {
+    link = 'https://www.canva.com/brand/join?token=DEFAULT_INVITE';
+  } else if (!link.startsWith('http://') && !link.startsWith('https://')) {
+    link = 'https://' + link;
+  }
+
+  const numPrice = Math.max(0, Number(price) || 199);
+  const numOrigPrice = Math.max(numPrice, Number(originalPrice) || (numPrice * 2));
 
   try {
     const result = await query(`
@@ -172,26 +209,26 @@ const updatePlanHandler = async (req, res) => {
       WHERE id = $9
       RETURNING *
     `, [
-      name,
-      duration,
-      Number(price),
-      Number(originalPrice),
+      name || 'Canva Pro Plan',
+      duration || '365 Days Access',
+      numPrice,
+      numOrigPrice,
       badge || null,
-      inviteLink,
+      link,
       JSON.stringify(formattedFeatures),
       Boolean(is_popular),
       id
     ]);
 
     if (result && result.rowCount > 0) {
-      return res.json({ success: true });
+      return res.json({ success: true, plan: formatPlan(result.rows[0]) });
     }
   } catch (e) {
     console.error('Neon Canva Plan Update Error:', e.message);
+    return res.status(500).json({ success: false, error: e.message });
   }
 
-  mockPlans = mockPlans.map(p => p.id === id ? { ...p, ...req.body } : p);
-  return res.json({ success: true });
+  return res.status(404).json({ success: false, error: 'Plan not found' });
 };
 
 const deletePlanHandler = async (req, res) => {

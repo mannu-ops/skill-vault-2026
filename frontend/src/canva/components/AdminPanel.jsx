@@ -84,15 +84,17 @@ export default function AdminPanel({
 
   // Plan Modal State
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [isSavingPlan, setIsSavingPlan] = useState(false);
+  const [planError, setPlanError] = useState('');
   const [editingPlan, setEditingPlan] = useState(null);
   const [planForm, setPlanForm] = useState({
     name: '',
-    duration: '',
+    duration: '365 Days Access',
     price: '',
     originalPrice: '',
     badge: '',
-    inviteLink: '',
-    features: ''
+    inviteLink: 'https://www.canva.com/brand/join?token=INVITE_TEAM_TOKEN',
+    features: 'Full Canva Pro Unlock, Magic Studio AI Access, 100M+ Stock Assets'
   });
 
   // Lock body scroll when any modal is open
@@ -195,12 +197,13 @@ export default function AdminPanel({
     item.planName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Open modal for Adding new plan
-  const handleOpenAddPlan = () => {
+  // Open modal for Creating plan
+  const handleOpenCreatePlan = () => {
     setEditingPlan(null);
+    setPlanError('');
     setPlanForm({
       name: '',
-      duration: '',
+      duration: '365 Days Access',
       price: '',
       originalPrice: '',
       badge: '',
@@ -213,33 +216,82 @@ export default function AdminPanel({
   // Open modal for Editing plan
   const handleOpenEditPlan = (plan) => {
     setEditingPlan(plan);
+    setPlanError('');
     setPlanForm({
-      name: plan.name,
-      duration: plan.duration,
-      price: plan.price,
-      originalPrice: plan.originalPrice,
+      name: plan.name || '',
+      duration: plan.duration || '365 Days Access',
+      price: plan.price || '',
+      originalPrice: plan.originalPrice || '',
       badge: plan.badge || '',
       inviteLink: plan.inviteLink || 'https://www.canva.com/brand/join?token=INVITE_TEAM_TOKEN',
-      features: Array.isArray(plan.features) ? plan.features.join(', ') : plan.features
+      features: Array.isArray(plan.features) ? plan.features.join(', ') : (plan.features || '')
     });
     setIsPlanModalOpen(true);
   };
 
-  // Trigger Confirmation Modal for Plan Save
-  const handleSavePlan = (e) => {
+  // Direct Plan Save (Create or Update)
+  const handleSavePlan = async (e) => {
     e.preventDefault();
-    if (!planForm.name || !planForm.price) return;
+    if (!planForm.name || !planForm.price) {
+      setPlanError('Plan Name and Price are required.');
+      return;
+    }
 
-    setIsPlanModalOpen(false);
-    setConfirmModal({
-      isOpen: true,
-      type: editingPlan ? 'update_plan' : 'create_plan',
-      title: editingPlan ? `Confirm Update '${planForm.name}'?` : `Confirm Create '${planForm.name}'?`,
-      details: editingPlan
-        ? `Are you sure you want to update plan '${planForm.name}' for ₹${planForm.price}?`
-        : `Are you sure you want to create new plan '${planForm.name}' for ₹${planForm.price}?`,
-      confirmText: editingPlan ? 'Yes, Update Plan' : 'Yes, Create Plan'
-    });
+    setIsSavingPlan(true);
+    setPlanError('');
+
+    try {
+      let formattedFeatures = [];
+      if (Array.isArray(planForm.features)) {
+        formattedFeatures = planForm.features;
+      } else if (typeof planForm.features === 'string') {
+        formattedFeatures = planForm.features.split(',').map(f => f.trim()).filter(Boolean);
+      }
+      if (formattedFeatures.length === 0) {
+        formattedFeatures = ['Full Canva Pro Access', 'Instant Email Delivery'];
+      }
+
+      let link = (planForm.inviteLink || '').trim();
+      if (!link) {
+        link = 'https://www.canva.com/brand/join?token=DEFAULT_INVITE';
+      } else if (!link.startsWith('http://') && !link.startsWith('https://')) {
+        link = 'https://' + link;
+      }
+
+      const numPrice = Math.max(0, Number(planForm.price) || 199);
+      const numOriginalPrice = Math.max(numPrice, Number(planForm.originalPrice) || (numPrice * 2));
+
+      const payload = {
+        name: planForm.name.trim(),
+        duration: planForm.duration?.trim() || '365 Days Access',
+        price: numPrice,
+        originalPrice: numOriginalPrice,
+        badge: planForm.badge?.trim() || null,
+        inviteLink: link,
+        features: formattedFeatures
+      };
+
+      if (editingPlan) {
+        const ok = await updatePlan(editingPlan.id, payload);
+        if (!ok) throw new Error('Failed to update plan. Please try again.');
+        showToast('success', `Plan '${payload.name}' updated successfully!`);
+      } else {
+        const created = await createPlan(payload);
+        if (!created) throw new Error('Failed to save plan to database.');
+        showToast('success', `New plan '${payload.name}' created successfully!`);
+      }
+
+      const updatedPlans = await fetchPlans();
+      setPlans(updatedPlans || []);
+      setIsPlanModalOpen(false);
+      setEditingPlan(null);
+    } catch (err) {
+      console.error('Plan save error:', err);
+      setPlanError(err.message || 'Error saving plan');
+      showToast('error', err.message || 'Failed to save plan');
+    } finally {
+      setIsSavingPlan(false);
+    }
   };
 
   // Request Confirmation for Deleting Plan
@@ -683,7 +735,7 @@ export default function AdminPanel({
                   </span>
                 </label>
                 <input
-                  type="url"
+                  type="text"
                   required
                   placeholder="https://www.canva.com/brand/join?token=YOUR_CANVA_TEAM_TOKEN"
                   value={planForm.inviteLink}
@@ -750,19 +802,34 @@ export default function AdminPanel({
                 ></textarea>
               </div>
 
+              {planError && (
+                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold">
+                  {planError}
+                </div>
+              )}
+
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
+                  disabled={isSavingPlan}
                   onClick={() => setIsPlanModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold cursor-pointer disabled:opacity-40"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl btn-futuristic font-bold text-white shadow-md cursor-pointer"
+                  disabled={isSavingPlan}
+                  className="px-5 py-2 rounded-xl btn-futuristic font-bold text-white shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-2"
                 >
-                  {editingPlan ? 'Save Changes' : 'Insert Plan'}
+                  {isSavingPlan ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>{editingPlan ? 'Saving Changes...' : 'Creating Plan...'}</span>
+                    </>
+                  ) : (
+                    <span>{editingPlan ? 'Save Changes' : 'Insert Plan'}</span>
+                  )}
                 </button>
               </div>
             </form>
