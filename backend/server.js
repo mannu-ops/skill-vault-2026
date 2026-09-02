@@ -32,7 +32,13 @@ if (razorpayKeyId && razorpayKeySecret) {
   }
 }
 
-app.use(cors({ origin: '*' }));
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  credentials: true
+}));
+app.options('*', cors());
 app.use(express.json({
   limit: '50mb',
   verify: (req, _res, buf) => {
