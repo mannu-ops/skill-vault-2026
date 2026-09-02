@@ -141,14 +141,6 @@ export function initMetaPixel(pixelId: string = DEFAULT_PIXEL_ID, userData?: Use
     t.async = true;
     t.src = 'https://connect.facebook.net/en_US/fbevents.js';
 
-    t.onload = () => {
-      console.log(`[Meta Pixel Log] 🚀 fbevents.js ASYNC LOAD COMPLETE! callMethod present: ${typeof (window.fbq as any)?.callMethod === 'function'}`);
-    };
-
-    t.onerror = (err) => {
-      console.error('[Meta Pixel Log] ❌ fbevents.js FAILED TO LOAD (Blocked by AdBlocker/Brave/CSP):', err);
-    };
-
     const s = document.getElementsByTagName('script')[0];
     if (s && s.parentNode) {
       s.parentNode.insertBefore(t, s);
@@ -161,7 +153,6 @@ export function initMetaPixel(pixelId: string = DEFAULT_PIXEL_ID, userData?: Use
   const advancedMatchingData = formatUserData(userData);
 
   // Initialize Pixel ID with optional Advanced Matching user data
-  console.log(`[Meta Pixel Log] 2. Executing fbq('init', '${targetPixelId}')`);
   if (Object.keys(advancedMatchingData).length > 0) {
     window.fbq('init', targetPixelId, advancedMatchingData);
   } else {
@@ -169,18 +160,14 @@ export function initMetaPixel(pixelId: string = DEFAULT_PIXEL_ID, userData?: Use
   }
 
   // Synchronously queue initial PageView right after fbq init
-  console.log(`[Meta Pixel Log] 3. Executing fbq('track', 'PageView')`);
   const testCode = getTestEventCode();
   if (testCode) {
-    console.log(`[Meta Pixel Log] 🧪 Initial PageView using Test Event Code: ${testCode}`);
     window.fbq('track', 'PageView', {}, { test_event_code: testCode });
   } else {
     window.fbq('track', 'PageView');
   }
 
   window.__META_PIXEL_INITIALIZED__ = true;
-
-  console.log(`[Meta Pixel Log] Initialized successfully with Pixel ID: ${targetPixelId}. callMethod present: ${typeof (window.fbq as any)?.callMethod === 'function'}`);
 
   return true;
 }
@@ -194,11 +181,8 @@ export function setUserProperties(userData: UserData): void {
   if (Object.keys(matchingData).length > 0) {
     try {
       window.fbq('setUserProperties', window.__META_PIXEL_ID__, matchingData);
-      if (import.meta.env.DEV) {
-        console.log('[Meta Pixel] Updated Advanced Matching User Properties:', matchingData);
-      }
     } catch (e) {
-      if (import.meta.env.DEV) console.error('[Meta Pixel] setUserProperties error:', e);
+      // Silently ignore
     }
   }
 }
@@ -244,14 +228,12 @@ export function sendFbqTrack(eventName: string, payload?: any, eventId?: string)
  */
 export function trackPageView(url?: string): void {
   if (typeof window === 'undefined' || !window.fbq) {
-    console.warn('[Meta Pixel Log] trackPageView skipped: window.fbq undefined');
     return;
   }
   try {
-    console.log(`[Meta Pixel Log] 5. trackPageView executed for route: ${url || window.location.pathname}`);
     sendFbqTrack('PageView');
   } catch (e) {
-    console.error('[Meta Pixel Log] PageView error:', e);
+    // Silently ignore
   }
 }
 
@@ -377,12 +359,8 @@ export function trackPurchase(
     } else {
       window.fbq('track', 'Purchase', payload);
     }
-
-    if (import.meta.env.DEV) {
-      console.log(`[Meta Pixel Event] Purchase ${eventId ? `(eventId: ${eventId})` : ''}`, payload);
-    }
   } catch (e) {
-    if (import.meta.env.DEV) console.error('[Meta Pixel] Purchase error:', e);
+    // Silently ignore
   }
 }
 
@@ -400,11 +378,8 @@ export function trackCompleteRegistration(params?: {
       status: params?.status || 'success',
     };
     window.fbq('track', 'CompleteRegistration', payload);
-    if (import.meta.env.DEV) {
-      console.log('[Meta Pixel Event] CompleteRegistration', payload);
-    }
   } catch (e) {
-    if (import.meta.env.DEV) console.error('[Meta Pixel] CompleteRegistration error:', e);
+    // Silently ignore
   }
 }
 
@@ -415,10 +390,7 @@ export function trackCustomEvent(eventName: string, params?: Record<string, any>
   if (typeof window === 'undefined' || !window.fbq || !eventName) return;
   try {
     window.fbq('trackCustom', eventName, params || {});
-    if (import.meta.env.DEV) {
-      console.log(`[Meta Pixel Custom Event] ${eventName}`, params);
-    }
   } catch (e) {
-    if (import.meta.env.DEV) console.error(`[Meta Pixel] Custom event (${eventName}) error:`, e);
+    // Silently ignore
   }
 }
