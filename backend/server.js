@@ -6,17 +6,6 @@ import bcrypt from 'bcryptjs';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { initDb, query, isDbConnected, inMemoryDb } from './db.js';
-import nodemailer from 'nodemailer';
-import dns from 'dns';
-
-// Force Node.js to prefer IPv4 over IPv6 to avoid ENETUNREACH on systems without IPv6 routing
-try {
-  if (dns.setDefaultResultOrder) {
-    dns.setDefaultResultOrder('ipv4first');
-  }
-} catch (dnsErr) {
-  // Ignore in environments where not supported
-}
 
 dotenv.config();
 
@@ -1526,42 +1515,7 @@ async function getCourseDriveUrl(item) {
   return await resolveDriveUrl(item);
 }
 
-// HOSTINGER BUSINESS EMAIL SMTP DELIVERY SERVICE (NODEMAILER)
-async function getMailTransporter() {
-  const host = process.env.SMTP_HOST || 'smtp.hostinger.com';
-  const port = Number(process.env.SMTP_PORT) || 465;
-  const user = process.env.SMTP_USER || process.env.EMAIL_USER;
-  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-
-  if (!user || !pass) {
-    return null;
-  }
-
-  // Pre-resolve IPv4 address to completely eliminate Nodemailer IPv6 (ENETUNREACH) connection attempts
-  let connectHost = host;
-  try {
-    const ipv4List = await dns.promises.resolve4(host);
-    if (ipv4List && ipv4List.length > 0) {
-      connectHost = ipv4List[0];
-      console.log(`📡 [SMTP DNS]: Resolved ${host} to IPv4 ${connectHost}`);
-    }
-  } catch (dnsErr) {
-    console.warn(`⚠️ [SMTP DNS]: IPv4 resolution failed for ${host}: ${dnsErr.message}`);
-  }
-
-  return nodemailer.createTransport({
-    host: connectHost,
-    port,
-    secure: port === 465, // true for 465, false for other ports
-    auth: { user, pass },
-    servername: host, // TLS certificate check uses original host domain
-    tls: {
-      servername: host,
-      rejectUnauthorized: false
-    }
-  });
-}
-
+// HOSTINGER OFFICIAL AGENTIC MAIL DELIVERY SERVICE (RESTful API)
 async function sendPurchaseEmail({ to, customerName, paymentId, items }) {
   if (!to || !to.includes('@')) {
     console.error('❌ [EMAIL ERROR]: Invalid or missing recipient email address.');
@@ -1601,75 +1555,59 @@ Best regards,
 Skill Vault Team
   `.trim();
 
-  // 1. HOSTINGER OFFICIAL AGENTIC MAIL REST API (ZERO SMTP / NO SOCKET TIMEOUTS)
   const hostingerApiToken = process.env.HOSTINGER_MAIL_API_TOKEN;
-  if (hostingerApiToken) {
-    try {
-      let mailboxId = process.env.HOSTINGER_MAILBOX_RESOURCE_ID;
-      if (!mailboxId) {
-        const meRes = await fetch('https://api.mail.hostinger.com/api/v1/me', {
-          headers: {
-            'Authorization': `Bearer ${hostingerApiToken}`,
-            'Accept': 'application/json'
-          }
-        });
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          mailboxId = meData?.data?.mailboxes?.[0]?.resourceId;
-        }
-      }
-
-      if (mailboxId) {
-        const sendRes = await fetch(`https://api.mail.hostinger.com/api/v1/mailboxes/${mailboxId}/send`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${hostingerApiToken}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-            to: [to],
-            displayName: 'Skill Vault',
-            subject: `Your Skill Vault purchase is confirmed — ${paymentId}`,
-            text: textContent
-          })
-        });
-
-        if (sendRes.status === 204 || sendRes.ok) {
-          console.log(`\n📧 [HOSTINGER API SUCCESS]: Confirmation email delivered via Hostinger REST API to ${to}`);
-          return { success: true, provider: 'hostinger-agentic-api' };
-        } else {
-          const errBody = await sendRes.text();
-          console.error(`\n❌ [HOSTINGER API ERROR]: HTTP ${sendRes.status}: ${errBody}`);
-        }
-      }
-    } catch (apiErr) {
-      console.error(`\n❌ [HOSTINGER API EXCEPTION]:`, apiErr.message);
-    }
+  if (!hostingerApiToken) {
+    console.log(`\n📧 [EMAIL NOTICE]: HOSTINGER_MAIL_API_TOKEN not configured in backend/.env. Simulated email to ${to}`);
+    return { status: 'simulated', message: 'Configure HOSTINGER_MAIL_API_TOKEN in backend/.env to send real emails.' };
   }
 
-  // 2. HOSTINGER BUSINESS EMAIL SMTP DISPATCH (FALLBACK)
-  const transporter = await getMailTransporter();
-  if (transporter) {
-    try {
-      const fromEmail = process.env.SMTP_FROM || `Skill Vault <${process.env.SMTP_USER || process.env.EMAIL_USER}>`;
-      const info = await transporter.sendMail({
-        from: fromEmail,
-        to: to,
-        subject: `Your Skill Vault purchase is confirmed — ${paymentId}`,
-        text: textContent,
+  try {
+    let mailboxId = process.env.HOSTINGER_MAILBOX_RESOURCE_ID;
+    if (!mailboxId) {
+      const meRes = await fetch('https://api.mail.hostinger.com/api/v1/me', {
+        headers: {
+          'Authorization': `Bearer ${hostingerApiToken}`,
+          'Accept': 'application/json'
+        }
       });
-
-      console.log(`\n📧 [HOSTINGER SMTP SUCCESS]: Confirmation email delivered to ${to} (Message ID: ${info.messageId})`);
-      return { success: true, messageId: info.messageId, provider: 'hostinger-smtp' };
-    } catch (smtpErr) {
-      console.error(`\n❌ [HOSTINGER SMTP ERROR]:`, smtpErr.message);
-      return { success: false, error: smtpErr.message };
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        mailboxId = meData?.data?.mailboxes?.[0]?.resourceId;
+      }
     }
-  }
 
-  console.log(`\n📧 [EMAIL NOTICE]: Hostinger SMTP credentials (SMTP_USER / SMTP_PASS) not configured in backend/.env. Simulated email to ${to}`);
-  return { status: 'simulated', message: 'Configure SMTP_USER and SMTP_PASS in backend/.env to send real emails via Hostinger.' };
+    if (!mailboxId) {
+      console.error('❌ [HOSTINGER API ERROR]: No mailbox resource ID found for token.');
+      return { success: false, error: 'Mailbox resource ID not found' };
+    }
+
+    const sendRes = await fetch(`https://api.mail.hostinger.com/api/v1/mailboxes/${mailboxId}/send`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${hostingerApiToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        to: [to],
+        displayName: 'Skill Vault',
+        subject: `Your Skill Vault purchase is confirmed — ${paymentId}`,
+        text: textContent
+      })
+    });
+
+    if (sendRes.status === 204 || sendRes.ok) {
+      console.log(`\n📧 [HOSTINGER API SUCCESS]: Confirmation email delivered via Hostinger REST API to ${to}`);
+      return { success: true, provider: 'hostinger-agentic-api' };
+    } else {
+      const errBody = await sendRes.text();
+      console.error(`\n❌ [HOSTINGER API ERROR]: HTTP ${sendRes.status}: ${errBody}`);
+      return { success: false, error: `Hostinger API Error: ${errBody}` };
+    }
+  } catch (apiErr) {
+    console.error(`\n❌ [HOSTINGER API EXCEPTION]:`, apiErr.message);
+    return { success: false, error: apiErr.message };
+  }
 }
 
 // POSTGRESQL AUTH STATE ADAPTER FOR BAILEYS (Persists QR session in DB across Render redeploys)
