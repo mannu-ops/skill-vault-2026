@@ -317,8 +317,12 @@ const getActivationsHandler = async (req, res) => {
 const createActivationHandler = async (req, res) => {
   const { email, planName, amount, paymentMethod, inviteLink } = req.body;
   const newId = 'act_' + Date.now();
+  const effectiveLink = inviteLink || 'https://www.canva.com/brand/join?token=DEFAULT_INVITE';
+  const effectivePrice = Number(amount) || 199;
+  const effectivePlanName = planName || 'Canva Pro Access';
 
   try {
+    // 1. Insert into canva_activations table
     const result = await query(`
       INSERT INTO canva_activations (id, email, plan_name, amount, payment_method, invite_link)
       VALUES ($1, $2, $3, $4, $5, $6)
@@ -326,11 +330,29 @@ const createActivationHandler = async (req, res) => {
     `, [
       newId,
       email,
-      planName,
-      Number(amount),
+      effectivePlanName,
+      effectivePrice,
       paymentMethod || 'UPI QR',
-      inviteLink || 'https://www.canva.com/brand/join?token=DEFAULT_INVITE'
+      effectiveLink
     ]);
+
+    // 2. Also mirror entry into main purchases table for unified SkillVault Buyers log
+    await query(`
+      INSERT INTO purchases (id, user_email, user_name, user_phone, course_id, amount_paid_inr, payment_id, status, access_delivered, drive_url)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ON CONFLICT (id) DO NOTHING
+    `, [
+      `pur_${newId}`,
+      email,
+      email ? email.split('@')[0] : 'Canva Customer',
+      '',
+      `🎨 Canva Pro: ${effectivePlanName}`,
+      effectivePrice,
+      `manual_${newId}`,
+      'completed',
+      true,
+      effectiveLink
+    ]).catch(err => console.error('Mirror to purchases error:', err.message));
 
     if (result && result.rows && result.rows[0]) {
       return res.json({ success: true, activation: formatActivation(result.rows[0]) });
@@ -342,10 +364,10 @@ const createActivationHandler = async (req, res) => {
   const newAct = {
     id: newId,
     email,
-    planName,
-    amount: Number(amount),
+    planName: effectivePlanName,
+    amount: effectivePrice,
     paymentMethod: paymentMethod || 'UPI QR',
-    inviteLink: inviteLink || 'https://www.canva.com/brand/join?token=DEFAULT_INVITE',
+    inviteLink: effectiveLink,
     timestamp: new Date().toLocaleString()
   };
   mockActivations.unshift(newAct);
@@ -356,6 +378,8 @@ const deleteActivationHandler = async (req, res) => {
   const { id } = req.params;
 
   try {
+    // Clean up mirrored purchase from main purchases table as well
+    await query('DELETE FROM purchases WHERE id = $1', [`pur_${id}`]).catch(() => {});
     const result = await query('DELETE FROM canva_activations WHERE id = $1', [id]);
     if (result && result.rowCount > 0) {
       return res.json({ success: true });
@@ -423,7 +447,7 @@ const createPaymentOrderHandler = (req, res) => {
 };
 
 const verifyPaymentHandler = async (req, res) => {
-  const { customerEmail, planId } = req.body;
+  const { customerEmail, planId, paymentId } = req.body;
   let inviteLink = 'https://www.canva.com/brand/join?token=PRO_INVITE_DEFAULT';
   let planName = 'Canva Pro Access';
   let planPrice = 199;
@@ -438,17 +462,40 @@ const verifyPaymentHandler = async (req, res) => {
       }
     }
 
+    const activationId = 'act_' + Date.now();
+    const effectivePaymentId = paymentId || `pay_canva_${Date.now()}`;
+
+    // 1. Insert into canva_activations table
     await query(`
       INSERT INTO canva_activations (id, email, plan_name, amount, payment_method, invite_link)
       VALUES ($1, $2, $3, $4, $5, $6)
     `, [
-      'act_' + Date.now(),
+      activationId,
       customerEmail,
       planName,
       planPrice,
       'Razorpay UPI',
       inviteLink
     ]);
+
+    // 2. Also insert into purchases table for unified SkillVault Buyers log
+    await query(`
+      INSERT INTO purchases (id, user_email, user_name, user_phone, course_id, amount_paid_inr, payment_id, status, access_delivered, drive_url)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ON CONFLICT (id) DO NOTHING
+    `, [
+      `pur_${activationId}`,
+      customerEmail,
+      customerEmail ? customerEmail.split('@')[0] : 'Canva Customer',
+      '',
+      `🎨 Canva Pro: ${planName}`,
+      planPrice,
+      effectivePaymentId,
+      'completed',
+      true,
+      inviteLink
+    ]).catch(err => console.error('Mirror Canva purchase to purchases table error:', err.message));
+
   } catch (e) {
     console.error('Neon Verify Payment Insert Error:', e.message);
   }

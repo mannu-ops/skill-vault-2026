@@ -1417,7 +1417,12 @@ app.post('/api/reviews', async (req, res) => {
 app.get('/api/admin/stats', authenticateToken, async (req, res) => {
   try {
     if (isDbConnected()) {
-      const revRes = await query('SELECT COALESCE(SUM(amount_paid_inr), 0) as total_rev, COUNT(*) as total_pur FROM purchases');
+      const revRes = await query(`
+        SELECT 
+          COALESCE(SUM(CASE WHEN id NOT LIKE 'pur_act_%' THEN amount_paid_inr ELSE 0 END), 0) as total_rev, 
+          COUNT(CASE WHEN id NOT LIKE 'pur_act_%' THEN 1 END) as total_pur 
+        FROM purchases
+      `);
       const canvaRevRes = await query('SELECT COALESCE(SUM(amount), 0) as canva_rev, COUNT(*) as canva_pur FROM canva_activations').catch(() => ({ rows: [{ canva_rev: 0, canva_pur: 0 }] }));
       const userRes = await query('SELECT COUNT(*) as total_users FROM users');
       const prodRes = await query('SELECT COUNT(*) as total_prods FROM products');
