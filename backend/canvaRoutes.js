@@ -506,6 +506,88 @@ const createPaymentOrderHandler = async (req, res) => {
   }
 };
 
+// Automated Purchase Confirmation Email via Hostinger Business REST API
+async function sendCanvaPurchaseEmail({ to, planName, inviteLink, paymentId, amount }) {
+  if (!to || !to.includes('@')) {
+    console.error('❌ [CANVA EMAIL ERROR]: Invalid or missing recipient email address.');
+    return { success: false, error: 'Invalid recipient email' };
+  }
+
+  const textContent = `
+Hello,
+
+Thank you for your purchase on The Skill Vault! Your payment has been successfully confirmed and your Canva Pro subscription is ready to use.
+
+--------------------------------------------------
+ORDER DETAILS:
+--------------------------------------------------
+Product: ${planName}
+Amount Paid: Rs. ${amount}
+Payment ID: ${paymentId}
+Status: Activated (Instant Lifetime/Period Delivery)
+
+--------------------------------------------------
+YOUR OFFICIAL CANVA PRO TEAM INVITE LINK:
+--------------------------------------------------
+${inviteLink}
+
+--------------------------------------------------
+HOW TO ACTIVATE YOUR CANVA PRO:
+--------------------------------------------------
+1. Click the invite link above (or copy and paste it into your browser).
+2. Sign in with your Canva account (or create a free Canva account if you don't already have one).
+3. Click "Join Team" or accept the team invitation.
+4. You will instantly get full Canva Pro access unlocked:
+   - 100M+ Premium Photos, Videos, Graphics & Audio
+   - Magic Studio AI Tools & 1-Click Background Remover
+   - 100GB Cloud Storage
+   - Brand Kits & Custom Fonts
+
+NEED ASSISTANCE?
+If you have any questions or need help with activation, simply reply directly to this email. We are happy to help!
+
+Best regards,
+The Skill Vault Team
+https://www.theskillvault.store
+  `.trim();
+
+  const hostingerApiToken = process.env.HOSTINGER_MAIL_API_TOKEN;
+  if (!hostingerApiToken) {
+    console.log(`\n📧 [CANVA EMAIL NOTICE]: HOSTINGER_MAIL_API_TOKEN not configured. Simulated email to ${to}`);
+    return { status: 'simulated' };
+  }
+
+  try {
+    const mailboxId = process.env.HOSTINGER_MAILBOX_RESOURCE_ID || 'AC4aef084c55c39d1ca9d778f78573';
+    const sendRes = await fetch(`https://api.mail.hostinger.com/api/v1/mailboxes/${mailboxId}/send`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${hostingerApiToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        to: [to],
+        displayName: 'The Skill Vault',
+        subject: `🎉 Your Canva Pro Access is Ready! — Order ${paymentId}`,
+        text: textContent
+      })
+    });
+
+    if (sendRes.ok) {
+      console.log(`✅ [CANVA EMAIL SENT]: Hostinger confirmation email delivered to ${to}`);
+      return { success: true };
+    } else {
+      const errBody = await sendRes.text();
+      console.error(`❌ [HOSTINGER API ERROR]: HTTP ${sendRes.status}: ${errBody}`);
+      return { success: false, error: errBody };
+    }
+  } catch (mailErr) {
+    console.error('❌ [HOSTINGER EMAIL EXCEPTION]:', mailErr.message);
+    return { success: false, error: mailErr.message };
+  }
+}
+
 const verifyPaymentHandler = async (req, res) => {
   const { 
     customerEmail, 
@@ -581,6 +663,15 @@ const verifyPaymentHandler = async (req, res) => {
       true,
       inviteLink
     ]).catch(err => console.error('Mirror Canva purchase to purchases table error:', err.message));
+
+    // 5. Send automated confirmation email via Hostinger Business Email
+    sendCanvaPurchaseEmail({
+      to: customerEmail,
+      planName,
+      inviteLink,
+      paymentId: finalPaymentId,
+      amount: planPrice
+    }).catch(err => console.error('Background Canva confirmation email error:', err.message));
 
     return res.json({ success: true, inviteLink });
   } catch (e) {
