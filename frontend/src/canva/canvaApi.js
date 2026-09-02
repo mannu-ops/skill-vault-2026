@@ -125,8 +125,8 @@ export async function verifyRazorpayPayment(payload) {
   if (data && data.success) return { success: true, inviteLink: data.inviteLink };
 
   return {
-    success: true,
-    inviteLink: payload.inviteLink || `https://www.canva.com/brand/join?token=INVITE_${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+    success: false,
+    error: data?.error || 'Payment verification failed'
   };
 }
 

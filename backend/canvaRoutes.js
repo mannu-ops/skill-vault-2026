@@ -1,9 +1,27 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
+import Razorpay from 'razorpay';
+import crypto from 'crypto';
 import { query, isDbConnected } from './db.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'skillvault_secret_jwt_key_2026_production';
+
+const razorpayKeyId = process.env.RAZORPAY_KEY_ID || '';
+const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET || '';
+
+let razorpayInstance = null;
+if (razorpayKeyId && razorpayKeySecret) {
+  try {
+    razorpayInstance = new Razorpay({
+      key_id: razorpayKeyId,
+      key_secret: razorpayKeySecret
+    });
+    console.log('💳 Razorpay SDK initialized for Canva Pro store');
+  } catch (err) {
+    console.error('Failed to initialize Razorpay SDK in Canva Routes:', err.message);
+  }
+}
 
 // Helper to verify if request is from an authenticated admin
 export const isUserAdmin = (req) => {
@@ -435,24 +453,92 @@ const paymentsAnalyticsHandler = async (req, res) => {
   });
 };
 
-const createPaymentOrderHandler = (req, res) => {
+const createPaymentOrderHandler = async (req, res) => {
   const { planId, customerEmail } = req.body;
-  return res.json({
-    success: true,
-    orderId: 'order_' + Date.now(),
-    amount: 199,
-    currency: 'INR',
-    razorpayKeyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock'
-  });
+  let planPrice = 199;
+  let planName = 'Canva Pro Access';
+
+  try {
+    if (planId) {
+      const planRes = await query('SELECT * FROM canva_plans WHERE id = $1', [planId]);
+      if (planRes && planRes.rows && planRes.rows[0]) {
+        planPrice = Number(planRes.rows[0].price) || 199;
+        planName = planRes.rows[0].name || 'Canva Pro Access';
+      }
+    }
+
+    const amountInPaise = Math.round(planPrice * 100);
+
+    // Call real Razorpay SDK if configured
+    if (razorpayInstance) {
+      const options = {
+        amount: amountInPaise,
+        currency: 'INR',
+        receipt: `canva_${Date.now().toString().slice(-8)}`,
+        notes: {
+          planId: planId || '',
+          planName,
+          customerEmail: customerEmail || ''
+        }
+      };
+
+      const order = await razorpayInstance.orders.create(options);
+      return res.json({
+        success: true,
+        orderId: order.id,
+        amount: planPrice,
+        currency: 'INR',
+        razorpayKeyId: razorpayKeyId
+      });
+    }
+
+    // Fallback simulation for local dev
+    return res.json({
+      success: true,
+      orderId: 'order_mock_' + Date.now(),
+      amount: planPrice,
+      currency: 'INR',
+      razorpayKeyId: razorpayKeyId || 'rzp_test_mock'
+    });
+  } catch (err) {
+    console.error('Canva Razorpay Order Creation Error:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
 };
 
 const verifyPaymentHandler = async (req, res) => {
-  const { customerEmail, planId, paymentId } = req.body;
+  const { 
+    customerEmail, 
+    planId, 
+    paymentId,
+    razorpay_order_id, 
+    razorpay_payment_id, 
+    razorpay_signature 
+  } = req.body;
+
   let inviteLink = 'https://www.canva.com/brand/join?token=PRO_INVITE_DEFAULT';
   let planName = 'Canva Pro Access';
   let planPrice = 199;
 
   try {
+    // 1. Verify Razorpay cryptographic signature if live signature is sent
+    const effectiveOrderId = razorpay_order_id;
+    const effectivePayId = razorpay_payment_id || paymentId;
+
+    if (razorpayKeySecret && effectiveOrderId && effectivePayId && razorpay_signature && razorpay_signature !== 'mock_signature') {
+      const body = effectiveOrderId + '|' + effectivePayId;
+      const expectedSignature = crypto
+        .createHmac('sha256', razorpayKeySecret)
+        .update(body.toString())
+        .digest('hex');
+
+      if (expectedSignature !== razorpay_signature) {
+        console.error('❌ Canva Razorpay Signature Mismatch');
+        return res.status(400).json({ success: false, error: 'Payment signature verification failed' });
+      }
+    }
+
+    // 2. Fetch real plan details from Neon DB
     if (planId) {
       const planRes = await query('SELECT * FROM canva_plans WHERE id = $1', [planId]);
       if (planRes && planRes.rows && planRes.rows[0]) {
@@ -463,9 +549,9 @@ const verifyPaymentHandler = async (req, res) => {
     }
 
     const activationId = 'act_' + Date.now();
-    const effectivePaymentId = paymentId || `pay_canva_${Date.now()}`;
+    const finalPaymentId = effectivePayId || `pay_canva_${Date.now()}`;
 
-    // 1. Insert into canva_activations table
+    // 3. Insert into canva_activations table
     await query(`
       INSERT INTO canva_activations (id, email, plan_name, amount, payment_method, invite_link)
       VALUES ($1, $2, $3, $4, $5, $6)
@@ -478,7 +564,7 @@ const verifyPaymentHandler = async (req, res) => {
       inviteLink
     ]);
 
-    // 2. Also insert into purchases table for unified SkillVault Buyers log
+    // 4. Also insert into purchases table for unified SkillVault Buyers log
     await query(`
       INSERT INTO purchases (id, user_email, user_name, user_phone, course_id, amount_paid_inr, payment_id, status, access_delivered, drive_url)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -490,17 +576,17 @@ const verifyPaymentHandler = async (req, res) => {
       '',
       `🎨 Canva Pro: ${planName}`,
       planPrice,
-      effectivePaymentId,
+      finalPaymentId,
       'completed',
       true,
       inviteLink
     ]).catch(err => console.error('Mirror Canva purchase to purchases table error:', err.message));
 
+    return res.json({ success: true, inviteLink });
   } catch (e) {
-    console.error('Neon Verify Payment Insert Error:', e.message);
+    console.error('Neon Verify Payment Error:', e.message);
+    return res.status(500).json({ success: false, error: e.message });
   }
-
-  return res.json({ success: true, inviteLink });
 };
 
 // Admin-protected payments analytics
