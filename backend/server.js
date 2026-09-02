@@ -1601,7 +1601,54 @@ Best regards,
 Skill Vault Team
   `.trim();
 
-  // HOSTINGER BUSINESS EMAIL SMTP DISPATCH
+  // 1. HOSTINGER OFFICIAL AGENTIC MAIL REST API (ZERO SMTP / NO SOCKET TIMEOUTS)
+  const hostingerApiToken = process.env.HOSTINGER_MAIL_API_TOKEN;
+  if (hostingerApiToken) {
+    try {
+      let mailboxId = process.env.HOSTINGER_MAILBOX_RESOURCE_ID;
+      if (!mailboxId) {
+        const meRes = await fetch('https://api.mail.hostinger.com/api/v1/me', {
+          headers: {
+            'Authorization': `Bearer ${hostingerApiToken}`,
+            'Accept': 'application/json'
+          }
+        });
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          mailboxId = meData?.data?.mailboxes?.[0]?.resourceId;
+        }
+      }
+
+      if (mailboxId) {
+        const sendRes = await fetch(`https://api.mail.hostinger.com/api/v1/mailboxes/${mailboxId}/send`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${hostingerApiToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            to: [to],
+            displayName: 'Skill Vault',
+            subject: `Your Skill Vault purchase is confirmed — ${paymentId}`,
+            text: textContent
+          })
+        });
+
+        if (sendRes.status === 204 || sendRes.ok) {
+          console.log(`\n📧 [HOSTINGER API SUCCESS]: Confirmation email delivered via Hostinger REST API to ${to}`);
+          return { success: true, provider: 'hostinger-agentic-api' };
+        } else {
+          const errBody = await sendRes.text();
+          console.error(`\n❌ [HOSTINGER API ERROR]: HTTP ${sendRes.status}: ${errBody}`);
+        }
+      }
+    } catch (apiErr) {
+      console.error(`\n❌ [HOSTINGER API EXCEPTION]:`, apiErr.message);
+    }
+  }
+
+  // 2. HOSTINGER BUSINESS EMAIL SMTP DISPATCH (FALLBACK)
   const transporter = await getMailTransporter();
   if (transporter) {
     try {
