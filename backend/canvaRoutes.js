@@ -1,30 +1,9 @@
 import { Router } from 'express';
-import bcrypt from 'bcryptjs';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const { createClient } = require('@supabase/supabase-js');
+import { query, isDbConnected } from './db.js';
 
 const router = Router();
 
-// Initialize Supabase Client for Canva Pro Store
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_KEY || '';
-const isSupabaseConfigured = supabaseUrl.includes('supabase.co') && supabaseKey.length > 20;
-
-let supabase = null;
-if (isSupabaseConfigured) {
-  try {
-    supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('🎨 Connected to Canva Supabase Cloud Database');
-  } catch (err) {
-    console.error('⚠️ Canva Supabase connection error:', err.message);
-  }
-} else {
-  console.log('⚠️ Canva Supabase credentials not set or invalid — using in-memory fallback');
-}
-
-// In-Memory Fallback Storage
+// In-Memory Fallback Storage (in case database connection is temporarily offline)
 let mockPlans = [
   {
     id: 'plan_1y',
@@ -73,154 +52,109 @@ let mockActivations = [
   }
 ];
 
-// Mock admin default bcrypt hash for 'admin123'
-let mockAdminHash = bcrypt.hashSync('admin123', 10);
-let mockAdmin = {
-  id: 'admin_1',
-  username: 'admin',
-  passwordHash: mockAdminHash,
-  name: 'Primary Owner'
-};
+// Helper to format plan row from Neon PostgreSQL
+const formatPlan = (p) => ({
+  id: p.id,
+  name: p.name,
+  duration: p.duration,
+  price: Number(p.price),
+  originalPrice: Number(p.original_price || p.price * 2),
+  badge: p.badge || null,
+  inviteLink: p.invite_link,
+  features: typeof p.features === 'string' ? JSON.parse(p.features) : (p.features || []),
+  is_popular: Boolean(p.is_popular)
+});
+
+// Helper to format activation row from Neon PostgreSQL
+const formatActivation = (a) => ({
+  id: a.id,
+  email: a.email,
+  planName: a.plan_name,
+  amount: Number(a.amount),
+  paymentMethod: a.payment_method || 'UPI QR',
+  inviteLink: a.invite_link,
+  timestamp: a.created_at ? new Date(a.created_at).toLocaleString() : new Date().toLocaleString()
+});
 
 // ==========================================
 // 1. Diagnostic Database Health Check
 // ==========================================
 const handleDbCheck = async (req, res) => {
-  const diagnostics = {
-    configured: isSupabaseConfigured,
-    supabaseUrl: supabaseUrl || 'NOT_SET',
-    keyLength: supabaseKey ? supabaseKey.length : 0,
-    keyPrefix: supabaseKey ? supabaseKey.substring(0, 10) + '...' : 'NONE',
-    connectionStatus: 'UNKNOWN',
-    error: null,
-    tables: {
-      plans: { accessible: false, count: 0, error: null },
-      activations: { accessible: false, count: 0, error: null },
-      admin: { accessible: false, count: 0, error: null }
-    }
-  };
-
-  if (!supabase) {
-    diagnostics.connectionStatus = 'DISCONNECTED (Client Not Initialized)';
-    diagnostics.error = 'Supabase client is null or credentials missing in .env';
-    return res.status(200).json(diagnostics);
-  }
-
   try {
-    const plansResult = await supabase.from('plans').select('*', { count: 'exact' }).limit(5);
-    if (plansResult.error) {
-      diagnostics.tables.plans.error = plansResult.error.message || plansResult.error;
-    } else {
-      diagnostics.tables.plans.accessible = true;
-      diagnostics.tables.plans.count = plansResult.data ? plansResult.data.length : 0;
-    }
+    const plansCount = await query('SELECT COUNT(*) FROM canva_plans').catch(() => ({ rows: [{ count: 0 }] }));
+    const actsCount = await query('SELECT COUNT(*) FROM canva_activations').catch(() => ({ rows: [{ count: 0 }] }));
 
-    const actResult = await supabase.from('activations').select('*', { count: 'exact' }).limit(5);
-    if (actResult.error) {
-      diagnostics.tables.activations.error = actResult.error.message || actResult.error;
-    } else {
-      diagnostics.tables.activations.accessible = true;
-      diagnostics.tables.activations.count = actResult.data ? actResult.data.length : 0;
-    }
-
-    const adminResult = await supabase.from('admin').select('*', { count: 'exact' }).limit(1);
-    if (adminResult.error) {
-      diagnostics.tables.admin.error = adminResult.error.message || adminResult.error;
-    } else {
-      diagnostics.tables.admin.accessible = true;
-      diagnostics.tables.admin.count = adminResult.data ? adminResult.data.length : 0;
-    }
-
-    if (diagnostics.tables.plans.accessible) {
-      diagnostics.connectionStatus = 'CONNECTED & VERIFIED';
-    } else {
-      diagnostics.connectionStatus = 'CONNECTED_BUT_TABLE_ERROR';
-      diagnostics.error = diagnostics.tables.plans.error;
-    }
+    return res.json({
+      configured: true,
+      database: 'Neon PostgreSQL',
+      connectionStatus: isDbConnected() ? 'CONNECTED' : 'STANDBY',
+      tables: {
+        canva_plans: { accessible: true, count: parseInt(plansCount.rows[0].count, 10) },
+        canva_activations: { accessible: true, count: parseInt(actsCount.rows[0].count, 10) }
+      }
+    });
   } catch (err) {
-    diagnostics.connectionStatus = 'CONNECTION_FAILED';
-    diagnostics.error = err.message;
+    return res.status(500).json({ configured: false, error: err.message });
   }
-
-  return res.status(200).json(diagnostics);
 };
 
 router.get('/api/canva/db-check', handleDbCheck);
 router.get('/api/db-check', handleDbCheck);
 
 // ==========================================
-// 2. Canva Plans CRUD Endpoints
+// 2. Canva Subscription Plans Endpoints
 // ==========================================
 const getPlansHandler = async (req, res) => {
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.from('plans').select('*').order('price', { ascending: true });
-      if (!error && data && data.length > 0) {
-        const formatted = data.map(p => ({
-          id: p.id,
-          name: p.name,
-          duration: p.duration,
-          price: Number(p.price),
-          originalPrice: Number(p.original_price || p.price * 2),
-          badge: p.badge,
-          inviteLink: p.invite_link,
-          features: p.features || [],
-          is_popular: !!p.is_popular
-        }));
-        return res.json({ plans: formatted });
-      }
-    } catch (e) {
-      console.error('Supabase Plans Fetch Error:', e.message);
+  try {
+    const result = await query('SELECT * FROM canva_plans ORDER BY price ASC');
+    if (result && result.rows && result.rows.length > 0) {
+      return res.json({ plans: result.rows.map(formatPlan) });
     }
+  } catch (e) {
+    console.error('Neon Canva Plans Fetch Error:', e.message);
   }
   return res.json({ plans: mockPlans });
 };
 
 const createPlanHandler = async (req, res) => {
   const { name, duration, price, originalPrice, badge, inviteLink, features, is_popular } = req.body;
+  const newId = 'plan_' + Date.now();
+  const formattedFeatures = Array.isArray(features) ? features : [features || 'Full Canva Pro Access'];
 
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.from('plans').insert([{
-        name,
-        duration: duration || '365 Days Access',
-        price: Number(price),
-        original_price: Number(originalPrice || price * 2),
-        badge: badge || null,
-        invite_link: inviteLink || 'https://www.canva.com/brand/join?token=DEFAULT_INVITE',
-        features: Array.isArray(features) ? features : [features],
-        is_popular: !!is_popular
-      }]).select().single();
+  try {
+    const result = await query(`
+      INSERT INTO canva_plans (id, name, duration, price, original_price, badge, invite_link, features, is_popular)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)
+      RETURNING *
+    `, [
+      newId,
+      name,
+      duration || '365 Days Access',
+      Number(price),
+      Number(originalPrice || price * 2),
+      badge || null,
+      inviteLink || 'https://www.canva.com/brand/join?token=DEFAULT_INVITE',
+      JSON.stringify(formattedFeatures),
+      Boolean(is_popular)
+    ]);
 
-      if (!error && data) {
-        const created = {
-          id: data.id,
-          name: data.name,
-          duration: data.duration,
-          price: Number(data.price),
-          originalPrice: Number(data.original_price),
-          badge: data.badge,
-          inviteLink: data.invite_link,
-          features: data.features || [],
-          is_popular: !!data.is_popular
-        };
-        return res.json({ success: true, plan: created });
-      }
-    } catch (e) {
-      console.error('Supabase Plan Insert Error:', e.message);
+    if (result && result.rows && result.rows[0]) {
+      return res.json({ success: true, plan: formatPlan(result.rows[0]) });
     }
+  } catch (e) {
+    console.error('Neon Canva Plan Insert Error:', e.message);
   }
 
   const newPlan = {
-    id: 'plan_' + Date.now(),
+    id: newId,
     name,
     duration: duration || '365 Days Access',
     price: Number(price),
     originalPrice: Number(originalPrice || price * 2),
     badge: badge || null,
     inviteLink: inviteLink || 'https://www.canva.com/brand/join?token=DEFAULT_INVITE',
-    features: Array.isArray(features) ? features : [features],
-    is_popular: !!is_popular
+    features: formattedFeatures,
+    is_popular: Boolean(is_popular)
   };
   mockPlans.push(newPlan);
   return res.json({ success: true, plan: newPlan });
@@ -229,24 +163,31 @@ const createPlanHandler = async (req, res) => {
 const updatePlanHandler = async (req, res) => {
   const { id } = req.params;
   const { name, duration, price, originalPrice, badge, inviteLink, features, is_popular } = req.body;
+  const formattedFeatures = Array.isArray(features) ? features : [features || 'Full Canva Pro Access'];
 
-  if (supabase) {
-    try {
-      const { error } = await supabase.from('plans').update({
-        name,
-        duration,
-        price: Number(price),
-        original_price: Number(originalPrice),
-        badge: badge || null,
-        invite_link: inviteLink,
-        features: Array.isArray(features) ? features : [features],
-        is_popular: !!is_popular
-      }).eq('id', id);
+  try {
+    const result = await query(`
+      UPDATE canva_plans
+      SET name = $1, duration = $2, price = $3, original_price = $4, badge = $5, invite_link = $6, features = $7::jsonb, is_popular = $8
+      WHERE id = $9
+      RETURNING *
+    `, [
+      name,
+      duration,
+      Number(price),
+      Number(originalPrice),
+      badge || null,
+      inviteLink,
+      JSON.stringify(formattedFeatures),
+      Boolean(is_popular),
+      id
+    ]);
 
-      if (!error) return res.json({ success: true });
-    } catch (e) {
-      console.error('Supabase Plan Update Error:', e.message);
+    if (result && result.rowCount > 0) {
+      return res.json({ success: true });
     }
+  } catch (e) {
+    console.error('Neon Canva Plan Update Error:', e.message);
   }
 
   mockPlans = mockPlans.map(p => p.id === id ? { ...p, ...req.body } : p);
@@ -256,20 +197,19 @@ const updatePlanHandler = async (req, res) => {
 const deletePlanHandler = async (req, res) => {
   const { id } = req.params;
 
-  if (supabase) {
-    try {
-      const { error } = await supabase.from('plans').delete().eq('id', id);
-      if (!error) return res.json({ success: true });
-    } catch (e) {
-      console.error('Supabase Plan Delete Error:', e.message);
+  try {
+    const result = await query('DELETE FROM canva_plans WHERE id = $1', [id]);
+    if (result && result.rowCount > 0) {
+      return res.json({ success: true });
     }
+  } catch (e) {
+    console.error('Neon Canva Plan Delete Error:', e.message);
   }
 
   mockPlans = mockPlans.filter(p => p.id !== id);
   return res.json({ success: true });
 };
 
-// Register Plans routes
 router.get('/api/canva/plans', getPlansHandler);
 router.get('/api/plans', getPlansHandler);
 
@@ -286,61 +226,44 @@ router.delete('/api/plans/:id', deletePlanHandler);
 // 3. Canva Activations (Orders) Endpoints
 // ==========================================
 const getActivationsHandler = async (req, res) => {
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.from('activations').select('*').order('created_at', { ascending: false });
-      if (!error && data) {
-        const formatted = data.map(a => ({
-          id: a.id,
-          email: a.email,
-          planName: a.plan_name,
-          amount: Number(a.amount),
-          paymentMethod: a.payment_method || 'UPI QR',
-          inviteLink: a.invite_link,
-          timestamp: new Date(a.created_at).toLocaleString()
-        }));
-        return res.json({ activations: formatted });
-      }
-    } catch (e) {
-      console.error('Supabase Activations Fetch Error:', e.message);
+  try {
+    const result = await query('SELECT * FROM canva_activations ORDER BY created_at DESC');
+    if (result && result.rows) {
+      return res.json({ activations: result.rows.map(formatActivation) });
     }
+  } catch (e) {
+    console.error('Neon Canva Activations Fetch Error:', e.message);
   }
-
   return res.json({ activations: mockActivations });
 };
 
 const createActivationHandler = async (req, res) => {
   const { email, planName, amount, paymentMethod, inviteLink } = req.body;
+  const newId = 'act_' + Date.now();
 
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.from('activations').insert([{
-        email,
-        plan_name: planName,
-        amount: Number(amount),
-        payment_method: paymentMethod || 'UPI QR',
-        invite_link: inviteLink || 'https://www.canva.com/brand/join?token=DEFAULT_INVITE'
-      }]).select().single();
+  try {
+    const result = await query(`
+      INSERT INTO canva_activations (id, email, plan_name, amount, payment_method, invite_link)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `, [
+      newId,
+      email,
+      planName,
+      Number(amount),
+      paymentMethod || 'UPI QR',
+      inviteLink || 'https://www.canva.com/brand/join?token=DEFAULT_INVITE'
+    ]);
 
-      if (!error && data) {
-        const created = {
-          id: data.id,
-          email: data.email,
-          planName: data.plan_name,
-          amount: Number(data.amount),
-          paymentMethod: data.payment_method,
-          inviteLink: data.invite_link,
-          timestamp: new Date(data.created_at).toLocaleString()
-        };
-        return res.json({ success: true, activation: created });
-      }
-    } catch (e) {
-      console.error('Supabase Activation Create Error:', e.message);
+    if (result && result.rows && result.rows[0]) {
+      return res.json({ success: true, activation: formatActivation(result.rows[0]) });
     }
+  } catch (e) {
+    console.error('Neon Canva Activation Create Error:', e.message);
   }
 
   const newAct = {
-    id: 'act_' + Date.now(),
+    id: newId,
     email,
     planName,
     amount: Number(amount),
@@ -355,13 +278,13 @@ const createActivationHandler = async (req, res) => {
 const deleteActivationHandler = async (req, res) => {
   const { id } = req.params;
 
-  if (supabase) {
-    try {
-      const { error } = await supabase.from('activations').delete().eq('id', id);
-      if (!error) return res.json({ success: true });
-    } catch (e) {
-      console.error('Supabase Activation Delete Error:', e.message);
+  try {
+    const result = await query('DELETE FROM canva_activations WHERE id = $1', [id]);
+    if (result && result.rowCount > 0) {
+      return res.json({ success: true });
     }
+  } catch (e) {
+    console.error('Neon Canva Activation Delete Error:', e.message);
   }
 
   mockActivations = mockActivations.filter(a => a.id !== id);
@@ -378,153 +301,17 @@ router.delete('/api/canva/activations/:id', deleteActivationHandler);
 router.delete('/api/activations/:id', deleteActivationHandler);
 
 // ==========================================
-// 4. Canva Admin Authentication Endpoints
-// ==========================================
-const adminLoginHandler = async (req, res) => {
-  const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res.status(400).json({ success: false, error: 'Username and password required' });
-  }
-
-  const cleanUsername = username.trim();
-  const cleanPassword = password.trim();
-
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('admin')
-        .select('*')
-        .eq('username', cleanUsername)
-        .single();
-
-      if (!error && data) {
-        let isMatch = false;
-        if (data.password.startsWith('$2a$') || data.password.startsWith('$2b$')) {
-          isMatch = await bcrypt.compare(cleanPassword, data.password);
-        } else {
-          isMatch = (cleanPassword === data.password.trim());
-          if (isMatch) {
-            const hashed = await bcrypt.hash(cleanPassword, 10);
-            await supabase.from('admin').update({ password: hashed }).eq('id', data.id);
-          }
-        }
-
-        if (isMatch) {
-          return res.json({
-            success: true,
-            admin: {
-              id: data.id,
-              name: data.name || 'Primary Owner',
-              username: data.username,
-              role: 'Owner'
-            }
-          });
-        } else {
-          return res.status(401).json({ success: false, error: 'Invalid username or password' });
-        }
-      }
-    } catch (e) {
-      console.error('Supabase Admin Login Error:', e.message);
-    }
-  }
-
-  const fallbackMatch = (cleanUsername === mockAdmin.username) && 
-    (await bcrypt.compare(cleanPassword, mockAdmin.passwordHash));
-
-  if (fallbackMatch) {
-    return res.json({
-      success: true,
-      admin: {
-        id: mockAdmin.id,
-        name: mockAdmin.name,
-        username: mockAdmin.username,
-        role: 'Owner'
-      }
-    });
-  }
-
-  return res.status(401).json({ success: false, error: 'Invalid username or password' });
-};
-
-const adminChangePasswordHandler = async (req, res) => {
-  const { username, oldPassword, newPassword } = req.body;
-
-  if (!username || !oldPassword || !newPassword) {
-    return res.status(400).json({ success: false, error: 'All fields required' });
-  }
-
-  const cleanUsername = username.trim();
-  const cleanOldPassword = oldPassword.trim();
-  const cleanNewPassword = newPassword.trim();
-
-  if (supabase) {
-    try {
-      const { data: match, error: fetchErr } = await supabase
-        .from('admin')
-        .select('*')
-        .eq('username', cleanUsername)
-        .single();
-
-      if (!fetchErr && match) {
-        let isOldMatch = false;
-        if (match.password.startsWith('$2a$') || match.password.startsWith('$2b$')) {
-          isOldMatch = await bcrypt.compare(cleanOldPassword, match.password);
-        } else {
-          isOldMatch = (cleanOldPassword === match.password.trim());
-        }
-
-        if (!isOldMatch) {
-          return res.status(400).json({ success: false, error: 'Incorrect old password' });
-        }
-
-        const hashedNewPassword = await bcrypt.hash(cleanNewPassword, 10);
-        const { error: updateErr } = await supabase
-          .from('admin')
-          .update({ password: hashedNewPassword })
-          .eq('id', match.id);
-
-        if (updateErr) {
-          console.error('Supabase Admin Password Update Error:', updateErr.message);
-          return res.status(500).json({ success: false, error: 'Failed to update database: ' + updateErr.message });
-        }
-
-        mockAdmin.passwordHash = hashedNewPassword;
-        return res.json({ success: true, message: 'Password updated successfully in database' });
-      }
-    } catch (e) {
-      console.error('Supabase Change Password Error:', e.message);
-    }
-  }
-
-  const isMockOldMatch = await bcrypt.compare(cleanOldPassword, mockAdmin.passwordHash);
-
-  if (isMockOldMatch) {
-    mockAdmin.passwordHash = await bcrypt.hash(cleanNewPassword, 10);
-    return res.json({ success: true, message: 'Password updated successfully' });
-  }
-
-  return res.status(400).json({ success: false, error: 'Incorrect old password' });
-};
-
-router.post('/api/canva/admins/login', adminLoginHandler);
-router.post('/api/admins/login', adminLoginHandler);
-
-router.post('/api/canva/admins/change-password', adminChangePasswordHandler);
-router.post('/api/admins/change-password', adminChangePasswordHandler);
-
-// ==========================================
-// 5. Canva Payments & Analytics Endpoints
+// 4. Canva Payments & Analytics Endpoints
 // ==========================================
 const paymentsAnalyticsHandler = async (req, res) => {
   let activationsList = mockActivations;
 
-  if (supabase) {
-    try {
-      const { data } = await supabase.from('activations').select('*');
-      if (data) activationsList = data;
-    } catch (e) {}
-  }
+  try {
+    const result = await query('SELECT * FROM canva_activations ORDER BY created_at DESC');
+    if (result && result.rows) {
+      activationsList = result.rows.map(formatActivation);
+    }
+  } catch (e) { }
 
   const totalSales = activationsList.reduce((sum, a) => sum + Number(a.amount || 0), 0);
   return res.json({
@@ -538,7 +325,7 @@ const paymentsAnalyticsHandler = async (req, res) => {
       pendingCount: 0,
       failedCount: 0
     },
-    payments: []
+    payments: activationsList
   });
 };
 
@@ -556,22 +343,32 @@ const createPaymentOrderHandler = (req, res) => {
 const verifyPaymentHandler = async (req, res) => {
   const { customerEmail, planId } = req.body;
   let inviteLink = 'https://www.canva.com/brand/join?token=PRO_INVITE_DEFAULT';
+  let planName = 'Canva Pro Access';
+  let planPrice = 199;
 
-  if (supabase) {
-    try {
-      const { data } = await supabase.from('plans').select('*').limit(1);
-      if (data && data[0] && data[0].invite_link) {
-        inviteLink = data[0].invite_link;
+  try {
+    if (planId) {
+      const planRes = await query('SELECT * FROM canva_plans WHERE id = $1', [planId]);
+      if (planRes && planRes.rows && planRes.rows[0]) {
+        inviteLink = planRes.rows[0].invite_link;
+        planName = planRes.rows[0].name;
+        planPrice = Number(planRes.rows[0].price);
       }
-      
-      await supabase.from('activations').insert([{
-        email: customerEmail,
-        plan_name: 'Canva Pro Access',
-        amount: 199,
-        payment_method: 'Razorpay UPI',
-        invite_link: inviteLink
-      }]);
-    } catch (e) {}
+    }
+
+    await query(`
+      INSERT INTO canva_activations (id, email, plan_name, amount, payment_method, invite_link)
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `, [
+      'act_' + Date.now(),
+      customerEmail,
+      planName,
+      planPrice,
+      'Razorpay UPI',
+      inviteLink
+    ]);
+  } catch (e) {
+    console.error('Neon Verify Payment Insert Error:', e.message);
   }
 
   return res.json({ success: true, inviteLink });

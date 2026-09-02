@@ -261,6 +261,52 @@ export async function initDb() {
       console.log('🌱 Default PostgreSQL bonus offer seeded in single bonus_offers table (enabled: false).');
     }
 
+    // 9. Create Canva Plans Table in Neon PostgreSQL
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS canva_plans (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        duration VARCHAR(100) NOT NULL,
+        price NUMERIC NOT NULL,
+        original_price NUMERIC,
+        badge VARCHAR(100),
+        invite_link TEXT NOT NULL,
+        features JSONB DEFAULT '[]'::jsonb,
+        is_popular BOOLEAN DEFAULT false,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 10. Create Canva Activations Table (Customer Orders) in Neon PostgreSQL
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS canva_activations (
+        id VARCHAR(255) PRIMARY KEY,
+        email VARCHAR(255) NOT NULL,
+        plan_name VARCHAR(255) NOT NULL,
+        amount NUMERIC NOT NULL,
+        payment_method VARCHAR(100) DEFAULT 'UPI QR',
+        invite_link TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Seed default Canva Plans if empty
+    const canvaPlansCheck = await client.query('SELECT COUNT(*) FROM canva_plans');
+    if (parseInt(canvaPlansCheck.rows[0].count, 10) === 0) {
+      await client.query(`
+        INSERT INTO canva_plans (id, name, duration, price, original_price, badge, invite_link, features, is_popular)
+        VALUES 
+        ('plan_1y', '1 Year Canva Pro', '365 Days Access', 199, 499, 'BEST SELLER', 'https://www.canva.com/brand/join?token=PRO_ANNUAL_INVITE', $1::jsonb, true),
+        ('plan_life', 'Lifetime Canva Pro', 'Lifetime Access', 399, 999, 'VIP VALUE', 'https://www.canva.com/brand/join?token=LIFETIME_VIP_INVITE', $2::jsonb, false),
+        ('plan_1m', '1 Month Canva Pro', '30 Days Access', 99, 299, 'STARTER', 'https://www.canva.com/brand/join?token=STARTER_30D_INVITE', $3::jsonb, false)
+      `, [
+        JSON.stringify(['100M+ Premium Stock Photos & Videos', 'Magic Studio AI Tools Unlocked', 'Remove Background in 1 Click', '100GB Cloud Storage', 'Instant Email Delivery']),
+        JSON.stringify(['Lifetime Unrestricted Pro Permissions', 'Unlimited Premium Asset Downloads', 'All Future Canva AI Studio Updates', 'Brand Kit & Custom Fonts Support', 'Priority 24/7 Support']),
+        JSON.stringify(['100M+ Stock Media Unlocked', 'Magic Studio & AI Writer', '1-Click Background Remover', 'Instant Team Invitation'])
+      ]);
+      console.log('🌱 Default Canva Pro plans seeded in Neon PostgreSQL.');
+    }
+
     // Seed / Sync default admin
     const adminPass = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'SkillVault2026!Admin', 10);
     const adminCheck = await client.query('SELECT * FROM users WHERE email = $1', ['admin@skillvault.dev']);
