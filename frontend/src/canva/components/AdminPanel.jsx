@@ -212,6 +212,7 @@ export default function AdminPanel({
     });
     setIsPlanModalOpen(true);
   };
+  const handleOpenAddPlan = handleOpenCreatePlan;
 
   // Open modal for Editing plan
   const handleOpenEditPlan = (plan) => {
