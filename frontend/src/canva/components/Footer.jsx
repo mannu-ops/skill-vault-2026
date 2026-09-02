@@ -1,48 +1,128 @@
 import React from 'react';
-import { ShieldCheck, Lock, RefreshCw, Zap, KeyRound } from 'lucide-react';
+import { useLocation } from 'wouter';
+import { Instagram, Facebook, Lock, KeyRound } from 'lucide-react';
 
-export default function Footer({ onOpenAdmin }) {
+export default function Footer() {
+  const [, setLocation] = useLocation();
+
+  const navTo = (targetId, category) => {
+    if (category) {
+      sessionStorage.setItem('sv_selected_category', category);
+    }
+    setLocation('/');
+    setTimeout(() => {
+      const el = document.querySelector(targetId);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 150);
+  };
+
   return (
-    <footer className="mt-12 sm:mt-20 border-t border-white/10 glass-panel py-8 sm:py-12 px-3 sm:px-4 relative z-10">
-      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+    <footer className="border-t border-slate-800/70 py-10 pb-24 lg:pb-10 bg-[#08090e] mt-16">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-6">
         
-        {/* Trust Badges Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-center pb-6 sm:pb-8 border-b border-white/10">
-          <div className="space-y-1 p-2">
-            <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400 mx-auto" />
-            <h5 className="font-heading font-bold text-xs text-white">Instant 5-Sec Delivery</h5>
-            <p className="text-[10px] sm:text-[11px] text-slate-400">Automated Team Invite</p>
-          </div>
-          <div className="space-y-1 p-2">
-            <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400 mx-auto" />
-            <h5 className="font-heading font-bold text-xs text-white">100% Refund Policy</h5>
-            <p className="text-[10px] sm:text-[11px] text-slate-400">No Risk Guarantee</p>
-          </div>
-          <div className="space-y-1 p-2">
-            <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400 mx-auto" />
-            <h5 className="font-heading font-bold text-xs text-white">256-Bit SSL Secure</h5>
-            <p className="text-[10px] sm:text-[11px] text-slate-400">Bank Grade Encryption</p>
-          </div>
-          <div className="space-y-1 p-2">
-            <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 mx-auto" />
-            <h5 className="font-heading font-bold text-xs text-white">24/7 VIP Support</h5>
-            <p className="text-[10px] sm:text-[11px] text-slate-400">Dedicated Helpdesk</p>
-          </div>
-        </div>
+        {/* Top Footer Navigation */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-800/60">
+          
+          {/* Brand */}
+          <button
+            type="button"
+            onClick={() => { setLocation('/'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            className="group flex items-center gap-2 text-left cursor-pointer shrink-0"
+          >
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white font-black text-xs sm:text-sm shadow-md">
+              SV
+            </div>
+            <span className="font-heading font-black tracking-tight text-base sm:text-lg text-white">
+              SKILL<span className="text-violet-400">VAULT</span>
+            </span>
+          </button>
 
-        {/* Footer Bottom */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-[11px] sm:text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} Canva Pro Instant Activation Portal. All rights reserved.</p>
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-slate-400">
-            <a href="#faq" className="hover:text-cyan-300 transition-colors">Privacy Policy</a>
-            <a href="#faq" className="hover:text-cyan-300 transition-colors">Terms of Service</a>
+          {/* Quick Links */}
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-slate-400 font-medium">
+            <button
+              type="button"
+              onClick={() => navTo('#catalog', 'All Products')}
+              className="hover:text-white transition-colors cursor-pointer"
+            >
+              All Products
+            </button>
+            <button
+              type="button"
+              onClick={() => navTo('#catalog', 'Course')}
+              className="hover:text-white transition-colors cursor-pointer"
+            >
+              Courses
+            </button>
+            <button
+              type="button"
+              onClick={() => navTo('#catalog', 'Software')}
+              className="hover:text-white transition-colors cursor-pointer"
+            >
+              Software
+            </button>
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="text-cyan-400 hover:text-cyan-300 font-bold transition-colors cursor-pointer flex items-center gap-1"
+            >
+              <span>🎨</span> Canva Pro
+            </button>
+            <button
+              type="button"
+              onClick={() => navTo('#why-us')}
+              className="hover:text-white transition-colors cursor-pointer"
+            >
+              Why Us
+            </button>
+            <button
+              type="button"
+              onClick={() => navTo('#faq')}
+              className="hover:text-white transition-colors cursor-pointer"
+            >
+              FAQ
+            </button>
             <a
               href="/admin?tab=canva"
-              className="text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-1 cursor-pointer"
+              className="text-slate-500 hover:text-violet-400 transition-colors flex items-center gap-1 cursor-pointer font-semibold"
             >
-              <KeyRound className="w-3 h-3 text-purple-400" />
-              <span>SkillVault Admin</span>
+              <KeyRound className="w-3.5 h-3.5 text-violet-400" />
+              <span>Admin Portal</span>
             </a>
+          </div>
+
+          {/* Social Icons */}
+          <div className="flex items-center gap-3 shrink-0">
+            <a
+              href="https://www.instagram.com/theskillvaults/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-pink-400 hover:border-pink-500/40 hover:bg-slate-800/80 transition-all cursor-pointer"
+              aria-label="Instagram"
+              title="Follow us on Instagram"
+            >
+              <Instagram className="w-4 h-4" />
+            </a>
+            <a
+              href="https://www.facebook.com/profile.php?id=61593149424859"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-blue-400 hover:border-blue-500/40 hover:bg-slate-800/80 transition-all cursor-pointer"
+              aria-label="Facebook"
+              title="Follow us on Facebook"
+            >
+              <Facebook className="w-4 h-4" />
+            </a>
+          </div>
+
+        </div>
+
+        {/* Bottom Copyright */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left text-xs font-mono text-slate-500">
+          <p>© 2026 SKILL VAULT STORE • ALL RIGHTS RESERVED</p>
+          <div className="flex items-center gap-4 text-slate-500 text-[11px]">
+            <span>100% Verified Digital Assets</span>
+            <span>•</span>
+            <span className="flex items-center gap-1"><Lock className="w-3 h-3 text-emerald-400" /> 256-Bit SSL Encrypted</span>
           </div>
         </div>
 

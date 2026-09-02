@@ -2175,8 +2175,12 @@ function Router() {
     <>
       <MetaPixelTracker user={auth.user} />
       <Switch>
-        <Route path="/canva" component={CanvaPage} />
-        <Route path="/canva-pro" component={CanvaPage} />
+        <Route path="/canva">
+          {() => <CanvaPage cart={cart} auth={auth} />}
+        </Route>
+        <Route path="/canva-pro">
+          {() => <CanvaPage cart={cart} auth={auth} />}
+        </Route>
         <Route path="/canva/admin" component={AdminPanelPage} />
         <Route path="/admin" component={AdminPanelPage} />
         <Route path="/admin-panel" component={AdminPanelPage} />

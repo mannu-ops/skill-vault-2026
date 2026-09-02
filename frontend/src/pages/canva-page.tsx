@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { ArrowLeft } from 'lucide-react';
 import Navbar from '../canva/components/Navbar.jsx';
 import Hero from '../canva/components/Hero.jsx';
 import ActivationForm from '../canva/components/ActivationForm.jsx';
@@ -12,7 +11,7 @@ import LiveTicker from '../canva/components/LiveTicker.jsx';
 import Footer from '../canva/components/Footer.jsx';
 import { fetchPlans, fetchActivations } from '../canva/canvaApi.js';
 
-export function CanvaPage() {
+export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
   const [location, setLocation] = useLocation();
 
   // If user navigates directly to /canva/admin, redirect to SkillVault Admin Dashboard (Canva tab)
@@ -69,35 +68,20 @@ export function CanvaPage() {
   return (
     <div className="min-h-screen bg-[#08090E] text-slate-100 font-sans relative selection:bg-cyan-500/30">
 
-      {/* Top Banner to Return to SkillVault Store */}
-      <div className="bg-gradient-to-r from-violet-950/80 via-slate-900 to-cyan-950/80 border-b border-slate-800/80 py-2 px-3 sm:px-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between text-xs sm:text-sm">
-          <button
-            type="button"
-            onClick={() => setLocation('/')}
-            className="inline-flex items-center gap-1.5 font-semibold text-slate-300 hover:text-white px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-700/80 hover:border-violet-500/50 shadow-sm transition-all cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 text-violet-400" />
-            <span>Back to SkillVault</span>
-          </button>
+      {/* SkillVault Official Unified Navbar */}
+      <Navbar
+        cartCount={cart?.cartCount || 0}
+        onOpenCart={() => cart?.setIsCartOpen?.(true)}
+        user={auth?.user}
+        onOpenAuthModal={(mode: 'login' | 'signup') => auth?.openAuth?.(mode)}
+        onLogout={() => auth?.logout?.()}
+        onOpenMyPurchases={() => setLocation('/purchases')}
+      />
 
-          <div className="flex items-center gap-2">
-            <span className="hidden sm:inline text-slate-400 text-xs">
-              SkillVault Partner Platform
-            </span>
-            <span className="inline-block size-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-emerald-400 text-xs font-bold font-mono">LIVE</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Canva Customer Navbar */}
-      <Navbar onGoHome={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
-
-      {/* Main Content Storefront */}
-      <main className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-16">
+      {/* Main Content Storefront - Positioned below fixed navbar */}
+      <main className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-16">
         {/* Above-The-Fold: Hero & Form Visible Without Scrolling */}
-        <section className="min-h-[calc(100vh-6rem)] flex flex-col justify-center py-4 sm:py-6 lg:py-8">
+        <section className="min-h-[calc(100vh-8rem)] flex flex-col justify-center py-4 sm:py-6 lg:py-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
             <div className="lg:col-span-6">
               <Hero />
@@ -120,8 +104,8 @@ export function CanvaPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <Footer onOpenAdmin={() => setLocation('/admin?tab=canva')} />
+      {/* SkillVault Official Unified Footer */}
+      <Footer />
 
       {/* Floating Real-Time Activations Ticker */}
       <LiveTicker />
