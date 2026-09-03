@@ -19,14 +19,14 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
   const currentPrice = selectedPlan ? selectedPlan.price : (plans[0] ? plans[0].price : 0);
 
   return (
-    <div className="w-full max-w-xl mx-auto glass-card rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 md:p-8 relative border border-purple-500/40 shadow-[0_0_70px_rgba(125,42,232,0.3)]">
+    <div className="w-full max-w-xl mx-auto glass-card rounded-2xl sm:rounded-3xl p-5 sm:p-7 md:p-8 relative border border-purple-500/40 shadow-[0_0_70px_rgba(125,42,232,0.3)]">
       
-      <div className="space-y-3 sm:space-y-5">
+      <div className="space-y-4 sm:space-y-5">
         
         {/* Form Header */}
-        <div className="flex items-center justify-between pb-2 sm:pb-4 border-b border-white/10">
+        <div className="flex items-center justify-between pb-3.5 sm:pb-4 border-b border-white/10">
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-[#7D2AE8] to-[#00F2FE] p-[2px] shadow-lg shrink-0">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-[#7D2AE8] to-[#00F2FE] p-[2px] shadow-lg shrink-0">
               <div className="w-full h-full bg-[#0D0F1A] rounded-[10px] sm:rounded-[14px] flex items-center justify-center">
                 <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
               </div>
@@ -37,15 +37,15 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
             </div>
           </div>
 
-          <span className="text-[11px] sm:text-xs font-bold text-cyan-300 bg-cyan-500/15 border border-cyan-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shrink-0">
+          <span className="text-xs font-bold text-cyan-300 bg-cyan-500/15 border border-cyan-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shrink-0">
             <Zap className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400" /> 5-Sec Delivery
           </span>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
           
           {/* FIELD 1: CANVA ACCOUNT EMAIL INPUT */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <label className="block text-xs sm:text-[13px] font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
               <span>Canva Account Email <span className="text-pink-500">*</span></span>
               <span className="text-[11px] text-slate-500 font-normal">Use existing account</span>
@@ -64,7 +64,7 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
                   if (error) setError('');
                 }}
                 placeholder="e.g. yourname@gmail.com"
-                className="w-full pl-10 sm:pl-12 pr-10 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl bg-slate-900/90 border border-white/15 text-white placeholder-slate-500 font-medium focus:outline-none focus:border-[#00F2FE] focus:ring-2 focus:ring-[#00F2FE]/30 transition-all text-xs sm:text-base"
+                className="w-full pl-10 sm:pl-12 pr-10 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl bg-slate-900/90 border border-white/15 text-white placeholder-slate-500 font-medium focus:outline-none focus:border-[#00F2FE] focus:ring-2 focus:ring-[#00F2FE]/30 transition-all text-sm sm:text-base"
               />
 
               {email.includes('@') && email.includes('.') && (
@@ -76,7 +76,7 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
           </div>
 
           {/* FIELD 2: SELECT DROPDOWN */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <label className="block text-xs sm:text-[13px] font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-amber-300">
                 <Crown className="w-4 h-4 text-amber-400" /> Select Canva Plan <span className="text-pink-500">*</span>
@@ -97,7 +97,7 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
                   const plan = plans.find(p => p.id === e.target.value);
                   if (plan) onSelectPlan(plan);
                 }}
-                className="w-full pl-10 sm:pl-12 pr-10 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl bg-slate-900 border border-purple-500/40 text-white font-heading font-bold text-xs sm:text-base focus:outline-none focus:border-[#00F2FE] focus:ring-2 focus:ring-[#00F2FE]/40 transition-all appearance-none cursor-pointer shadow-[0_0_20px_rgba(125,42,232,0.15)] truncate"
+                className="w-full pl-10 sm:pl-12 pr-10 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl bg-slate-900 border border-purple-500/40 text-white font-heading font-bold text-xs sm:text-base focus:outline-none focus:border-[#00F2FE] focus:ring-2 focus:ring-[#00F2FE]/40 transition-all appearance-none cursor-pointer shadow-[0_0_20px_rgba(125,42,232,0.15)] truncate"
               >
                 {plans.map((plan) => (
                   <option
@@ -117,7 +117,7 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
 
             {/* Selected Plan Benefits Pill */}
             {selectedPlan && (
-              <div className="p-2.5 sm:p-3 rounded-xl bg-purple-950/35 border border-purple-500/25 text-xs text-slate-300 space-y-1">
+              <div className="p-3 sm:p-3.5 rounded-xl bg-purple-950/35 border border-purple-500/25 text-xs text-slate-300 space-y-1.5">
                 <div className="flex items-center justify-between gap-1.5">
                   <span className="font-bold text-white flex items-center gap-1.5 truncate text-xs sm:text-[13px]">
                     <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
@@ -127,7 +127,7 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
                     Save {Math.round((1 - selectedPlan.price / (selectedPlan.originalPrice || selectedPlan.price * 5)) * 100)}%
                   </span>
                 </div>
-                <p className="text-[11px] sm:text-xs text-slate-300 leading-normal truncate sm:whitespace-normal">
+                <p className="text-[11px] sm:text-xs text-slate-300 leading-normal">
                   {Array.isArray(selectedPlan.features) ? selectedPlan.features.slice(0, 3).join(' • ') : selectedPlan.features}
                 </p>
               </div>
@@ -151,7 +151,7 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
           <button
             type="submit"
             disabled={isProcessing}
-            className="w-full py-2.5 sm:py-3.5 md:py-4 px-5 sm:px-6 rounded-xl sm:rounded-2xl btn-futuristic font-heading font-black text-sm sm:text-base md:text-lg text-white flex items-center justify-center gap-2.5 cursor-pointer shadow-[0_0_40px_rgba(125,42,232,0.8)] group mt-1 disabled:opacity-75 disabled:cursor-not-allowed"
+            className="w-full py-3.5 sm:py-4 px-5 sm:px-6 rounded-xl sm:rounded-2xl btn-futuristic font-heading font-black text-sm sm:text-base md:text-lg text-white flex items-center justify-center gap-2.5 cursor-pointer shadow-[0_0_40px_rgba(125,42,232,0.8)] group mt-2 disabled:opacity-75 disabled:cursor-not-allowed"
           >
             {isProcessing ? (
               <>
@@ -167,7 +167,7 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
           </button>
 
           {/* Trust Guarantees */}
-          <div className="flex items-center justify-center gap-3 sm:gap-5 text-[11px] sm:text-xs text-slate-400 pt-1.5 border-t border-white/5">
+          <div className="flex items-center justify-center gap-3 sm:gap-5 text-[11px] sm:text-xs text-slate-400 pt-2.5 border-t border-white/5">
             <span className="flex items-center gap-1 text-emerald-400 font-semibold shrink-0">
               <ShieldCheck className="w-3.5 h-3.5" /> 100% Refund
             </span>
