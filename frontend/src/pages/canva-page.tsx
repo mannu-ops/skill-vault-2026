@@ -205,10 +205,10 @@ export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
         onOpenMyPurchases={() => setLocation('/purchases')}
       />
 
-      {/* Main Content Storefront - Positioned below fixed navbar with compact mobile padding */}
-      <main className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-16 sm:pt-20 lg:pt-24 pb-16">
-        {/* Above-The-Fold: Hero & Form Visible Immediately */}
-        <section className="min-h-0 lg:min-h-[calc(100vh-8rem)] flex flex-col lg:justify-center pt-1 pb-6 sm:py-6 lg:py-8">
+      {/* Main Content Storefront - Positioned below fixed navbar with controlled large-screen bounds */}
+      <main className="w-full max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 pt-12 sm:pt-16 lg:pt-20 pb-12">
+        {/* Above-The-Fold: Hero & Form Visible Immediately - Controlled Height on 2K/4K */}
+        <section className="min-h-0 lg:min-h-[480px] lg:max-h-[640px] flex flex-col lg:justify-center pt-1 pb-6 sm:py-4 lg:py-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6 lg:gap-10 items-center">
             <div className="lg:col-span-6">
               <Hero />

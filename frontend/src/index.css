@@ -397,8 +397,23 @@
   }
 
   .hero-title {
-    font-size: clamp(2.25rem, 10vw, 3.4rem);
-    line-height: 1.02;
+    font-size: clamp(1.75rem, 7vw, 2.25rem);
+    line-height: 1.15;
+  }
+}
+
+/* Constrained Large-Screen, 2K & 4K Viewports - Prevents Unnecessary Scaling */
+@media (min-width: 1920px) {
+  .site-shell {
+    width: min(1200px, calc(100% - 64px));
+    max-width: 1200px;
+  }
+}
+
+@media (min-width: 2560px) {
+  .site-shell {
+    width: min(1240px, calc(100% - 80px));
+    max-width: 1240px;
   }
 }
 

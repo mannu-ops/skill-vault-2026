@@ -1822,12 +1822,12 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
 
 
         {/* COURSE CATALOG GRID */}
-        <section id="catalog" className="py-16 sm:py-24">
+        <section id="catalog" className="py-10 sm:py-14 lg:py-16">
           <div className="site-shell">
-            <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 border-b border-slate-800/80 pb-6 mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 border-b border-slate-800/80 pb-5 mb-6">
               <div>
                 <p className="eyebrow">Explore Digital Assets</p>
-                <h2 className="mt-2 font-display text-3xl sm:text-4xl font-semibold tracking-tight text-slate-100">
+                <h2 className="mt-1.5 font-display text-2xl sm:text-3xl font-semibold tracking-tight text-slate-100">
                   {selectedCategory === 'All Products' || selectedCategory === 'All Courses' ? 'All Digital Assets' : selectedCategory}
                 </h2>
               </div>
@@ -1869,7 +1869,7 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
             ) : (
               <>
                 <motion.div
-                  className="grid gap-8 md:grid-cols-2 lg:grid-cols-3"
+                  className="grid gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
                   variants={containerAnimation}
                   initial="initial"
                   animate="animate"
@@ -2025,26 +2025,26 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
         </section>
 
         {/* WHY SKILL VAULT SECTION */}
-        <section id="why-us" className="border-t border-slate-800/70 py-20 sm:py-28 bg-[#0a0b12] relative overflow-hidden">
+        <section id="why-us" className="border-t border-slate-800/70 py-12 sm:py-16 lg:py-20 bg-[#0a0b12] relative overflow-hidden">
           {/* Subtle Ambient Background Glows */}
           <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="site-shell relative z-10">
             <div className="mx-auto max-w-3xl text-center">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-violet-500/10 border border-violet-500/25 text-violet-300 text-xs font-semibold uppercase tracking-wider mb-4 shadow-sm">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-violet-500/10 border border-violet-500/25 text-violet-300 text-xs font-semibold uppercase tracking-wider mb-3 shadow-sm">
                 <Sparkles size={13} className="text-violet-400" />
                 The Skill Vault Advantage
               </div>
-              <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-tight text-white">
+              <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white">
                 Built for Creators, Editors & Digital Builders
               </h2>
-              <p className="mt-4 text-xs sm:text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
+              <p className="mt-3 text-xs sm:text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
                 Supercharge your creative workflow with instant Google Drive asset vaults, official Canva Pro access, and premium bundles curated for massive growth.
               </p>
             </div>
 
-            <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-10 sm:mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 {
                   title: 'Curated Asset Vaults',
@@ -2104,14 +2104,14 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
         </section>
 
         {/* FAQ SECTION */}
-        <section id="faq" className="border-t border-slate-800/70 py-20 sm:py-28">
-          <div className="site-shell grid gap-12 lg:grid-cols-[0.6fr_1.4fr]">
+        <section id="faq" className="border-t border-slate-800/70 py-12 sm:py-16 lg:py-20">
+          <div className="site-shell grid gap-8 lg:gap-12 lg:grid-cols-[0.6fr_1.4fr]">
             <div>
               <p className="eyebrow">Frequently Asked Questions</p>
-              <h2 className="mt-3 font-display text-3xl sm:text-4xl font-semibold tracking-tight text-slate-100">
+              <h2 className="mt-2 font-display text-2xl sm:text-3xl font-semibold tracking-tight text-slate-100">
                 Got Questions?
               </h2>
-              <p className="mt-4 text-xs sm:text-sm text-slate-400">
+              <p className="mt-3 text-xs sm:text-sm text-slate-400">
                 Everything you need to know about Skill Vault platform, digital assets, purchasing, and instant delivery.
               </p>
             </div>

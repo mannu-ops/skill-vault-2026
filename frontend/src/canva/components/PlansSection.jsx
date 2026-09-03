@@ -9,29 +9,29 @@ export default function PlansSection({ plans, onSelectPlan, loading }) {
   };
 
   return (
-    <section id="plans" className="relative py-20 bg-slate-950/50">
+    <section id="plans" className="relative py-12 sm:py-16 lg:py-20 bg-slate-950/50">
       {/* Subtle Glow Background */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-blue-600/10 blur-[150px] rounded-full pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-4">
+        <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-3">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Transparent Pricing</span>
           </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight mb-3">
             Choose Your Canva Pro Access
           </h2>
-          <p className="text-slate-400 text-base sm:text-lg">
+          <p className="text-slate-400 text-xs sm:text-sm">
             Instant activation delivered straight to your email. No hidden fees or recurring traps.
           </p>
         </div>
 
         {/* Loading Skeleton State */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
               <div key={i} className="glass-card rounded-3xl p-8 h-[480px] animate-pulse flex flex-col justify-between border border-white/5">
                 <div className="space-y-4">
@@ -49,7 +49,7 @@ export default function PlansSection({ plans, onSelectPlan, loading }) {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
             {plans.map((plan) => {
               const isPopular = plan.is_popular;
               const discountStr = calculateDiscount(plan.price, plan.original_price);
