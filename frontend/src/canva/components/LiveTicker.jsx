@@ -2,31 +2,56 @@ import React, { useState, useEffect } from 'react';
 import { Zap } from 'lucide-react';
 
 const RECENT_ACTIVATIONS = [
-  { name: 'Rahul M.', city: 'Delhi', plan: '1 Year Pro', time: '20 seconds ago' },
-  { name: 'Ananya S.', city: 'Bengaluru', plan: 'Lifetime VIP', time: '45 seconds ago' },
-  { name: 'Vikram K.', city: 'Mumbai', plan: '1 Year Pro', time: '1 minute ago' },
-  { name: 'Priya R.', city: 'Hyderabad', plan: '6 Months Pro', time: '2 minutes ago' },
-  { name: 'Siddharth P.', city: 'Pune', plan: '1 Year Pro', time: '3 minutes ago' },
-  { name: 'Neha V.', city: 'Jaipur', plan: '1 Month Starter', time: '4 minutes ago' },
+  { email: 'pri***r@gmail.com', plan: '1 Year Canva Pro', time: '20 seconds ago' },
+  { email: 'rah***9@gmail.com', plan: 'Lifetime Canva Pro', time: '45 seconds ago' },
+  { email: 'vik***m@yahoo.com', plan: '1 Year Canva Pro', time: '1 minute ago' },
+  { email: 'ana***s@gmail.com', plan: '6 Months Canva Pro', time: '2 minutes ago' },
+  { email: 'sid***p@gmail.com', plan: '1 Year Canva Pro', time: '3 minutes ago' },
+  { email: 'neh***v@outlook.com', plan: 'Lifetime Canva Pro', time: '4 minutes ago' },
+  { email: 'roh***k@gmail.com', plan: '1 Year Canva Pro', time: '5 minutes ago' },
+  { email: 'poo***a@gmail.com', plan: '6 Months Canva Pro', time: '7 minutes ago' },
 ];
 
-export default function LiveTicker() {
+// Helper to mask any raw email: e.g. "priyarathore@gmail.com" -> "pri***e@gmail.com"
+export function maskEmail(email) {
+  if (!email || !email.includes('@')) return 'use***@gmail.com';
+  const [user, domain] = email.split('@');
+  if (user.length <= 3) {
+    return `${user.slice(0, 1)}***@${domain}`;
+  }
+  return `${user.slice(0, 3)}***${user.slice(-1)}@${domain}`;
+}
+
+export default function LiveTicker({ activations }) {
+  const [items, setItems] = useState(RECENT_ACTIVATIONS);
   const [index, setIndex] = useState(0);
   const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    if (activations && activations.length > 0) {
+      const formatted = activations.map((a, i) => ({
+        email: maskEmail(a.email),
+        plan: a.planName || '1 Year Canva Pro',
+        time: a.timestamp || `${(i + 1) * 2} minutes ago`
+      }));
+      setItems(formatted.concat(RECENT_ACTIVATIONS));
+    }
+  }, [activations]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setVisible(false);
       setTimeout(() => {
-        setIndex((prev) => (prev + 1) % RECENT_ACTIVATIONS.length);
+        setIndex((prev) => (prev + 1) % items.length);
         setVisible(true);
       }, 500);
     }, 6000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [items.length]);
 
-  const current = RECENT_ACTIVATIONS[index];
+  const current = items[index] || items[0];
+  if (!current) return null;
 
   return (
     <div
@@ -43,8 +68,8 @@ export default function LiveTicker() {
         </div>
 
         <div className="text-xs min-w-0 pr-1">
-          <p className="font-bold text-white leading-tight truncate">
-            {current.name} <span className="text-slate-400 font-normal text-[11px]">({current.city})</span>
+          <p className="font-bold text-white font-mono text-[12px] leading-tight truncate">
+            {current.email}
           </p>
           <p className="text-[11px] text-cyan-300 font-medium truncate">
             Activated <strong className="text-purple-300">{current.plan}</strong>
