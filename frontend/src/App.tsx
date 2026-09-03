@@ -1220,11 +1220,11 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
 
             {/* FULL WIDTH RESPONSIVE IMAGE DIRECTLY ABOVE TITLE */}
             {course.imageUrl && (
-              <div className="w-full overflow-hidden rounded-2xl border border-slate-700/80 bg-[#07080e] p-1.5 mb-6 shadow-xl shadow-violet-950/30 flex items-center justify-center">
+              <div className="w-full overflow-hidden rounded-2xl border border-slate-700/80 bg-[#07080e] mb-6 shadow-xl shadow-violet-950/30 aspect-[21/9] sm:aspect-[16/7] max-h-[360px] sm:max-h-[400px]">
                 <img
                   src={getImageBanner(course.imageUrl, 1200)}
                   alt={course.title}
-                  className="w-full h-auto max-h-[300px] sm:max-h-[340px] object-contain rounded-xl bg-[#07080e] mx-auto block"
+                  className="w-full h-full object-cover rounded-2xl block"
                   loading="eager"
                 />
               </div>
@@ -1417,7 +1417,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                       <img
                         src={getImageBanner(currentImg, 1200)}
                         alt="Product Gallery Preview"
-                        className="w-full h-full object-contain cursor-zoom-in transition-transform duration-500 group-hover:scale-105"
+                        className="w-full h-full object-cover cursor-zoom-in transition-transform duration-500 group-hover:scale-105"
                         onClick={() => { setSelectedGalleryImg(currentImg); setIsLightboxOpen(true); }}
                       />
                       <button
