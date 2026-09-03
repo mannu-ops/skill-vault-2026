@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Mail, CheckCircle2, ShieldCheck, Zap, ArrowRight, Sparkles, Lock, Crown, ChevronDown } from 'lucide-react';
 
-export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan, onActivate }) {
+export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan, onActivate, isProcessing = false, paymentError = '' }) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isProcessing) return;
     if (!email || !email.includes('@') || !email.includes('.')) {
       setError('Please enter a valid Canva account email address.');
       return;
@@ -139,13 +140,30 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
             </p>
           )}
 
+          {paymentError && (
+            <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+              <span>⚠️</span>
+              <span>{paymentError}</span>
+            </div>
+          )}
+
           {/* Glowing CTA Button */}
           <button
             type="submit"
-            className="w-full py-3 sm:py-3.5 md:py-4 px-5 sm:px-6 rounded-xl sm:rounded-2xl btn-futuristic font-heading font-black text-sm sm:text-base md:text-lg text-white flex items-center justify-center gap-2.5 cursor-pointer shadow-[0_0_40px_rgba(125,42,232,0.8)] group mt-1"
+            disabled={isProcessing}
+            className="w-full py-3 sm:py-3.5 md:py-4 px-5 sm:px-6 rounded-xl sm:rounded-2xl btn-futuristic font-heading font-black text-sm sm:text-base md:text-lg text-white flex items-center justify-center gap-2.5 cursor-pointer shadow-[0_0_40px_rgba(125,42,232,0.8)] group mt-1 disabled:opacity-75 disabled:cursor-not-allowed"
           >
-            <span>Activate Canva Pro Now (₹{currentPrice})</span>
-            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1 shrink-0" />
+            {isProcessing ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                <span>Opening Secure Gateway...</span>
+              </>
+            ) : (
+              <>
+                <span>Activate Canva Pro Now (₹{currentPrice})</span>
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1 shrink-0" />
+              </>
+            )}
           </button>
 
           {/* Trust Guarantees */}
