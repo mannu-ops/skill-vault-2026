@@ -2756,6 +2756,9 @@ app.post('/api/checkout/webhook', async (req, res) => {
     }
   }
 
+  return res.json({ status: 'ok' });
+});
+
 // 4. HEALTH CHECK & KEEP-ALIVE ENDPOINTS
 app.get(['/api/health', '/health', '/api/ping'], (req, res) => {
   return res.status(200).json({
