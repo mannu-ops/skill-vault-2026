@@ -283,19 +283,30 @@ export async function initDb() {
       CREATE TABLE IF NOT EXISTS canva_activations (
         id VARCHAR(255) PRIMARY KEY,
         email VARCHAR(255) NOT NULL,
-        plan_name VARCHAR(255) NOT NULL,
-        amount NUMERIC NOT NULL,
+        plan_name VARCHAR(255) NOT NULL DEFAULT 'Canva Pro Access',
+        amount NUMERIC NOT NULL DEFAULT 199,
         payment_method VARCHAR(100) DEFAULT 'UPI QR',
-        invite_link TEXT NOT NULL,
+        invite_link TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
-      ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS plan_name VARCHAR(255);
-      ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS email VARCHAR(255);
-      ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS amount NUMERIC DEFAULT 199;
-      ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS payment_method VARCHAR(100) DEFAULT 'UPI QR';
-      ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS invite_link TEXT;
-      ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
     `);
+
+    const canvaTableMigrations = [
+      `ALTER TABLE canva_activations ALTER COLUMN id TYPE VARCHAR(255);`,
+      `ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS plan_name VARCHAR(255) DEFAULT 'Canva Pro Access';`,
+      `ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS email VARCHAR(255);`,
+      `ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS amount NUMERIC DEFAULT 199;`,
+      `ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS payment_method VARCHAR(100) DEFAULT 'UPI QR';`,
+      `ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS invite_link TEXT;`,
+      `ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;`
+    ];
+    for (const q of canvaTableMigrations) {
+      try {
+        await client.query(q);
+      } catch (colErr) {
+        // Safe to ignore if column already exists
+      }
+    }
 
     // Seed default Canva Plans if empty
     const canvaPlansCheck = await client.query('SELECT COUNT(*) FROM canva_plans');

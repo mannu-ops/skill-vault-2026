@@ -47,17 +47,29 @@ export default function AdminPanel({
   const [paymentAnalytics, setPaymentAnalytics] = useState(null);
   const [paymentHistory, setPaymentHistory] = useState([]);
 
-  // Load Payment Analytics
+  // Load Payment Analytics & Refresh Data on Tab Change
   useEffect(() => {
     let isMounted = true;
-    async function loadAnalytics() {
-      const res = await fetchPaymentAnalytics();
-      if (isMounted && res) {
-        setPaymentAnalytics(res.analytics);
-        setPaymentHistory(res.payments || []);
+    async function loadData() {
+      const [res, actsData, plansData] = await Promise.all([
+        fetchPaymentAnalytics(),
+        fetchActivations(),
+        fetchPlans()
+      ]);
+      if (isMounted) {
+        if (res) {
+          setPaymentAnalytics(res.analytics);
+          setPaymentHistory(res.payments || []);
+        }
+        if (actsData && propActivations === undefined) {
+          setActivations(actsData);
+        }
+        if (plansData && propPlans === undefined) {
+          setPlans(plansData);
+        }
       }
     }
-    loadAnalytics();
+    loadData();
     return () => { isMounted = false; };
   }, [activeTab]);
 
@@ -185,17 +197,19 @@ export default function AdminPanel({
   };
 
   // Calculate statistics
-  const totalRevenue = activations.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const totalRevenue = activations.reduce((sum, item) => sum + Number(item.amount || item.amountPaidInr || item.amount_paid_inr || 0), 0);
 
   const filteredPlans = plans.filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.duration.toLowerCase().includes(searchTerm.toLowerCase())
+    (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.duration || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredActivations = activations.filter(item =>
-    item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.planName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredActivations = activations.filter(item => {
+    const email = (item.email || item.user_email || '').toLowerCase();
+    const plan = (item.planName || item.plan_name || '').toLowerCase();
+    const search = searchTerm.toLowerCase();
+    return email.includes(search) || plan.includes(search);
+  });
 
   // Open modal for Creating plan
   const handleOpenCreatePlan = () => {

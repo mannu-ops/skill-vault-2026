@@ -1433,14 +1433,34 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
           COUNT(CASE WHEN id NOT LIKE 'pur_act_%' THEN 1 END) as total_pur 
         FROM purchases
       `);
-      const canvaRevRes = await query('SELECT COALESCE(SUM(amount), 0) as canva_rev, COUNT(*) as canva_pur FROM canva_activations').catch(() => ({ rows: [{ canva_rev: 0, canva_pur: 0 }] }));
+      let canvaRev = 0;
+      let canvaOrders = 0;
+      try {
+        const canvaRevRes = await query('SELECT COALESCE(SUM(amount), 0) as canva_rev, COUNT(*) as canva_pur FROM canva_activations');
+        if (canvaRevRes && canvaRevRes.rows && canvaRevRes.rows[0]) {
+          canvaRev = Number(canvaRevRes.rows[0].canva_rev) || 0;
+          canvaOrders = Number(canvaRevRes.rows[0].canva_pur) || 0;
+        }
+      } catch (cErr) {
+        console.warn('canva_activations query error in stats:', cErr.message);
+      }
+
+      // If canva_activations had 0 orders, fallback to Canva purchases mirrored in purchases table
+      if (canvaOrders === 0) {
+        try {
+          const purCanvaRes = await query("SELECT COALESCE(SUM(amount_paid_inr), 0) as canva_rev, COUNT(*) as canva_pur FROM purchases WHERE id LIKE 'pur_act_%' OR course_id LIKE '%Canva%'");
+          if (purCanvaRes && purCanvaRes.rows && purCanvaRes.rows[0]) {
+            canvaRev = Number(purCanvaRes.rows[0].canva_rev) || 0;
+            canvaOrders = Number(purCanvaRes.rows[0].canva_pur) || 0;
+          }
+        } catch (purCErr) {}
+      }
+
       const userRes = await query('SELECT COUNT(*) as total_users FROM users');
       const prodRes = await query('SELECT COUNT(*) as total_prods FROM products');
 
       const skillVaultRev = Number(revRes.rows[0].total_rev) || 0;
-      const canvaRev = Number(canvaRevRes.rows[0].canva_rev) || 0;
       const skillVaultOrders = Number(revRes.rows[0].total_pur) || 0;
-      const canvaOrders = Number(canvaRevRes.rows[0].canva_pur) || 0;
 
       return res.json({
         totalRevenueInr: skillVaultRev + canvaRev,
@@ -1457,14 +1477,18 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
     console.error('PostgreSQL stats error:', err.message);
   }
 
-  const totalRevenueInr = inMemoryDb.purchases.reduce((sum, p) => sum + (p.amountPaidInr || 0), 0);
+  const memCanvaPurchases = inMemoryDb.purchases.filter(p => (p.id && p.id.includes('act_')) || (p.courseId && p.courseId.includes('Canva')));
+  const memSVRPurchases = inMemoryDb.purchases.filter(p => !((p.id && p.id.includes('act_')) || (p.courseId && p.courseId.includes('Canva'))));
+  const memCanvaRev = memCanvaPurchases.reduce((sum, p) => sum + (p.amountPaidInr || 0), 0);
+  const memSVRev = memSVRPurchases.reduce((sum, p) => sum + (p.amountPaidInr || 0), 0);
+
   res.json({
-    totalRevenueInr,
+    totalRevenueInr: memSVRev + memCanvaRev,
     totalPurchases: inMemoryDb.purchases.length,
-    skillVaultRevenueInr: totalRevenueInr,
-    canvaRevenueInr: 0,
-    skillVaultPurchases: inMemoryDb.purchases.length,
-    canvaPurchases: 0,
+    skillVaultRevenueInr: memSVRev,
+    canvaRevenueInr: memCanvaRev,
+    skillVaultPurchases: memSVRPurchases.length,
+    canvaPurchases: memCanvaPurchases.length,
     totalUsers: inMemoryDb.users.length,
     totalCourses: inMemoryDb.products.length
   });

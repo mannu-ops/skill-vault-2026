@@ -126,12 +126,12 @@ const formatPlan = (p, includeSecret = false) => ({
 // Helper to format activation row from Neon PostgreSQL
 const formatActivation = (a) => ({
   id: a.id,
-  email: a.email,
-  planName: a.plan_name,
-  amount: Number(a.amount),
-  paymentMethod: a.payment_method || 'UPI QR',
-  inviteLink: a.invite_link,
-  timestamp: a.created_at ? new Date(a.created_at).toLocaleString() : new Date().toLocaleString()
+  email: a.email || a.user_email || 'customer@example.com',
+  planName: a.plan_name || a.planName || (a.course_id ? String(a.course_id).replace('🎨 Canva Pro: ', '') : 'Canva Pro Access'),
+  amount: Number(a.amount ?? a.amount_paid_inr ?? 199),
+  paymentMethod: a.payment_method || a.paymentMethod || 'Razorpay UPI',
+  inviteLink: a.invite_link || a.inviteLink || a.drive_url || '',
+  timestamp: a.created_at ? new Date(a.created_at).toLocaleString() : (a.timestamp || new Date().toLocaleString())
 });
 
 // ==========================================
@@ -324,15 +324,34 @@ router.delete('/api/plans/:id', authenticateAdminToken, deletePlanHandler);
 // 3. Canva Activations (Orders) Endpoints
 // ==========================================
 const getActivationsHandler = async (req, res) => {
+  let activationsList = [];
+
   try {
     const result = await query('SELECT * FROM canva_activations ORDER BY created_at DESC');
-    if (result && result.rows) {
-      return res.json({ activations: result.rows.map(formatActivation) });
+    if (result && result.rows && result.rows.length > 0) {
+      activationsList = result.rows.map(formatActivation);
     }
   } catch (e) {
     console.error('Neon Canva Activations Fetch Error:', e.message);
   }
-  return res.json({ activations: mockActivations });
+
+  // Resilient fallback: Check purchases table for Canva records if activations empty
+  if (activationsList.length === 0) {
+    try {
+      const purResult = await query("SELECT * FROM purchases WHERE id LIKE 'pur_act_%' OR course_id LIKE '%Canva%' ORDER BY created_at DESC");
+      if (purResult && purResult.rows && purResult.rows.length > 0) {
+        activationsList = purResult.rows.map(formatActivation);
+      }
+    } catch (purErr) {
+      console.warn('Fallback purchases query error in getActivationsHandler:', purErr.message);
+    }
+  }
+
+  if (activationsList.length === 0 && mockActivations.length > 0) {
+    activationsList = mockActivations.map(formatActivation);
+  }
+
+  return res.json({ activations: activationsList });
 };
 
 const createActivationHandler = async (req, res) => {
@@ -427,15 +446,29 @@ router.delete('/api/activations/:id', authenticateAdminToken, deleteActivationHa
 // 4. Canva Payments & Analytics Endpoints
 // ==========================================
 const paymentsAnalyticsHandler = async (req, res) => {
-  let activationsList = mockActivations;
+  let activationsList = [];
 
   try {
     const result = await query('SELECT * FROM canva_activations ORDER BY created_at DESC');
-    if (result && result.rows) {
+    if (result && result.rows && result.rows.length > 0) {
       activationsList = result.rows.map(formatActivation);
     }
   } catch (e) {
     console.error('Neon Canva Payments Analytics Fetch Error:', e.message);
+  }
+
+  // Resilient fallback: Also check purchases table
+  if (activationsList.length === 0) {
+    try {
+      const purResult = await query("SELECT * FROM purchases WHERE id LIKE 'pur_act_%' OR course_id LIKE '%Canva%' ORDER BY created_at DESC");
+      if (purResult && purResult.rows && purResult.rows.length > 0) {
+        activationsList = purResult.rows.map(formatActivation);
+      }
+    } catch (purErr) {}
+  }
+
+  if (activationsList.length === 0 && mockActivations.length > 0) {
+    activationsList = mockActivations.map(formatActivation);
   }
 
   const totalSales = activationsList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
@@ -693,6 +726,11 @@ const verifyPaymentHandler = async (req, res) => {
         await query(`
           INSERT INTO canva_activations (id, email, plan_name, amount, payment_method, invite_link)
           VALUES ($1, $2, $3, $4, $5, $6)
+          ON CONFLICT (id) DO UPDATE SET
+            email = EXCLUDED.email,
+            plan_name = EXCLUDED.plan_name,
+            amount = EXCLUDED.amount,
+            invite_link = EXCLUDED.invite_link
         `, [
           activationId,
           customerEmail || 'customer@example.com',
@@ -701,8 +739,19 @@ const verifyPaymentHandler = async (req, res) => {
           'Razorpay UPI',
           inviteLink
         ]);
+        console.log(`✅ [CANVA DB] Recorded activation ${activationId} for ${customerEmail}`);
       } catch (actErr) {
         console.error('Insert canva_activations error:', actErr.message);
+        // Safe fallback for minimal columns
+        try {
+          await query(`
+            INSERT INTO canva_activations (id, email, plan_name, amount, invite_link)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (id) DO NOTHING
+          `, [activationId, customerEmail || 'customer@example.com', planName, planPrice, inviteLink]);
+        } catch (innerErr) {
+          console.error('Fallback canva_activations insert failed:', innerErr.message);
+        }
       }
 
       try {
@@ -722,12 +771,26 @@ const verifyPaymentHandler = async (req, res) => {
           true,
           inviteLink
         ]);
+        console.log(`✅ [CANVA DB] Mirrored purchase pur_${activationId} in purchases table`);
       } catch (purErr) {
         console.error('Mirror Canva purchase to purchases table error:', purErr.message);
       }
     }
 
-    // 4. Update inMemoryDb purchases
+    // 4. Update in-memory storage for immediate real-time synchronization
+    mockActivations.unshift({
+      id: activationId,
+      email: customerEmail || 'customer@example.com',
+      planName: planName,
+      plan_name: planName,
+      amount: planPrice,
+      paymentMethod: 'Razorpay UPI',
+      payment_method: 'Razorpay UPI',
+      inviteLink: inviteLink,
+      invite_link: inviteLink,
+      timestamp: new Date().toLocaleString()
+    });
+
     inMemoryDb.purchases.unshift({
       id: `pur_${activationId}`,
       userEmail: customerEmail || 'customer@example.com',
