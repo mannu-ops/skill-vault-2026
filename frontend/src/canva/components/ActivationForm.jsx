@@ -19,7 +19,7 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
   const currentPrice = selectedPlan ? selectedPlan.price : (plans[0] ? plans[0].price : 0);
 
   return (
-    <div className="w-full max-w-xl mx-auto glass-card rounded-2xl sm:rounded-3xl p-5 sm:p-7 md:p-8 relative border border-purple-500/40 shadow-[0_0_70px_rgba(125,42,232,0.3)]">
+    <div className="w-full max-w-lg mx-auto glass-card rounded-2xl p-4 sm:p-5 md:p-6 relative border border-purple-500/40 shadow-[0_0_50px_rgba(125,42,232,0.25)]">
       
       <div className="space-y-4 sm:space-y-5">
         

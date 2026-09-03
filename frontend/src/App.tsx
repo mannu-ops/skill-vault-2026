@@ -1208,23 +1208,23 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
 
       <main className="pt-24 pb-24">
         {/* COURSE BREADCRUMB & TOP HEADER */}
-        <section className="border-b border-slate-800/80 bg-[#0c0e17] py-8 sm:py-12 md:py-16">
+        <section className="border-b border-slate-800/80 bg-[#0c0e17] py-6 sm:py-8 md:py-10">
           <div className="site-shell max-w-5xl">
             <button
               type="button"
               onClick={() => setLocation('/')}
-              className="inline-flex items-center gap-2 rounded-md border border-slate-800 bg-slate-900/80 px-3 py-1.5 font-mono-custom text-xs sm:text-sm text-slate-400 hover:border-slate-700 hover:text-white transition mb-6 cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-md border border-slate-800 bg-slate-900/80 px-3 py-1.5 font-mono-custom text-xs sm:text-sm text-slate-400 hover:border-slate-700 hover:text-white transition mb-5 cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Back to All Courses
             </button>
 
             {/* FULL WIDTH RESPONSIVE IMAGE DIRECTLY ABOVE TITLE */}
             {course.imageUrl && (
-              <div className="w-full overflow-hidden rounded-2xl border border-slate-700/80 bg-[#07080e] p-1.5 mb-8 shadow-2xl shadow-violet-950/40 flex items-center justify-center">
+              <div className="w-full overflow-hidden rounded-2xl border border-slate-700/80 bg-[#07080e] p-1.5 mb-6 shadow-xl shadow-violet-950/30 flex items-center justify-center">
                 <img
                   src={getImageBanner(course.imageUrl, 1200)}
                   alt={course.title}
-                  className="w-full h-auto max-h-[550px] object-contain rounded-xl bg-[#07080e] mx-auto block"
+                  className="w-full h-auto max-h-[300px] sm:max-h-[340px] object-contain rounded-xl bg-[#07080e] mx-auto block"
                   loading="eager"
                 />
               </div>
@@ -1757,39 +1757,39 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
 
       <main>
         {/* HERO SECTION */}
-        <section className="relative isolate min-h-[640px] overflow-hidden border-b border-slate-800/70 pt-28 sm:pt-36" aria-labelledby="hero-title">
+        <section className="relative isolate min-h-[460px] overflow-hidden border-b border-slate-800/70 pt-20 sm:pt-24 pb-10 sm:pb-14" aria-labelledby="hero-title">
           <div className="grid-fade absolute inset-0 -z-10 opacity-60" />
-          <div className="hero-orb absolute -right-48 top-20 -z-10 size-[620px] rounded-full" />
-          <div className="cyan-orb absolute -left-60 top-[380px] -z-10 size-[520px] rounded-full" />
+          <div className="hero-orb absolute -right-48 top-20 -z-10 size-[480px] rounded-full" />
+          <div className="cyan-orb absolute -left-60 top-[380px] -z-10 size-[400px] rounded-full" />
 
-          <div className="site-shell relative pb-20 text-center">
-            <div className="mx-auto max-w-4xl">
-              <div className="fade-up mb-5 inline-flex items-center gap-2 rounded-full border border-violet-300/25 bg-violet-300/5 px-4 py-1.5 font-mono-custom text-[11px] text-violet-200">
+          <div className="site-shell relative pb-8 sm:pb-12 text-center">
+            <div className="mx-auto max-w-3xl">
+              <div className="fade-up mb-4 inline-flex items-center gap-2 rounded-full border border-violet-300/25 bg-violet-300/5 px-3.5 py-1 font-mono-custom text-[11px] text-violet-200">
                 <span className="size-1.5 rounded-full bg-violet-300 shadow-[0_0_10px_hsl(269_100%_72%)]" />
                 SKILL VAULT & DIGITAL ASSETS HUB
               </div>
 
-              <h1 id="hero-title" className="hero-title fade-up delay-1 font-display text-[clamp(1.65rem,5vw,5.2rem)] font-bold leading-[1.1] sm:leading-[1.05] tracking-[-0.03em] sm:tracking-[-0.04em] text-slate-100">
+              <h1 id="hero-title" className="hero-title fade-up delay-1 font-display text-2xl sm:text-4xl lg:text-[2.85rem] font-bold leading-[1.18] sm:leading-[1.12] tracking-[-0.02em] sm:tracking-[-0.03em] text-slate-100">
                 All-in-One Vault to <br className="hidden sm:inline" />
                 <span className="bg-gradient-to-r from-violet-300 via-cyan-300 to-emerald-300 bg-clip-text text-transparent">
                   Learn Tech Skills & Access Digital Assets.
                 </span>
               </h1>
 
-              <p className="fade-up delay-2 mx-auto mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-slate-400">
+              <p className="fade-up delay-2 mx-auto mt-4 max-w-xl text-sm sm:text-base leading-relaxed text-slate-400">
                 High-impact video courses, developer software tools, cybersecurity toolkits, game packs, and study notes. Everything you need to learn, build, and scale.
               </p>
 
               {/* SEARCH & FILTER BAR */}
-              <div className="fade-up delay-3 mx-auto mt-9 max-w-xl">
-                <div className="relative flex items-center rounded-xl border border-slate-700/80 bg-[#0e101a] p-2 shadow-2xl focus-within:border-violet-400/50">
-                  <Search size={18} className="ml-3 text-slate-400 shrink-0" />
+              <div className="fade-up delay-3 mx-auto mt-7 max-w-lg">
+                <div className="relative flex items-center rounded-xl border border-slate-700/80 bg-[#0e101a] p-1.5 shadow-2xl focus-within:border-violet-400/50">
+                  <Search size={16} className="ml-2.5 text-slate-400 shrink-0" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search assets (e.g., Android Security, Full Stack, Software, Hacks, Notes)..."
-                    className="w-full bg-transparent px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none"
+                    className="w-full bg-transparent px-2.5 py-1.5 text-xs sm:text-sm text-slate-200 placeholder-slate-500 focus:outline-none"
                   />
                   {searchQuery && (
                     <button
@@ -1797,22 +1797,22 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
                       onClick={() => setSearchQuery('')}
                       className="mr-2 rounded-md p-1 text-slate-500 hover:text-slate-200"
                     >
-                      <X size={16} />
+                      <X size={15} />
                     </button>
                   )}
                 </div>
               </div>
 
               {/* STATS STRIP */}
-              <div className="mt-12 flex flex-wrap items-center justify-center gap-6 sm:gap-12 font-mono-custom text-xs text-slate-400">
-                <span className="flex items-center gap-2">
-                  <Award size={15} className="text-violet-300" /> Premium Digital Assets & Courses
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-5 sm:gap-10 font-mono-custom text-xs text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Award size={14} className="text-violet-300" /> Premium Digital Assets & Courses
                 </span>
-                <span className="flex items-center gap-2">
-                  <ShieldCheck size={15} className="text-cyan-300" /> Verified Razorpay Checkout
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="text-cyan-300" /> Verified Razorpay Checkout
                 </span>
-                <span className="flex items-center gap-2">
-                  <Clock size={15} className="text-emerald-300" /> Instant Delivery & Lifetime Access
+                <span className="flex items-center gap-1.5">
+                  <Clock size={14} className="text-emerald-300" /> Instant Delivery & Lifetime Access
                 </span>
               </div>
             </div>

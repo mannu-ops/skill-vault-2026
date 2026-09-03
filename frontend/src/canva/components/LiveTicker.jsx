@@ -55,16 +55,16 @@ export default function LiveTicker({ activations }) {
 
   return (
     <div
-      className={`fixed bottom-3 left-3 sm:bottom-6 sm:left-6 z-30 max-w-[calc(100vw-24px)] sm:max-w-xs transition-all duration-500 transform ${
-        visible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'
+      className={`fixed bottom-3 left-3 sm:bottom-4 sm:left-4 z-30 max-w-[calc(100vw-24px)] sm:max-w-[280px] transition-all duration-500 transform ${
+        visible ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0 pointer-events-none'
       }`}
     >
-      <div className="glass-card px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl border border-purple-500/30 flex items-center gap-2.5 sm:gap-3 shadow-[0_0_25px_rgba(125,42,232,0.25)] backdrop-blur-md">
+      <div className="glass-card px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-purple-500/30 flex items-center gap-2.5 shadow-[0_0_15px_rgba(125,42,232,0.2)] backdrop-blur-md">
         <div className="relative flex-shrink-0">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-cyan-500 flex items-center justify-center text-white shadow-md">
-            <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-purple-600 to-cyan-500 flex items-center justify-center text-white shadow-sm">
+            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
-          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-400 rounded-full border-2 border-[#090A0F]" />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-400 rounded-full border-2 border-[#090A0F]" />
         </div>
 
         <div className="text-xs min-w-0 pr-1">
