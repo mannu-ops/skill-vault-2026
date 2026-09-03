@@ -468,16 +468,7 @@ export default function AdminPanel({
             <span>Activations ({activations.length})</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`shrink-0 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-heading font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${activeTab === 'analytics'
-              ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
-          >
-            <TrendingUp className="w-4 h-4 shrink-0" />
-            <span>Revenue</span>
-          </button>
+
         </div>
 
         {activeTab === 'plans' && (
@@ -674,36 +665,6 @@ export default function AdminPanel({
         </div>
       )}
 
-      {/* TAB 3: REVENUE ANALYTICS */}
-      {activeTab === 'analytics' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-            <div className="glass-card rounded-2xl p-6 border border-emerald-500/30 space-y-2">
-              <DollarSign className="w-8 h-8 text-emerald-400" />
-              <p className="text-xs text-slate-400 font-semibold">Total Gross Store Revenue</p>
-              <p className="font-heading font-black text-3xl text-emerald-400">
-                ₹{paymentAnalytics ? paymentAnalytics.totalSales : totalRevenue}
-              </p>
-            </div>
-
-            <div className="glass-card rounded-2xl p-6 border border-purple-500/30 space-y-2">
-              <Sparkles className="w-8 h-8 text-purple-400" />
-              <p className="text-xs text-slate-400 font-semibold">Verified Completed Orders</p>
-              <p className="font-heading font-black text-3xl text-purple-300">
-                {activations.length}
-              </p>
-            </div>
-
-            <div className="glass-card rounded-2xl p-6 border border-cyan-500/30 space-y-2">
-              <Crown className="w-8 h-8 text-cyan-400" />
-              <p className="text-xs text-slate-400 font-semibold">Net Admin Revenue Share</p>
-              <p className="font-heading font-black text-3xl text-cyan-300">
-                ₹{paymentAnalytics ? paymentAnalytics.adminEarnings : totalRevenue}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* MODAL FOR INSERT / EDIT PLAN WITH INVITATION LINK */}
       {isPlanModalOpen && (
