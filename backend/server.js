@@ -1592,7 +1592,42 @@ async function sendPurchaseEmail({ to, customerName, paymentId, items }) {
 
   const itemsText = itemsTextList.join('\n\n');
 
-  // Pure Plain Text Content (Zero HTML)
+  // Generate responsive HTML product cards with ACCESS YOUR PRODUCT button
+  const itemsCardsList = await Promise.all(items.map(async (item, idx) => {
+    const title = item.title || item.name || item.courseId || item.id || `Digital Asset #${idx + 1}`;
+    const rawPrice = item.price !== undefined ? item.price : (item.priceInr || item.price_inr || '299');
+    const price = Math.round(parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 299);
+    const driveUrl = await getCourseDriveUrl(item);
+
+    return `
+      <div style="background-color: #161B2E; border-radius: 14px; padding: 22px 20px; margin-bottom: 20px; border: 1px solid #232B45; box-shadow: 0 4px 18px rgba(0,0,0,0.35);">
+        <div style="font-size: 16px; font-weight: 800; color: #ffffff; margin-bottom: 6px;">
+          📦 ${title}
+        </div>
+        <div style="font-size: 13px; color: #10b981; font-weight: 700; margin-bottom: 18px;">
+          Amount Paid: ₹${price}
+        </div>
+        <div style="text-align: center; margin: 15px 0 12px;">
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">
+            <tr>
+              <td align="center" style="border-radius: 12px; background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%); box-shadow: 0 4px 18px rgba(37,99,235,0.45);">
+                <a href="${driveUrl}" target="_blank" style="display: inline-block; padding: 14px 34px; font-size: 14px; font-weight: 900; color: #ffffff !important; text-decoration: none; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.7px;">
+                  🚀 ACCESS YOUR PRODUCT
+                </a>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div style="margin-top: 14px; font-size: 11px; color: #64748b; word-break: break-all; text-align: center; line-height: 1.5;">
+          Direct Link: <a href="${driveUrl}" style="color: #60a5fa; text-decoration: underline;">${driveUrl}</a>
+        </div>
+      </div>
+    `;
+  }));
+
+  const htmlCards = itemsCardsList.join('');
+
+  // Pure Plain Text Content (Zero HTML fallback)
   const textContent = `
 Hello ${customerName},
 
@@ -1600,17 +1635,82 @@ Thank you for your purchase on Skill Vault! Your payment has been successfully c
 
 Payment ID: ${paymentId}
 
-Purchased Products & Google Drive Access Links:
+Purchased Products & Google Drive Access:
 --------------------------------------------------
 ${itemsText}
 --------------------------------------------------
 
+Click the "ACCESS YOUR PRODUCT" button in your email to open your access link.
 You can also log in to your account on Skill Vault anytime to view all your active purchases.
 
 If you have any questions or need assistance, simply reply directly to this email.
 
 Best regards,
 Skill Vault Team
+  `.trim();
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skill Vault - Purchase Confirmed</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #08090E; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f1f5f9;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #08090E; padding: 35px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width: 580px; background-color: #0F121D; border-radius: 20px; border: 1px solid #2563EB; box-shadow: 0 10px 40px rgba(37,99,235,0.25); overflow: hidden;" cellspacing="0" cellpadding="0" border="0">
+          
+          <!-- Header -->
+          <tr>
+            <td style="padding: 35px 25px 20px; text-align: center; background: linear-gradient(180deg, rgba(37,99,235,0.22) 0%, rgba(15,18,29,0) 100%);">
+              <div style="font-size: 26px; font-weight: 900; letter-spacing: -0.5px; color: #ffffff;">
+                THE SKILL VAULT
+              </div>
+              <div style="display: inline-block; margin-top: 10px; padding: 5px 16px; border-radius: 20px; background: rgba(37,99,235,0.15); border: 1px solid rgba(37,99,235,0.4); font-size: 11px; font-weight: 800; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.5px;">
+                🎉 Purchase Confirmed
+              </div>
+            </td>
+          </tr>
+
+          <!-- Main Body -->
+          <tr>
+            <td style="padding: 10px 30px 30px;">
+              <h2 style="margin: 0 0 10px; font-size: 22px; font-weight: 800; color: #ffffff; text-align: center;">
+                Thank You, ${customerName}!
+              </h2>
+              <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.6; color: #94a3b8; text-align: center;">
+                Your payment has been successfully completed. Click <strong>ACCESS YOUR PRODUCT</strong> below to open your digital assets and drive access:
+              </p>
+
+              <div style="margin-bottom: 25px; font-size: 12px; font-family: monospace; color: #cbd5e1; text-align: center; background: rgba(255,255,255,0.03); padding: 9px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);">
+                Payment ID: ${paymentId}
+              </div>
+
+              <!-- Product Cards with "ACCESS YOUR PRODUCT" Buttons -->
+              ${htmlCards}
+
+              <p style="margin-top: 25px; font-size: 13px; color: #94a3b8; text-align: center; line-height: 1.5;">
+                You can also log in to your account on Skill Vault anytime to view all your active purchases.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 22px 25px; text-align: center; border-top: 1px solid #1e293b; font-size: 12px; color: #64748b; line-height: 1.5;">
+              <div style="margin-bottom: 6px;">If you have any questions or need assistance, simply reply directly to this email.</div>
+              <div>© 2026 The Skill Vault. All rights reserved.</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
   `.trim();
 
   const hostingerApiToken = process.env.HOSTINGER_MAIL_API_TOKEN;
@@ -1650,7 +1750,8 @@ Skill Vault Team
         to: [to],
         displayName: 'Skill Vault',
         subject: `Your Skill Vault purchase is confirmed — ${paymentId}`,
-        text: textContent
+        text: textContent,
+        html: htmlContent
       })
     });
 

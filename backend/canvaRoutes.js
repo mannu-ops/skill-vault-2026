@@ -635,14 +635,10 @@ ${inviteLink}
 --------------------------------------------------
 HOW TO ACTIVATE YOUR CANVA PRO:
 --------------------------------------------------
-1. Click the invite link above (or copy and paste it into your browser).
-2. Sign in with your Canva account (or create a free Canva account if you don't already have one).
+1. Click the "JOIN CANVA PRO" button in your email or open the link above.
+2. Sign in with your Canva account: ${to}.
 3. Click "Join Team" or accept the team invitation.
-4. You will instantly get full Canva Pro access unlocked:
-   - 100M+ Premium Photos, Videos, Graphics & Audio
-   - Magic Studio AI Tools & 1-Click Background Remover
-   - 100GB Cloud Storage
-   - Brand Kits & Custom Fonts
+4. You will instantly get full Canva Pro access unlocked!
 
 NEED ASSISTANCE?
 If you have any questions or need help with activation, simply reply directly to this email or contact our 24/7 WhatsApp Support:
@@ -651,6 +647,106 @@ WhatsApp: +91 7652072236 (https://wa.me/917652072236)
 Best regards,
 The Skill Vault Team
 https://www.theskillvault.store
+  `.trim();
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Canva Pro Access is Ready!</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #08090E; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f1f5f9;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #08090E; padding: 35px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width: 580px; background-color: #0F121D; border-radius: 20px; border: 1px solid #7D2AE8; box-shadow: 0 10px 40px rgba(125,42,232,0.3); overflow: hidden;" cellspacing="0" cellpadding="0" border="0">
+          
+          <!-- Header -->
+          <tr>
+            <td style="padding: 35px 25px 20px; text-align: center; background: linear-gradient(180deg, rgba(125,42,232,0.25) 0%, rgba(15,18,29,0) 100%);">
+              <div style="font-size: 26px; font-weight: 900; letter-spacing: -0.5px; color: #ffffff;">
+                THE SKILL VAULT
+              </div>
+              <div style="display: inline-block; margin-top: 10px; padding: 5px 16px; border-radius: 20px; background: rgba(0, 242, 254, 0.12); border: 1px solid rgba(0, 242, 254, 0.35); font-size: 11px; font-weight: 800; color: #00F2FE; text-transform: uppercase; letter-spacing: 0.5px;">
+                ⚡ Official Canva Pro Activation
+              </div>
+            </td>
+          </tr>
+
+          <!-- Main Body -->
+          <tr>
+            <td style="padding: 10px 30px 30px;">
+              <h2 style="margin: 0 0 10px; font-size: 22px; font-weight: 800; color: #ffffff; text-align: center;">
+                Your Canva Pro Access is Ready! 🎉
+              </h2>
+              <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.6; color: #94a3b8; text-align: center;">
+                Your payment has been successfully confirmed. Click the button below to join your official Canva Pro team and unlock full Pro templates, Magic Studio AI & Brand Kits!
+              </p>
+
+              <!-- Order Summary Card -->
+              <table width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #161B2E; border-radius: 14px; padding: 16px 20px; margin-bottom: 30px; border: 1px solid #232B45;">
+                <tr>
+                  <td style="padding: 6px 0; font-size: 13px; color: #94a3b8;">Plan:</td>
+                  <td style="padding: 6px 0; font-size: 14px; font-weight: bold; color: #00F2FE; text-align: right;">${planName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; font-size: 13px; color: #94a3b8;">Amount Paid:</td>
+                  <td style="padding: 6px 0; font-size: 14px; font-weight: bold; color: #10b981; text-align: right;">₹${amount}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; font-size: 13px; color: #94a3b8;">Payment ID:</td>
+                  <td style="padding: 6px 0; font-size: 12px; font-family: monospace; color: #cbd5e1; text-align: right;">${paymentId}</td>
+                </tr>
+              </table>
+
+              <!-- BIG CALL TO ACTION BUTTON: JOIN CANVA PRO -->
+              <div style="text-align: center; margin: 35px 0 25px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">
+                  <tr>
+                    <td align="center" style="border-radius: 14px; background: linear-gradient(135deg, #7D2AE8 0%, #00F2FE 100%); box-shadow: 0 6px 25px rgba(125,42,232,0.5);">
+                      <a href="${inviteLink}" target="_blank" style="display: inline-block; padding: 16px 42px; font-size: 16px; font-weight: 900; color: #ffffff !important; text-decoration: none; border-radius: 14px; text-transform: uppercase; letter-spacing: 0.8px;">
+                        🚀 JOIN CANVA PRO
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Quick Steps -->
+              <div style="background-color: rgba(255,255,255,0.03); border-radius: 14px; padding: 18px 20px; border: 1px solid rgba(255,255,255,0.07); margin-top: 25px;">
+                <div style="font-size: 13px; font-weight: 800; color: #f8fafc; margin-bottom: 8px;">
+                  📌 How to Join in 3 Easy Steps:
+                </div>
+                <ol style="margin: 0; padding-left: 18px; font-size: 13px; color: #94a3b8; line-height: 1.6;">
+                  <li style="margin-bottom: 6px;">Click the <strong>JOIN CANVA PRO</strong> button above.</li>
+                  <li style="margin-bottom: 6px;">Sign in with your Canva email: <strong style="color: #cbd5e1;">${to}</strong>.</li>
+                  <li>Click <strong>"Join Team"</strong> — All Pro features & AI tools will unlock instantly!</li>
+                </ol>
+              </div>
+
+              <!-- Direct Link Fallback -->
+              <div style="margin-top: 20px; font-size: 11px; color: #64748b; word-break: break-all; text-align: center; line-height: 1.5;">
+                If the button above is not clickable, copy & paste this direct link:<br/>
+                <a href="${inviteLink}" style="color: #00F2FE; text-decoration: underline;">${inviteLink}</a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 22px 25px; text-align: center; border-top: 1px solid #1e293b; font-size: 12px; color: #64748b; line-height: 1.5;">
+              <div style="margin-bottom: 6px;">Need help? Reply to this email or contact WhatsApp: <strong>+91 7652072236</strong></div>
+              <div>© 2026 The Skill Vault. All rights reserved.</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
   `.trim();
 
   const hostingerApiToken = process.env.HOSTINGER_MAIL_API_TOKEN;
@@ -672,7 +768,8 @@ https://www.theskillvault.store
         to: [to],
         displayName: 'The Skill Vault',
         subject: `🎉 Your Canva Pro Access is Ready! — Order ${paymentId}`,
-        text: textContent
+        text: textContent,
+        html: htmlContent
       })
     });
 
