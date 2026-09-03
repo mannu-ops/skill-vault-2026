@@ -1220,11 +1220,11 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
 
             {/* FULL WIDTH RESPONSIVE IMAGE DIRECTLY ABOVE TITLE */}
             {course.imageUrl && (
-              <div className="w-full overflow-hidden rounded-2xl border border-slate-700/80 bg-[#07080e] mb-6 shadow-xl shadow-violet-950/30 aspect-[21/9] sm:aspect-[16/7] max-h-[360px] sm:max-h-[400px]">
+              <div className="w-full overflow-hidden rounded-2xl border border-slate-700/80 bg-[#07080e] mb-6 shadow-xl shadow-violet-950/30 flex items-center justify-center">
                 <img
                   src={getImageBanner(course.imageUrl, 1200)}
                   alt={course.title}
-                  className="w-full h-full object-cover rounded-2xl block"
+                  className="w-full h-auto max-h-[480px] object-contain rounded-2xl block mx-auto"
                   loading="eager"
                 />
               </div>
@@ -1417,7 +1417,7 @@ function CourseDetailPage({ cart: propCart, auth: propAuth }: { cart?: any; auth
                       <img
                         src={getImageBanner(currentImg, 1200)}
                         alt="Product Gallery Preview"
-                        className="w-full h-full object-cover cursor-zoom-in transition-transform duration-500 group-hover:scale-105"
+                        className="w-full h-full object-contain cursor-zoom-in transition-transform duration-500 group-hover:scale-105"
                         onClick={() => { setSelectedGalleryImg(currentImg); setIsLightboxOpen(true); }}
                       />
                       <button
@@ -1897,11 +1897,11 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
                           <div>
                             {/* Full Width Top Image */}
                             {course.imageUrl && (
-                              <div className="-mx-5 -mt-5 mb-4 overflow-hidden border-b border-slate-800/90 bg-[#07080e] rounded-t-2xl aspect-video">
+                              <div className="-mx-5 -mt-5 mb-4 overflow-hidden border-b border-slate-800/90 bg-[#07080e] rounded-t-2xl aspect-video flex items-center justify-center">
                                 <img
                                   src={getImageThumbnail(course.imageUrl, 600)}
                                   alt={course.title}
-                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                  className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
                                   loading="lazy"
                                 />
                               </div>
