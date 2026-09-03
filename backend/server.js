@@ -819,7 +819,7 @@ async function resolveDriveUrl(item) {
         if (pRes.rows.length > 0 && pRes.rows[0].drive_url && pRes.rows[0].drive_url.trim().startsWith('http')) {
           return pRes.rows[0].drive_url.trim();
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     const memP = inMemoryDb.products.find(p => p && p.id === selProdId);
     if (memP && memP.driveUrl && memP.driveUrl.trim().startsWith('http')) {
@@ -1453,7 +1453,7 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
             canvaRev = Number(purCanvaRes.rows[0].canva_rev) || 0;
             canvaOrders = Number(purCanvaRes.rows[0].canva_pur) || 0;
           }
-        } catch (purCErr) {}
+        } catch (purCErr) { }
       }
 
       const userRes = await query('SELECT COUNT(*) as total_users FROM users');
@@ -1575,6 +1575,17 @@ async function getCourseDriveUrl(item) {
 
 // HOSTINGER OFFICIAL AGENTIC MAIL DELIVERY SERVICE (RESTful API)
 async function sendPurchaseEmail({ to, customerName, paymentId, items }) {
+  // Canva Guard: Strictly do NOT send generic course email for Canva Pro purchases
+  const isCanvaOrder = Array.isArray(items) && items.some(item => {
+    const title = String(item.title || item.name || item.courseId || item.id || '').toLowerCase();
+    return title.includes('canva');
+  });
+
+  if (isCanvaOrder) {
+    console.log(`ℹ️ [EMAIL SUPPRESSED]: Generic course purchase email suppressed for Canva order (${paymentId}). Canva Pro delivery email is dispatched via canvaRoutes.`);
+    return { success: true, suppressed: true, reason: 'Canva order email handled by canvaRoutes' };
+  }
+
   if (!to || !to.includes('@')) {
     console.error('❌ [EMAIL ERROR]: Invalid or missing recipient email address.');
     return { success: false, error: 'Invalid recipient email' };
@@ -2022,6 +2033,17 @@ setInterval(() => {
 
 // WHATSAPP PURCHASE NOTIFICATION SERVICE (Supports Baileys Built-in / OpenWA / UltraMsg / GreenAPI / Custom Gateway)
 async function sendPurchaseWhatsApp({ toPhone, customerName, paymentId, items }) {
+  // Canva Guard: Strictly do NOT send WhatsApp for Canva Pro purchases
+  const isCanvaOrder = Array.isArray(items) && items.some(item => {
+    const title = String(item.title || item.name || item.courseId || item.id || '').toLowerCase();
+    return title.includes('canva');
+  });
+
+  if (isCanvaOrder) {
+    console.log(`ℹ️ [WHATSAPP SUPPRESSED]: Canva Pro order (${paymentId}) - WhatsApp messaging disabled.`);
+    return { success: true, suppressed: true, reason: 'Canva WhatsApp messaging disabled' };
+  }
+
   if (!toPhone) {
     console.log('⚠️ [WHATSAPP NOTICE]: No customer phone number provided for WhatsApp delivery.');
     return { success: false, reason: 'No phone number provided' };
@@ -2499,8 +2521,13 @@ app.post('/api/checkout/verify-payment', async (req, res) => {
       });
     }
 
-    // Trigger WhatsApp notification if customer phone is provided
-    if (customerPhone) {
+    // Trigger WhatsApp notification if customer phone is provided (Strictly suppressed for Canva)
+    const hasCanvaItem = items.some(it => {
+      const str = `${it.title || ''} ${it.name || ''} ${it.id || ''} ${it.courseId || ''}`.toLowerCase();
+      return str.includes('canva');
+    });
+
+    if (customerPhone && !hasCanvaItem) {
       sendPurchaseWhatsApp({
         toPhone: customerPhone,
         customerName: customerName || 'Learner',
@@ -2604,6 +2631,20 @@ app.post('/api/checkout/webhook', async (req, res) => {
 
     if (!paymentId) {
       return res.json({ status: 'ignored', message: 'No payment ID found in webhook payload' });
+    }
+
+    // Check if this payment is a Canva Pro purchase
+    const isCanvaPayment = Boolean(
+      paymentEntity.notes?.planId ||
+      (paymentEntity.notes?.planName && String(paymentEntity.notes.planName).toLowerCase().includes('canva')) ||
+      (paymentEntity.description && String(paymentEntity.description).toLowerCase().includes('canva')) ||
+      (paymentEntity.receipt && String(paymentEntity.receipt).toLowerCase().includes('canva')) ||
+      (paymentEntity.notes?.courseId && String(paymentEntity.notes.courseId).toLowerCase().includes('canva'))
+    );
+
+    if (isCanvaPayment) {
+      console.log(`🎨 [RAZORPAY WEBHOOK]: Canva payment detected (${paymentId}). Suppressing default dummy "Digital Asset Package" email and WhatsApp.`);
+      return res.json({ status: 'ok', message: 'Canva order recognized - dummy email and WhatsApp suppressed.' });
     }
 
     // IDEMPOTENCY CHECK: Check if this payment is already recorded in DB or memory DB
