@@ -48,7 +48,7 @@ export function PaymentSuccessModal({
     return '';
   }, [driveUrl, purchasedItems]);
 
-  const handleAccessCourseClick = () => {
+  const handleAccessProductClick = () => {
     if (resolvedDriveUrl) {
       window.open(resolvedDriveUrl, '_blank', 'noopener,noreferrer');
     } else {
@@ -132,7 +132,7 @@ export function PaymentSuccessModal({
                   </div>
 
                   <p className="text-xs sm:text-sm text-slate-100 font-semibold leading-relaxed">
-                    Your course & digital asset access links have been sent to your registered email address!
+                    Your product & digital asset access links have been sent to your registered email address!
                   </p>
 
                   <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-slate-900/90 border border-emerald-500/30 font-mono-custom text-[11px] sm:text-xs font-bold text-emerald-300 flex items-center justify-between gap-2 overflow-hidden">
@@ -192,11 +192,11 @@ export function PaymentSuccessModal({
             <div className="w-full mt-4 sm:mt-6 flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3">
               <button
                 type="button"
-                onClick={handleAccessCourseClick}
+                onClick={handleAccessProductClick}
                 className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-violet-600/25 transition-all cursor-pointer flex items-center justify-center gap-2 transform-gpu active:scale-95"
               >
                 <ShoppingBag className="w-4 h-4 shrink-0" />
-                {resolvedDriveUrl && resolvedDriveUrl.toLowerCase().includes('canva') ? '🚀 Join Canva Pro Team' : 'Access your Course'}
+                {resolvedDriveUrl && resolvedDriveUrl.toLowerCase().includes('canva') ? '🚀 Join Canva Pro Team' : 'Access your Product'}
               </button>
 
               <button
