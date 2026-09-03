@@ -106,7 +106,8 @@ export default function AdminPanel({
     originalPrice: '',
     badge: '',
     inviteLink: 'https://www.canva.com/brand/join?token=INVITE_TEAM_TOKEN',
-    features: 'Full Canva Pro Unlock, Magic Studio AI Access, 100M+ Stock Assets'
+    features: 'Full Canva Pro Unlock, Magic Studio AI Access, 100M+ Stock Assets',
+    not_included: ''
   });
 
   // Lock body scroll when any modal is open
@@ -222,7 +223,8 @@ export default function AdminPanel({
       originalPrice: '',
       badge: '',
       inviteLink: 'https://www.canva.com/brand/join?token=INVITE_TEAM_TOKEN',
-      features: 'Full Canva Pro Unlock, Magic Studio AI Access, 100M+ Stock Assets'
+      features: 'Full Canva Pro Unlock, Magic Studio AI Access, 100M+ Stock Assets',
+      not_included: ''
     });
     setIsPlanModalOpen(true);
   };
@@ -239,7 +241,8 @@ export default function AdminPanel({
       originalPrice: plan.originalPrice || '',
       badge: plan.badge || '',
       inviteLink: plan.inviteLink || 'https://www.canva.com/brand/join?token=INVITE_TEAM_TOKEN',
-      features: Array.isArray(plan.features) ? plan.features.join(', ') : (plan.features || '')
+      features: Array.isArray(plan.features) ? plan.features.join(', ') : (plan.features || ''),
+      not_included: Array.isArray(plan.not_included || plan.notIncluded) ? (plan.not_included || plan.notIncluded).join(', ') : (plan.not_included || plan.notIncluded || '')
     });
     setIsPlanModalOpen(true);
   };
@@ -266,6 +269,13 @@ export default function AdminPanel({
         formattedFeatures = ['Full Canva Pro Access', 'Instant Email Delivery'];
       }
 
+      let formattedNotIncluded = [];
+      if (Array.isArray(planForm.not_included)) {
+        formattedNotIncluded = planForm.not_included;
+      } else if (typeof planForm.not_included === 'string') {
+        formattedNotIncluded = planForm.not_included.split(',').map(f => f.trim()).filter(Boolean);
+      }
+
       let link = (planForm.inviteLink || '').trim();
       if (!link) {
         link = 'https://www.canva.com/brand/join?token=DEFAULT_INVITE';
@@ -283,7 +293,8 @@ export default function AdminPanel({
         originalPrice: numOriginalPrice,
         badge: planForm.badge?.trim() || null,
         inviteLink: link,
-        features: formattedFeatures
+        features: formattedFeatures,
+        not_included: formattedNotIncluded
       };
 
       if (editingPlan) {
@@ -537,6 +548,15 @@ export default function AdminPanel({
                       <p key={i} className="truncate text-slate-300">• {f}</p>
                     ))}
                   </div>
+
+                  {(Array.isArray(plan.not_included || plan.notIncluded) && (plan.not_included || plan.notIncluded).length > 0) && (
+                    <div className="space-y-1 text-xs text-rose-300/80">
+                      <p className="font-bold text-rose-400 text-[11px]">Not Included:</p>
+                      {(plan.not_included || plan.notIncluded).slice(0, 2).map((nf, i) => (
+                        <p key={i} className="truncate text-rose-300/70">✕ {nf}</p>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 pt-3 border-t border-white/10">
@@ -774,7 +794,21 @@ export default function AdminPanel({
                   placeholder="Full Canva Pro Unlock, Magic Studio AI Access, 100M+ Stock Assets"
                   value={planForm.features}
                   onChange={(e) => setPlanForm({ ...planForm, features: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white focus:outline-none focus:border-cyan-400"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white focus:outline-none focus:border-cyan-400 text-xs sm:text-sm"
+                ></textarea>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-300 mb-1">
+                  <span>Not Included Features (Comma separated)</span>
+                  <span className="text-[10px] text-rose-400 font-normal ml-2">Optional - not available in this plan</span>
+                </label>
+                <textarea
+                  rows="2"
+                  placeholder="Brand Kit & Custom Fonts, 100GB Cloud Storage"
+                  value={planForm.not_included}
+                  onChange={(e) => setPlanForm({ ...planForm, not_included: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white focus:outline-none focus:border-rose-400/60 text-xs sm:text-sm"
                 ></textarea>
               </div>
 

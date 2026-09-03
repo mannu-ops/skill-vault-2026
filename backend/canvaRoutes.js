@@ -71,6 +71,7 @@ let mockPlans = [
     badge: 'BEST SELLER',
     invite_link: 'https://www.canva.com/brand/join?token=PRO_ANNUAL_INVITE',
     features: ['100M+ Premium Stock Photos & Videos', 'Magic Studio AI Tools Unlocked', 'Remove Background in 1 Click', '100GB Cloud Storage', 'Instant Email Delivery'],
+    not_included: [],
     is_popular: true
   },
   {
@@ -82,6 +83,7 @@ let mockPlans = [
     badge: 'VIP VALUE',
     invite_link: 'https://www.canva.com/brand/join?token=LIFETIME_VIP_INVITE',
     features: ['Lifetime Unrestricted Pro Permissions', 'Unlimited Premium Asset Downloads', 'All Future Canva AI Studio Updates', 'Brand Kit & Custom Fonts Support', 'Priority 24/7 Support'],
+    not_included: [],
     is_popular: false
   },
   {
@@ -93,6 +95,7 @@ let mockPlans = [
     badge: 'STARTER',
     invite_link: 'https://www.canva.com/brand/join?token=STARTER_30D_INVITE',
     features: ['100M+ Stock Media Unlocked', 'Magic Studio & AI Writer', '1-Click Background Remover', 'Instant Team Invitation'],
+    not_included: ['Brand Kit & Custom Fonts', '100GB Cloud Storage'],
     is_popular: false
   }
 ];
@@ -120,6 +123,8 @@ const formatPlan = (p, includeSecret = false) => ({
   badge: p.badge || null,
   ...(includeSecret ? { inviteLink: p.invite_link || p.inviteLink } : {}),
   features: typeof p.features === 'string' ? JSON.parse(p.features) : (p.features || []),
+  not_included: typeof p.not_included === 'string' ? JSON.parse(p.not_included) : (p.not_included || p.notIncluded || []),
+  notIncluded: typeof p.not_included === 'string' ? JSON.parse(p.not_included) : (p.not_included || p.notIncluded || []),
   is_popular: Boolean(p.is_popular)
 });
 
@@ -176,7 +181,7 @@ const getPlansHandler = async (req, res) => {
 };
 
 const createPlanHandler = async (req, res) => {
-  const { name, duration, price, originalPrice, badge, inviteLink, features, is_popular } = req.body;
+  const { name, duration, price, originalPrice, badge, inviteLink, features, not_included, notIncluded, is_popular } = req.body;
   const newId = 'plan_' + Date.now();
 
   let formattedFeatures = [];
@@ -194,6 +199,19 @@ const createPlanHandler = async (req, res) => {
     formattedFeatures = ['Full Canva Pro Access', 'Instant Email Delivery'];
   }
 
+  let formattedNotIncluded = [];
+  const rawNotIncluded = not_included !== undefined ? not_included : notIncluded;
+  if (Array.isArray(rawNotIncluded)) {
+    formattedNotIncluded = rawNotIncluded;
+  } else if (typeof rawNotIncluded === 'string') {
+    try {
+      const parsed = JSON.parse(rawNotIncluded);
+      formattedNotIncluded = Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      formattedNotIncluded = rawNotIncluded.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+
   let link = (inviteLink || '').trim();
   if (!link) {
     link = 'https://www.canva.com/brand/join?token=DEFAULT_INVITE';
@@ -206,8 +224,8 @@ const createPlanHandler = async (req, res) => {
 
   try {
     const result = await query(`
-      INSERT INTO canva_plans (id, name, duration, price, original_price, badge, invite_link, features, is_popular)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)
+      INSERT INTO canva_plans (id, name, duration, price, original_price, badge, invite_link, features, not_included, is_popular)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10)
       RETURNING *
     `, [
       newId,
@@ -218,6 +236,7 @@ const createPlanHandler = async (req, res) => {
       badge || null,
       link,
       JSON.stringify(formattedFeatures),
+      JSON.stringify(formattedNotIncluded),
       Boolean(is_popular)
     ]);
 
@@ -234,7 +253,7 @@ const createPlanHandler = async (req, res) => {
 
 const updatePlanHandler = async (req, res) => {
   const { id } = req.params;
-  const { name, duration, price, originalPrice, badge, inviteLink, features, is_popular } = req.body;
+  const { name, duration, price, originalPrice, badge, inviteLink, features, not_included, notIncluded, is_popular } = req.body;
 
   let formattedFeatures = [];
   if (Array.isArray(features)) {
@@ -251,6 +270,19 @@ const updatePlanHandler = async (req, res) => {
     formattedFeatures = ['Full Canva Pro Access', 'Instant Email Delivery'];
   }
 
+  let formattedNotIncluded = [];
+  const rawNotIncluded = not_included !== undefined ? not_included : notIncluded;
+  if (Array.isArray(rawNotIncluded)) {
+    formattedNotIncluded = rawNotIncluded;
+  } else if (typeof rawNotIncluded === 'string') {
+    try {
+      const parsed = JSON.parse(rawNotIncluded);
+      formattedNotIncluded = Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      formattedNotIncluded = rawNotIncluded.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+
   let link = (inviteLink || '').trim();
   if (!link) {
     link = 'https://www.canva.com/brand/join?token=DEFAULT_INVITE';
@@ -264,8 +296,8 @@ const updatePlanHandler = async (req, res) => {
   try {
     const result = await query(`
       UPDATE canva_plans
-      SET name = $1, duration = $2, price = $3, original_price = $4, badge = $5, invite_link = $6, features = $7::jsonb, is_popular = $8
-      WHERE id = $9
+      SET name = $1, duration = $2, price = $3, original_price = $4, badge = $5, invite_link = $6, features = $7::jsonb, not_included = $8::jsonb, is_popular = $9
+      WHERE id = $10
       RETURNING *
     `, [
       name || 'Canva Pro Plan',
@@ -275,6 +307,7 @@ const updatePlanHandler = async (req, res) => {
       badge || null,
       link,
       JSON.stringify(formattedFeatures),
+      JSON.stringify(formattedNotIncluded),
       Boolean(is_popular),
       id
     ]);

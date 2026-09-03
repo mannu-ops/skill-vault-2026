@@ -273,10 +273,18 @@ export async function initDb() {
         badge VARCHAR(100),
         invite_link TEXT NOT NULL,
         features JSONB DEFAULT '[]'::jsonb,
+        not_included JSONB DEFAULT '[]'::jsonb,
         is_popular BOOLEAN DEFAULT false,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Ensure not_included column exists in pre-existing canva_plans table
+    try {
+      await client.query(`ALTER TABLE canva_plans ADD COLUMN IF NOT EXISTS not_included JSONB DEFAULT '[]'::jsonb;`);
+    } catch (colErr) {
+      // Safe to ignore if already present
+    }
 
     // 10. Create Canva Activations Table (Customer Orders) in Neon PostgreSQL
     await client.query(`

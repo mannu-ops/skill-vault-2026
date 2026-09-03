@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Flame, Sparkles, Shield, ArrowRight } from 'lucide-react';
+import { Check, X, Flame, Sparkles, Shield, ArrowRight } from 'lucide-react';
 
 export default function PlansSection({ plans, onSelectPlan, loading }) {
   const calculateDiscount = (price, originalPrice) => {
@@ -119,6 +119,16 @@ export default function PlansSection({ plans, onSelectPlan, loading }) {
                             <Check className="w-3.5 h-3.5 stroke-[3]" />
                           </div>
                           <span className="text-sm text-slate-300 font-medium leading-snug">{feature}</span>
+                        </div>
+                      ))}
+
+                      {/* Not Included Features */}
+                      {(Array.isArray(plan.not_included || plan.notIncluded) ? (plan.not_included || plan.notIncluded) : typeof (plan.not_included || plan.notIncluded) === 'string' ? (plan.not_included || plan.notIncluded).split('\n') : []).map((notItem, nfIdx) => (
+                        <div key={`nf-${nfIdx}`} className="flex items-start space-x-3 opacity-60">
+                          <div className="mt-0.5 rounded-full p-1 shrink-0 bg-rose-500/10 text-rose-400">
+                            <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                          </div>
+                          <span className="text-sm text-slate-400 line-through font-medium leading-snug">{notItem}</span>
                         </div>
                       ))}
                     </div>
