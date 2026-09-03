@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import {
   createPlan, updatePlan, deletePlan, fetchPlans,
-  deleteActivation, fetchActivations, changeAdminPassword,
+  createActivation, updateActivation, deleteActivation, fetchActivations, changeAdminPassword,
   fetchPaymentAnalytics
 } from '../utils/api.js';
 
@@ -110,17 +110,29 @@ export default function AdminPanel({
     not_included: ''
   });
 
+  // Activation Modal State (Create & Edit)
+  const [isActivationModalOpen, setIsActivationModalOpen] = useState(false);
+  const [isSavingActivation, setIsSavingActivation] = useState(false);
+  const [activationError, setActivationError] = useState('');
+  const [editingActivation, setEditingActivation] = useState(null);
+  const [activationForm, setActivationForm] = useState({
+    email: '',
+    phone: '',
+    planName: '1 Year Canva Pro',
+    amount: '199',
+    paymentMethod: 'Manual Admin Grant',
+    inviteLink: 'https://www.canva.com/brand/join?token=PRO_ANNUAL_INVITE'
+  });
+
   // Lock body scroll when any modal is open
   useEffect(() => {
-    if (confirmModal.isOpen || isPlanModalOpen || isPasswordModalOpen || resultModal.isOpen) {
+    if (confirmModal.isOpen || isPlanModalOpen || isActivationModalOpen || isPasswordModalOpen || resultModal.isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = 'auto';
+      document.body.style.overflow = 'unset';
     }
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, [confirmModal.isOpen, isPlanModalOpen, isPasswordModalOpen, resultModal.isOpen]);
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [confirmModal.isOpen, isPlanModalOpen, isActivationModalOpen, isPasswordModalOpen, resultModal.isOpen]);
 
   const showToast = (type, message) => {
     setToast({ isOpen: true, type, message });
@@ -356,6 +368,80 @@ export default function AdminPanel({
     });
   };
 
+  // Open modal for Creating Activation
+  const handleOpenCreateActivation = () => {
+    setEditingActivation(null);
+    setActivationError('');
+    setActivationForm({
+      email: '',
+      phone: '',
+      planName: plans[0]?.name || '1 Year Canva Pro',
+      amount: plans[0]?.price || '199',
+      paymentMethod: 'Manual Admin Grant',
+      inviteLink: plans[0]?.inviteLink || 'https://www.canva.com/brand/join?token=PRO_ANNUAL_INVITE'
+    });
+    setIsActivationModalOpen(true);
+  };
+
+  // Open modal for Editing Activation
+  const handleOpenEditActivation = (item) => {
+    setEditingActivation(item);
+    setActivationError('');
+    setActivationForm({
+      email: item.email || '',
+      phone: item.phone || '',
+      planName: item.planName || 'Canva Pro Access',
+      amount: item.amount || '199',
+      paymentMethod: item.paymentMethod || 'Manual Admin Grant',
+      inviteLink: item.inviteLink || 'https://www.canva.com/brand/join?token=DEFAULT_INVITE'
+    });
+    setIsActivationModalOpen(true);
+  };
+
+  // Direct Activation Save (Create or Update)
+  const handleSaveActivation = async (e) => {
+    e.preventDefault();
+    if (!activationForm.email || !activationForm.email.includes('@')) {
+      setActivationError('Valid customer email is required.');
+      return;
+    }
+
+    setIsSavingActivation(true);
+    setActivationError('');
+
+    try {
+      const payload = {
+        email: activationForm.email.trim(),
+        phone: (activationForm.phone || '').trim(),
+        planName: activationForm.planName.trim(),
+        amount: Math.max(0, Number(activationForm.amount) || 199),
+        paymentMethod: activationForm.paymentMethod.trim() || 'Manual Admin Grant',
+        inviteLink: (activationForm.inviteLink || '').trim() || 'https://www.canva.com/brand/join?token=DEFAULT_INVITE'
+      };
+
+      if (editingActivation) {
+        const ok = await updateActivation(editingActivation.id, payload);
+        if (!ok) throw new Error('Failed to update activation record.');
+        showToast('success', `Activation for '${payload.email}' updated!`);
+      } else {
+        const created = await createActivation(payload);
+        if (!created) throw new Error('Failed to create activation record.');
+        showToast('success', `Activation for '${payload.email}' added!`);
+      }
+
+      const updated = await fetchActivations();
+      setActivations(updated || []);
+      setIsActivationModalOpen(false);
+      setEditingActivation(null);
+    } catch (err) {
+      console.error('Activation save error:', err);
+      setActivationError(err.message || 'Error saving activation');
+      showToast('error', err.message || 'Failed to save activation');
+    } finally {
+      setIsSavingActivation(false);
+    }
+  };
+
   // Request Confirmation for Logout
   const requestLogout = () => {
     setConfirmModal({
@@ -371,6 +457,7 @@ export default function AdminPanel({
   const handleConfirmAction = async () => {
     const currentType = confirmModal.type;
     const currentPayload = confirmModal.payload;
+    const currentId = confirmModal.id;
     setConfirmModal({ isOpen: false, type: '', id: null, title: '', details: '', confirmText: '', payload: null });
 
     if (currentType === 'create_plan' || currentType === 'update_plan') {
@@ -413,7 +500,7 @@ export default function AdminPanel({
         });
       }
     } else if (currentType === 'delete_plan') {
-      await deletePlan(confirmModal.id);
+      await deletePlan(currentId);
       const updatedPlans = await fetchPlans();
       setPlans(updatedPlans);
       setResultModal({
@@ -423,7 +510,7 @@ export default function AdminPanel({
         message: `Plan '${currentPayload?.name || 'Selected plan'}' was permanently removed.`
       });
     } else if (currentType === 'delete_activation') {
-      await deleteActivation(confirmModal.id);
+      await deleteActivation(currentId);
       const updatedActivations = await fetchActivations();
       setActivations(updatedActivations);
       setResultModal({
@@ -583,18 +670,26 @@ export default function AdminPanel({
       {/* TAB 2: USER ACTIVATIONS LIST */}
       {activeTab === 'users' && (
         <div className="space-y-5">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
             <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search user email or plan..."
+                placeholder="Search user email, plan or phone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-400"
               />
             </div>
-            <p className="text-xs text-slate-400 font-medium">Showing {filteredActivations.length} customer activations</p>
+            <div className="flex items-center gap-3 justify-between sm:justify-end">
+              <p className="text-xs text-slate-400 font-medium">Showing {filteredActivations.length} customer activations</p>
+              <button
+                onClick={handleOpenCreateActivation}
+                className="px-3.5 py-2 rounded-xl btn-futuristic font-bold text-xs text-white flex items-center gap-1.5 cursor-pointer shadow-lg shrink-0"
+              >
+                <Plus className="w-4 h-4" /> Add Activation Record
+              </button>
+            </div>
           </div>
 
           <div className="glass-card rounded-2xl border border-white/10 overflow-hidden overflow-x-auto">
@@ -638,12 +733,22 @@ export default function AdminPanel({
                         </button>
                       </td>
                       <td className="p-4 text-right">
-                        <button
-                          onClick={() => requestDeleteActivation(item)}
-                          className="p-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleOpenEditActivation(item)}
+                            className="p-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-300 border border-cyan-500/30 cursor-pointer transition-all"
+                            title="Edit Activation"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => requestDeleteActivation(item)}
+                            className="p-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 cursor-pointer transition-all"
+                            title="Delete Order"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -849,6 +954,126 @@ export default function AdminPanel({
                   ) : (
                     <span>{editingPlan ? 'Save Changes' : 'Insert Plan'}</span>
                   )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL FOR INSERT / EDIT CUSTOMER ACTIVATION */}
+      {isActivationModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div
+            className="fixed inset-0 bg-[#030712]/80 backdrop-blur-md z-50"
+            onClick={() => setIsActivationModalOpen(false)}
+          />
+
+          <div className="relative w-full max-w-lg glass-panel rounded-2xl sm:rounded-3xl border border-cyan-500/40 p-4 sm:p-7 space-y-4 shadow-2xl my-auto z-[60]">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <h3 className="font-heading font-extrabold text-base sm:text-lg text-white flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-cyan-400" />
+                <span>{editingActivation ? 'Edit Customer Activation' : 'Add New Customer Activation'}</span>
+              </h3>
+              <button
+                onClick={() => setIsActivationModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveActivation} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-bold text-slate-300 mb-1">Customer Canva Email *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. user@gmail.com"
+                  value={activationForm.email}
+                  onChange={(e) => setActivationForm({ ...activationForm, email: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white focus:outline-none focus:border-cyan-400 text-xs sm:text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-300 mb-1">WhatsApp / Phone Number</label>
+                <input
+                  type="tel"
+                  placeholder="e.g. 9876543210"
+                  value={activationForm.phone}
+                  onChange={(e) => setActivationForm({ ...activationForm, phone: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white focus:outline-none focus:border-cyan-400 text-xs sm:text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-300 mb-1">Plan Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 1 Year Canva Pro"
+                    value={activationForm.planName}
+                    onChange={(e) => setActivationForm({ ...activationForm, planName: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white focus:outline-none focus:border-cyan-400 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-300 mb-1">Amount Paid (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="e.g. 199"
+                    value={activationForm.amount}
+                    onChange={(e) => setActivationForm({ ...activationForm, amount: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white focus:outline-none focus:border-cyan-400 text-xs sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-300 mb-1">Payment Method</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Manual Admin Grant, Razorpay UPI"
+                  value={activationForm.paymentMethod}
+                  onChange={(e) => setActivationForm({ ...activationForm, paymentMethod: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white focus:outline-none focus:border-cyan-400 text-xs sm:text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-300 mb-1">Canva Pro Team Invite Link *</label>
+                <input
+                  type="url"
+                  required
+                  placeholder="https://www.canva.com/brand/join?token=..."
+                  value={activationForm.inviteLink}
+                  onChange={(e) => setActivationForm({ ...activationForm, inviteLink: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white focus:outline-none focus:border-cyan-400 text-xs sm:text-sm"
+                />
+              </div>
+
+              {activationError && (
+                <p className="text-xs text-rose-400 font-semibold">{activationError}</p>
+              )}
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setIsActivationModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingActivation}
+                  className="px-5 py-2 rounded-xl btn-futuristic font-bold text-white shadow-lg cursor-pointer"
+                >
+                  {isSavingActivation ? 'Saving...' : (editingActivation ? 'Save Changes' : 'Create Activation')}
                 </button>
               </div>
             </form>

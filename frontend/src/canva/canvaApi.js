@@ -73,6 +73,14 @@ export async function createActivation(activationRecord) {
   return (data && data.activation) ? data.activation : null;
 }
 
+export async function updateActivation(id, activationRecord) {
+  const data = await apiFetch(`/activations/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(activationRecord)
+  });
+  return (data && data.success) ? (data.activation || true) : null;
+}
+
 export async function deleteActivation(id) {
   const data = await apiFetch(`/activations/${id}`, {
     method: 'DELETE'
@@ -86,6 +94,9 @@ export async function authenticateAdmin(username, password) {
     method: 'POST',
     body: JSON.stringify({ username, password })
   });
+  if (data && data.token && typeof window !== 'undefined') {
+    localStorage.setItem('sv_admin_token', data.token);
+  }
   return (data && data.admin) ? data.admin : null;
 }
 

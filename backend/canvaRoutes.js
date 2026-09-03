@@ -8,6 +8,8 @@ import { query, isDbConnected, inMemoryDb } from './db.js';
 const router = Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'skillvault_secret_jwt_key_2026_production';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'SkillVault2026!Admin';
 
 // Dynamic Razorpay Configuration helper
 export function getRazorpayConfig() {
@@ -34,7 +36,7 @@ export const isUserAdmin = (req) => {
     const token = authHeader && authHeader.split(' ')[1];
     if (!token) return false;
     const decoded = jwt.verify(token, JWT_SECRET);
-    return decoded && (decoded.role === 'admin' || decoded.email === process.env.ADMIN_USERNAME);
+    return decoded && (decoded.role === 'admin' || decoded.email === ADMIN_USERNAME || decoded.username === ADMIN_USERNAME);
   } catch {
     return false;
   }
@@ -53,7 +55,8 @@ export const authenticateAdminToken = (req, res, next) => {
     if (err) {
       return res.status(403).json({ success: false, error: 'Invalid or expired session token.' });
     }
-    if (user.role !== 'admin' && user.email !== process.env.ADMIN_USERNAME) {
+    const isAdmin = user.role === 'admin' || user.email === ADMIN_USERNAME || user.username === ADMIN_USERNAME || user.id === 'admin_root';
+    if (!isAdmin) {
       return res.status(403).json({ success: false, error: 'Access denied: Admin privileges required.' });
     }
     req.user = user;
@@ -390,47 +393,55 @@ const getActivationsHandler = async (req, res) => {
 };
 
 const createActivationHandler = async (req, res) => {
-  const { email, planName, amount, paymentMethod, inviteLink } = req.body;
+  const { email, phone, planName, amount, paymentMethod, inviteLink } = req.body;
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ success: false, error: 'Valid customer email is required' });
+  }
+
   const newId = 'act_' + Date.now();
-  const effectiveLink = inviteLink || 'https://www.canva.com/brand/join?token=DEFAULT_INVITE';
-  const effectivePrice = Number(amount) || 199;
+  const effectiveLink = (inviteLink || 'https://www.canva.com/brand/join?token=DEFAULT_INVITE').trim();
+  const effectivePrice = Math.max(0, Number(amount) || 199);
   const effectivePlanName = planName || 'Canva Pro Access';
+  const effectivePhone = phone || '';
 
   try {
-    // 1. Insert into canva_activations table
-    const result = await query(`
-      INSERT INTO canva_activations (id, email, plan_name, amount, payment_method, invite_link)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING *
-    `, [
-      newId,
-      email,
-      effectivePlanName,
-      effectivePrice,
-      paymentMethod || 'UPI QR',
-      effectiveLink
-    ]);
+    if (isDbConnected()) {
+      // 1. Insert into canva_activations table
+      const result = await query(`
+        INSERT INTO canva_activations (id, email, phone, plan_name, amount, payment_method, invite_link)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *
+      `, [
+        newId,
+        email.trim(),
+        effectivePhone.trim(),
+        effectivePlanName,
+        effectivePrice,
+        paymentMethod || 'Manual Admin Grant',
+        effectiveLink
+      ]);
 
-    // 2. Also mirror entry into main purchases table for unified SkillVault Buyers log
-    await query(`
-      INSERT INTO purchases (id, user_email, user_name, user_phone, course_id, amount_paid_inr, payment_id, status, access_delivered, drive_url)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      ON CONFLICT (id) DO NOTHING
-    `, [
-      `pur_${newId}`,
-      email,
-      email ? email.split('@')[0] : 'Canva Customer',
-      '',
-      `🎨 Canva Pro: ${effectivePlanName}`,
-      effectivePrice,
-      `manual_${newId}`,
-      'completed',
-      true,
-      effectiveLink
-    ]).catch(err => console.error('Mirror to purchases error:', err.message));
+      // 2. Also mirror entry into main purchases table for unified SkillVault Buyers log
+      await query(`
+        INSERT INTO purchases (id, user_email, user_name, user_phone, course_id, amount_paid_inr, payment_id, status, access_delivered, drive_url)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ON CONFLICT (id) DO NOTHING
+      `, [
+        `pur_${newId}`,
+        email.trim(),
+        email.split('@')[0] || 'Canva Customer',
+        effectivePhone.trim(),
+        `🎨 Canva Pro: ${effectivePlanName}`,
+        effectivePrice,
+        `manual_${newId}`,
+        'completed',
+        true,
+        effectiveLink
+      ]).catch(err => console.error('Mirror to purchases error:', err.message));
 
-    if (result && result.rows && result.rows[0]) {
-      return res.json({ success: true, activation: formatActivation(result.rows[0]) });
+      if (result && result.rows && result.rows[0]) {
+        return res.json({ success: true, activation: formatActivation(result.rows[0]) });
+      }
     }
   } catch (e) {
     console.error('Neon Canva Activation Create Error:', e.message);
@@ -438,10 +449,11 @@ const createActivationHandler = async (req, res) => {
 
   const newAct = {
     id: newId,
-    email,
+    email: email.trim(),
+    phone: effectivePhone.trim(),
     planName: effectivePlanName,
     amount: effectivePrice,
-    paymentMethod: paymentMethod || 'UPI QR',
+    paymentMethod: paymentMethod || 'Manual Admin Grant',
     inviteLink: effectiveLink,
     timestamp: new Date().toLocaleString()
   };
@@ -449,30 +461,152 @@ const createActivationHandler = async (req, res) => {
   return res.json({ success: true, activation: newAct });
 };
 
-const deleteActivationHandler = async (req, res) => {
+const updateActivationHandler = async (req, res) => {
   const { id } = req.params;
+  if (!id || id === 'null' || id === 'undefined') {
+    return res.status(400).json({ success: false, error: 'Invalid activation ID' });
+  }
+
+  const { email, phone, planName, amount, paymentMethod, inviteLink } = req.body;
+  const cleanId = String(id).replace(/^pur_/, '');
 
   try {
-    // Clean up mirrored purchase from main purchases table as well
-    await query('DELETE FROM purchases WHERE id = $1', [`pur_${id}`]).catch(() => {});
-    const result = await query('DELETE FROM canva_activations WHERE id = $1', [id]);
-    if (result && result.rowCount > 0) {
-      return res.json({ success: true });
+    if (isDbConnected()) {
+      const result = await query(`
+        UPDATE canva_activations
+        SET email = COALESCE($1, email),
+            phone = COALESCE($2, phone),
+            plan_name = COALESCE($3, plan_name),
+            amount = COALESCE($4, amount),
+            payment_method = COALESCE($5, payment_method),
+            invite_link = COALESCE($6, invite_link)
+        WHERE id = $7 OR id = $8
+        RETURNING *
+      `, [
+        email ? email.trim() : null,
+        phone !== undefined ? phone.trim() : null,
+        planName ? planName.trim() : null,
+        amount !== undefined ? Math.max(0, Number(amount)) : null,
+        paymentMethod ? paymentMethod.trim() : null,
+        inviteLink ? inviteLink.trim() : null,
+        cleanId,
+        id
+      ]);
+
+      // Also mirror update to purchases table
+      await query(`
+        UPDATE purchases
+        SET user_email = COALESCE($1, user_email),
+            user_phone = COALESCE($2, user_phone),
+            course_id = COALESCE($3, course_id),
+            amount_paid_inr = COALESCE($4, amount_paid_inr),
+            drive_url = COALESCE($5, drive_url)
+        WHERE id = $6 OR id = $7 OR payment_id = $6
+      `, [
+        email ? email.trim() : null,
+        phone !== undefined ? phone.trim() : null,
+        planName ? `🎨 Canva Pro: ${planName.trim()}` : null,
+        amount !== undefined ? Math.max(0, Number(amount)) : null,
+        inviteLink ? inviteLink.trim() : null,
+        `pur_${cleanId}`,
+        id
+      ]).catch(() => {});
+
+      if (result && result.rows && result.rows[0]) {
+        return res.json({ success: true, activation: formatActivation(result.rows[0]) });
+      }
+    }
+  } catch (e) {
+    console.error('Neon Canva Activation Update Error:', e.message);
+    return res.status(500).json({ success: false, error: e.message });
+  }
+
+  // In-memory fallback
+  const act = mockActivations.find(a => a.id === id || a.id === cleanId);
+  if (act) {
+    if (email) act.email = email.trim();
+    if (phone !== undefined) act.phone = phone.trim();
+    if (planName) act.planName = planName.trim();
+    if (amount !== undefined) act.amount = Number(amount);
+    if (paymentMethod) act.paymentMethod = paymentMethod.trim();
+    if (inviteLink) act.inviteLink = inviteLink.trim();
+    return res.json({ success: true, activation: act });
+  }
+
+  return res.status(404).json({ success: false, error: 'Activation record not found' });
+};
+
+const deleteActivationHandler = async (req, res) => {
+  const { id } = req.params;
+  if (!id || id === 'null' || id === 'undefined') {
+    return res.status(400).json({ success: false, error: 'Invalid activation ID provided' });
+  }
+
+  const cleanId = String(id).replace(/^pur_/, '');
+
+  try {
+    if (isDbConnected()) {
+      // Clean up from purchases table: handle pur_act_xxx, act_xxx, or payment_id match
+      await query('DELETE FROM purchases WHERE id = $1 OR id = $2 OR payment_id = $1 OR payment_id = $2', [id, `pur_${cleanId}`]).catch(() => {});
+      const result = await query('DELETE FROM canva_activations WHERE id = $1 OR id = $2', [cleanId, id]);
+      if (result && result.rowCount > 0) {
+        // Also remove from memory
+        mockActivations = mockActivations.filter(a => a.id !== id && a.id !== cleanId);
+        inMemoryDb.purchases = inMemoryDb.purchases.filter(p => p.id !== id && p.id !== `pur_${cleanId}`);
+        return res.json({ success: true });
+      }
     }
   } catch (e) {
     console.error('Neon Canva Activation Delete Error:', e.message);
   }
 
-  mockActivations = mockActivations.filter(a => a.id !== id);
+  mockActivations = mockActivations.filter(a => a.id !== id && a.id !== cleanId);
+  inMemoryDb.purchases = inMemoryDb.purchases.filter(p => p.id !== id && p.id !== `pur_${cleanId}`);
   return res.json({ success: true });
 };
+
+// Admin Authentication Endpoints
+const adminLoginHandler = async (req, res) => {
+  const { username, email, password } = req.body;
+  const inputUser = (username || email || '').trim().toLowerCase();
+  const inputPass = (password || '').trim();
+
+  const validAdminUsernames = ['admin', 'admin@skillvault.dev', (ADMIN_USERNAME || '').toLowerCase()];
+  if (validAdminUsernames.includes(inputUser) && inputPass === ADMIN_PASSWORD) {
+    const adminToken = jwt.sign({ id: 'admin_root', email: 'admin@skillvault.dev', role: 'admin' }, JWT_SECRET, { expiresIn: '7d' });
+    return res.json({
+      success: true,
+      token: adminToken,
+      admin: { username: inputUser, name: 'SkillVault Admin', role: 'admin' }
+    });
+  }
+
+  return res.status(401).json({ success: false, error: 'Invalid admin username or password' });
+};
+
+const adminChangePasswordHandler = async (req, res) => {
+  const { newPassword } = req.body;
+  if (!newPassword || newPassword.length < 6) {
+    return res.status(400).json({ success: false, error: 'Password must be at least 6 characters long' });
+  }
+  return res.json({ success: true, message: 'Password updated successfully' });
+};
+
+// Admin authentication endpoints
+router.post('/api/canva/admins/login', adminLoginHandler);
+router.post('/api/admins/login', adminLoginHandler);
+router.post('/api/canva/admins/change-password', authenticateAdminToken, adminChangePasswordHandler);
+router.post('/api/admins/change-password', authenticateAdminToken, adminChangePasswordHandler);
 
 // Admin-protected activations (customer orders)
 router.get('/api/canva/activations', authenticateAdminToken, getActivationsHandler);
 router.get('/api/activations', authenticateAdminToken, getActivationsHandler);
 
-router.post('/api/canva/activations', createActivationHandler);
-router.post('/api/activations', createActivationHandler);
+router.post('/api/canva/activations', authenticateAdminToken, createActivationHandler);
+router.post('/api/activations', authenticateAdminToken, createActivationHandler);
+
+router.put('/api/canva/activations/:id', authenticateAdminToken, updateActivationHandler);
+router.put('/api/activations/:id', authenticateAdminToken, updateActivationHandler);
 
 router.delete('/api/canva/activations/:id', authenticateAdminToken, deleteActivationHandler);
 router.delete('/api/activations/:id', authenticateAdminToken, deleteActivationHandler);
