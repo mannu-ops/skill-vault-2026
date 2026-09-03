@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Mail, Phone, CheckCircle2, XCircle, ShieldCheck, Zap, ArrowRight, Sparkles, Lock, Crown, ChevronDown } from 'lucide-react';
+import { Mail, CheckCircle2, XCircle, ShieldCheck, Zap, ArrowRight, Sparkles, Lock, Crown, ChevronDown } from 'lucide-react';
 
 export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan, onActivate, isProcessing = false, paymentError = '' }) {
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
@@ -13,13 +12,8 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
       setError('Please enter a valid Canva account email address.');
       return;
     }
-    const cleanDigits = phone.replace(/[^0-9]/g, '');
-    if (!cleanDigits || cleanDigits.length < 10) {
-      setError('Please enter a valid 10-digit WhatsApp number to receive your link.');
-      return;
-    }
     setError('');
-    onActivate(email, phone);
+    onActivate(email);
   };
 
   const currentPrice = selectedPlan ? selectedPlan.price : (plans[0] ? plans[0].price : 0);
@@ -39,12 +33,12 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
             </div>
             <div>
               <h3 className="font-heading font-extrabold text-base sm:text-lg md:text-xl text-white leading-tight">Instant Pro Activation</h3>
-              <p className="text-xs sm:text-[13px] text-slate-400">Official Canva Team Invite</p>
+              <p className="text-xs sm:text-[13px] text-slate-400">Official Canva Team Invite Delivered to Email</p>
             </div>
           </div>
 
           <span className="text-xs font-bold text-cyan-300 bg-cyan-500/15 border border-cyan-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shrink-0">
-            <Zap className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400" /> 5-Sec Delivery
+            <Zap className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400" /> Instant Delivery
           </span>
         </div>
 
@@ -74,39 +68,6 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
               />
 
               {email.includes('@') && email.includes('.') && (
-                <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-emerald-400">
-                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 animate-scale-in" />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* FIELD 2: WHATSAPP NUMBER INPUT */}
-          <div className="space-y-2">
-            <label className="block text-xs sm:text-[13px] font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-emerald-400">
-                <Phone className="w-3.5 h-3.5 text-emerald-400" /> WhatsApp Number <span className="text-pink-500">*</span>
-              </span>
-              <span className="text-[11px] text-emerald-400/80 font-normal">Receive invite link instantly</span>
-            </label>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 sm:pl-4 flex items-center pointer-events-none text-emerald-400/70">
-                <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
-              </div>
-
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => {
-                  setPhone(e.target.value);
-                  if (error) setError('');
-                }}
-                placeholder="e.g. 9876543210 (10-digit mobile)"
-                className="w-full pl-10 sm:pl-12 pr-10 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl bg-slate-900/90 border border-white/15 text-white placeholder-slate-500 font-medium focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 transition-all text-sm sm:text-base"
-              />
-
-              {phone.replace(/[^0-9]/g, '').length >= 10 && (
                 <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-emerald-400">
                   <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 animate-scale-in" />
                 </div>

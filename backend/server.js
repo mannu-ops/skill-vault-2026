@@ -2203,13 +2203,8 @@ export async function sendRawWhatsAppMessage({ toPhone, message }) {
   }
 
   const clickToChatUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-  console.log(`\n💬 [WHATSAPP NOTICE]: Direct Canva click-to-chat URL for ${cleanPhone}:\n${clickToChatUrl}`);
+  console.log(`\n💬 [WHATSAPP NOTICE]: Direct click-to-chat URL for ${cleanPhone}:\n${clickToChatUrl}`);
   return { success: true, simulated: true, clickToChatUrl, message };
-}
-
-// Connect Canva Router with the WhatsApp sender
-if (canvaRouter && typeof canvaRouter.setWhatsAppSender === 'function') {
-  canvaRouter.setWhatsAppSender(sendRawWhatsAppMessage);
 }
 
 // DIAGNOSTIC ENDPOINT TO TEST WHATSAPP DELIVERY
