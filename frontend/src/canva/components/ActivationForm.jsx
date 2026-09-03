@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, CheckCircle2, ShieldCheck, Zap, ArrowRight, Sparkles, Lock, Crown, ChevronDown } from 'lucide-react';
+import { Mail, CheckCircle2, XCircle, ShieldCheck, Zap, ArrowRight, Sparkles, Lock, Crown, ChevronDown } from 'lucide-react';
 
 export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan, onActivate, isProcessing = false, paymentError = '' }) {
   const [email, setEmail] = useState('');
@@ -115,23 +115,64 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
               </div>
             </div>
 
-            {/* Selected Plan Benefits Pill */}
-            {selectedPlan && (
-              <div className="p-3 sm:p-3.5 rounded-xl bg-purple-950/35 border border-purple-500/25 text-xs text-slate-300 space-y-1.5">
-                <div className="flex items-center justify-between gap-1.5">
-                  <span className="font-bold text-white flex items-center gap-1.5 truncate text-xs sm:text-[13px]">
-                    <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    <span className="truncate">Includes: {selectedPlan.name}</span>
-                  </span>
-                  <span className="text-emerald-400 font-extrabold text-[10px] sm:text-xs bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30 shrink-0">
-                    Save {Math.round((1 - selectedPlan.price / (selectedPlan.originalPrice || selectedPlan.price * 5)) * 100)}%
-                  </span>
+            {/* Selected Plan Benefits Pill - Shows both Includes and Not Included */}
+            {selectedPlan && (() => {
+              const notIncList = Array.isArray(selectedPlan.not_included || selectedPlan.notIncluded)
+                ? (selectedPlan.not_included || selectedPlan.notIncluded)
+                : (typeof (selectedPlan.not_included || selectedPlan.notIncluded) === 'string' && (selectedPlan.not_included || selectedPlan.notIncluded).trim()
+                  ? (selectedPlan.not_included || selectedPlan.notIncluded).split(',').map(s => s.trim()).filter(Boolean)
+                  : []);
+
+              const hasNotIncluded = notIncList.length > 0;
+
+              return (
+                <div className="p-3 sm:p-3.5 rounded-xl bg-purple-950/35 border border-purple-500/25 text-xs text-slate-300 space-y-2">
+                  <div className="flex items-center justify-between gap-1.5">
+                    <span className="font-bold text-white flex items-center gap-1.5 truncate text-xs sm:text-[13px]">
+                      <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      <span className="truncate">Plan Details: {selectedPlan.name}</span>
+                    </span>
+                    <span className="text-emerald-400 font-extrabold text-[10px] sm:text-xs bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30 shrink-0">
+                      Save {Math.round((1 - selectedPlan.price / (selectedPlan.originalPrice || selectedPlan.price * 5)) * 100)}%
+                    </span>
+                  </div>
+
+                  {/* Included Features */}
+                  <div className="flex items-start gap-1.5 text-[11px] sm:text-xs leading-relaxed">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-emerald-400 mr-1">Includes:</span>
+                      <span className="text-slate-200">
+                        {Array.isArray(selectedPlan.features)
+                          ? selectedPlan.features.slice(0, 4).join(' • ')
+                          : (selectedPlan.features || 'Full Canva Pro Access')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Not Included Features */}
+                  <div className="pt-1.5 border-t border-white/5 flex items-start gap-1.5 text-[11px] sm:text-xs leading-relaxed">
+                    {hasNotIncluded ? (
+                      <>
+                        <XCircle className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-rose-400 mr-1">Not Included:</span>
+                          <span className="text-rose-300/90">{notIncList.join(' • ')}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-cyan-400 mr-1">Not Included:</span>
+                          <span className="text-cyan-300/90 font-medium">None (All Pro & AI Features Unlocked 100%)</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <p className="text-[11px] sm:text-xs text-slate-300 leading-normal">
-                  {Array.isArray(selectedPlan.features) ? selectedPlan.features.slice(0, 3).join(' • ') : selectedPlan.features}
-                </p>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           {error && (
