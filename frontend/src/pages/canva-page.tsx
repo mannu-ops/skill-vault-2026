@@ -8,6 +8,7 @@ import FAQSection from '../canva/components/FAQSection.jsx';
 import SuccessModal from '../canva/components/SuccessModal.jsx';
 import LiveTicker from '../canva/components/LiveTicker.jsx';
 import Footer from '../canva/components/Footer.jsx';
+import { CheckCircle2 } from 'lucide-react';
 import { fetchPlans, createRazorpayOrder, verifyRazorpayPayment } from '../canva/canvaApi.js';
 
 export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
@@ -204,15 +205,15 @@ export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
         onOpenMyPurchases={() => setLocation('/purchases')}
       />
 
-      {/* Main Content Storefront - Positioned below fixed navbar */}
-      <main className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-16">
-        {/* Above-The-Fold: Hero & Form Visible Without Scrolling */}
-        <section className="min-h-[calc(100vh-8rem)] flex flex-col justify-center py-4 sm:py-6 lg:py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
+      {/* Main Content Storefront - Positioned below fixed navbar with compact mobile padding */}
+      <main className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-16 sm:pt-20 lg:pt-24 pb-16">
+        {/* Above-The-Fold: Hero & Form Visible Immediately */}
+        <section className="min-h-0 lg:min-h-[calc(100vh-8rem)] flex flex-col lg:justify-center pt-1 pb-6 sm:py-6 lg:py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6 lg:gap-10 items-center">
             <div className="lg:col-span-6">
               <Hero />
             </div>
-            <div className="lg:col-span-6 flex justify-center lg:justify-end">
+            <div className="lg:col-span-6 flex flex-col items-center lg:items-end justify-center">
               <ActivationForm
                 plans={plans}
                 selectedPlan={selectedPlan}
@@ -221,6 +222,22 @@ export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
                 isProcessing={isProcessing}
                 paymentError={paymentError}
               />
+
+              {/* Mobile-only trust badges placed neatly below the form */}
+              <div className="flex lg:hidden flex-wrap items-center justify-center gap-1.5 pt-3 text-[11px] font-semibold text-slate-300">
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 shrink-0">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>100% Official Team</span>
+                </div>
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 shrink-0">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span>Existing Account</span>
+                </div>
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 shrink-0">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                  <span>All Pro & AI</span>
+                </div>
+              </div>
             </div>
           </div>
         </section>

@@ -19,12 +19,12 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
   const currentPrice = selectedPlan ? selectedPlan.price : (plans[0] ? plans[0].price : 0);
 
   return (
-    <div className="w-full max-w-xl mx-auto glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-7 md:p-8 relative border border-purple-500/40 shadow-[0_0_70px_rgba(125,42,232,0.3)]">
+    <div className="w-full max-w-xl mx-auto glass-card rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 md:p-8 relative border border-purple-500/40 shadow-[0_0_70px_rgba(125,42,232,0.3)]">
       
-      <div className="space-y-4 sm:space-y-5">
+      <div className="space-y-3 sm:space-y-5">
         
         {/* Form Header */}
-        <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-white/10">
+        <div className="flex items-center justify-between pb-2 sm:pb-4 border-b border-white/10">
           <div className="flex items-center gap-2.5 sm:gap-3">
             <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-[#7D2AE8] to-[#00F2FE] p-[2px] shadow-lg shrink-0">
               <div className="w-full h-full bg-[#0D0F1A] rounded-[10px] sm:rounded-[14px] flex items-center justify-center">
@@ -42,7 +42,7 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
           </span>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-4">
           
           {/* FIELD 1: CANVA ACCOUNT EMAIL INPUT */}
           <div className="space-y-1.5">
@@ -64,7 +64,7 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
                   if (error) setError('');
                 }}
                 placeholder="e.g. yourname@gmail.com"
-                className="w-full pl-10 sm:pl-12 pr-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-slate-900/90 border border-white/15 text-white placeholder-slate-500 font-medium focus:outline-none focus:border-[#00F2FE] focus:ring-2 focus:ring-[#00F2FE]/30 transition-all text-xs sm:text-base"
+                className="w-full pl-10 sm:pl-12 pr-10 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl bg-slate-900/90 border border-white/15 text-white placeholder-slate-500 font-medium focus:outline-none focus:border-[#00F2FE] focus:ring-2 focus:ring-[#00F2FE]/30 transition-all text-xs sm:text-base"
               />
 
               {email.includes('@') && email.includes('.') && (
@@ -97,7 +97,7 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
                   const plan = plans.find(p => p.id === e.target.value);
                   if (plan) onSelectPlan(plan);
                 }}
-                className="w-full pl-10 sm:pl-12 pr-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-slate-900 border border-purple-500/40 text-white font-heading font-bold text-xs sm:text-base focus:outline-none focus:border-[#00F2FE] focus:ring-2 focus:ring-[#00F2FE]/40 transition-all appearance-none cursor-pointer shadow-[0_0_20px_rgba(125,42,232,0.15)] truncate"
+                className="w-full pl-10 sm:pl-12 pr-10 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl bg-slate-900 border border-purple-500/40 text-white font-heading font-bold text-xs sm:text-base focus:outline-none focus:border-[#00F2FE] focus:ring-2 focus:ring-[#00F2FE]/40 transition-all appearance-none cursor-pointer shadow-[0_0_20px_rgba(125,42,232,0.15)] truncate"
               >
                 {plans.map((plan) => (
                   <option
@@ -151,7 +151,7 @@ export default function ActivationForm({ plans = [], selectedPlan, onSelectPlan,
           <button
             type="submit"
             disabled={isProcessing}
-            className="w-full py-3 sm:py-3.5 md:py-4 px-5 sm:px-6 rounded-xl sm:rounded-2xl btn-futuristic font-heading font-black text-sm sm:text-base md:text-lg text-white flex items-center justify-center gap-2.5 cursor-pointer shadow-[0_0_40px_rgba(125,42,232,0.8)] group mt-1 disabled:opacity-75 disabled:cursor-not-allowed"
+            className="w-full py-2.5 sm:py-3.5 md:py-4 px-5 sm:px-6 rounded-xl sm:rounded-2xl btn-futuristic font-heading font-black text-sm sm:text-base md:text-lg text-white flex items-center justify-center gap-2.5 cursor-pointer shadow-[0_0_40px_rgba(125,42,232,0.8)] group mt-1 disabled:opacity-75 disabled:cursor-not-allowed"
           >
             {isProcessing ? (
               <>
