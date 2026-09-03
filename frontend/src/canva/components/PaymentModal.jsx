@@ -17,65 +17,121 @@ export default function PaymentModal({ isOpen, onClose, selectedPlan, userEmail,
 
   if (!isOpen || !selectedPlan) return null;
 
+  // Helper to load Razorpay SDK dynamically
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (typeof window !== 'undefined' && window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   async function handlePayNow() {
     setPaymentError('');
     setIsProcessing(true);
-    setProcessingStep('Creating Razorpay Route Order...');
+    setProcessingStep('Creating Razorpay Secure Order...');
 
     try {
-      // 1. Create order on backend with server-side price & route transfer split
+      // 1. Create order on backend with planId and customer email
       const orderRes = await createRazorpayOrder(selectedPlan.id, userEmail);
 
-      if (!orderRes.success) {
+      if (!orderRes.success || !orderRes.orderId) {
         setIsProcessing(false);
-        setPaymentError(orderRes.error || 'Payments are temporarily unavailable for this store.');
+        setPaymentError(orderRes.error || 'Payments are temporarily unavailable. Please try again.');
         return;
       }
 
-      setProcessingStep('Opening Secure Razorpay Gateway...');
+      setProcessingStep('Opening Official Razorpay Gateway...');
 
       // 2. Dynamically load Razorpay SDK if not present
-      if (typeof window !== 'undefined' && !window.Razorpay) {
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.async = true;
-        document.body.appendChild(script);
-        await new Promise((resolve) => {
-          script.onload = resolve;
-          script.onerror = resolve;
-        });
+      const sdkLoaded = await loadRazorpayScript();
+      if (!sdkLoaded) {
+        setIsProcessing(false);
+        setPaymentError('Razorpay SDK failed to load. Please check your internet connection.');
+        return;
       }
 
-      // 3. Open Razorpay Checkout Window or execute test verification flow
-      if (typeof window !== 'undefined' && window.Razorpay && orderRes.razorpayKeyId && orderRes.razorpayKeyId !== 'rzp_test_mock') {
+      const activeKey = orderRes.keyId || orderRes.razorpayKeyId;
+
+      // 3. Open Razorpay Checkout Window or fallback
+      if (typeof window !== 'undefined' && window.Razorpay && activeKey && activeKey !== 'rzp_test_mock') {
         const options = {
-          key: orderRes.razorpayKeyId,
-          amount: orderRes.amount * 100,
+          key: activeKey,
+          amount: orderRes.amount, // already in paise from server.js / canvaRoutes.js
           currency: orderRes.currency || 'INR',
-          name: 'Canva Pro Instant Activation',
-          description: `${selectedPlan.name} Access`,
+          name: 'The Skill Vault',
+          description: `🎨 Canva Pro: ${selectedPlan.name}`,
           order_id: orderRes.orderId,
           prefill: {
-            email: userEmail
+            name: userEmail ? userEmail.split('@')[0] : 'Canva Customer',
+            email: userEmail.trim()
           },
           theme: {
             color: '#7D2AE8'
           },
           handler: async function (response) {
-            setProcessingStep('Verifying Payment Signature & Activating Canva Pro Access...');
-            const verifyRes = await verifyRazorpayPayment({
-              razorpay_order_id: response.razorpay_order_id || orderRes.orderId,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              customerEmail: userEmail,
-              planId: selectedPlan.id
-            });
+            setIsProcessing(true);
+            setProcessingStep('Verifying Payment & Delivering Canva Pro Access...');
+            try {
+              const eventId = `evt_canva_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+              const verifyRes = await verifyRazorpayPayment({
+                razorpay_order_id: response.razorpay_order_id || orderRes.orderId,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                customerEmail: userEmail.trim(),
+                customerName: userEmail ? userEmail.split('@')[0] : 'Canva Customer',
+                planId: selectedPlan.id,
+                eventId
+              });
 
-            setIsProcessing(false);
-            if (verifyRes.success) {
-              onSuccess(verifyRes.inviteLink);
-            } else {
-              setPaymentError(verifyRes.error || 'Payment verification failed!');
+              if (verifyRes.success) {
+                const payId = response.razorpay_payment_id || `pay_${Date.now()}`;
+                const planPrice = selectedPlan.price || orderRes.planPrice || 199;
+                const inviteUrl = verifyRes.inviteLink || verifyRes.driveUrl || selectedPlan.invite_link || '';
+
+                // Track Meta Pixel Purchase Event
+                try {
+                  const { trackPurchase } = await import('@/lib/meta-pixel');
+                  trackPurchase(
+                    {
+                      contentIds: [selectedPlan.id],
+                      contentName: `Canva Pro: ${selectedPlan.name}`,
+                      numItems: 1,
+                      value: planPrice,
+                      currency: 'INR',
+                      orderId: payId,
+                    },
+                    eventId
+                  );
+                } catch (pixelErr) {
+                  console.warn('Meta Pixel tracking error:', pixelErr);
+                }
+
+                // Call onSuccess callback if provided
+                if (typeof onSuccess === 'function') {
+                  onSuccess(inviteUrl);
+                }
+
+                // Redirect to SkillVault Official Payment Success Page
+                const driveParam = inviteUrl ? `&driveUrl=${encodeURIComponent(inviteUrl)}` : '';
+                window.location.href = `/payment-success?payment_id=${encodeURIComponent(payId)}&email=${encodeURIComponent(userEmail.trim())}&amount=${planPrice}${driveParam}`;
+              } else {
+                const errorMsg = verifyRes.error || 'Payment verification failed on server.';
+                const payId = response.razorpay_payment_id || '';
+                window.location.href = `/payment-failed?payment_id=${encodeURIComponent(payId)}&reason=${encodeURIComponent(errorMsg)}`;
+              }
+            } catch (err) {
+              console.error('Canva payment verification exception:', err);
+              const payId = response.razorpay_payment_id || '';
+              window.location.href = `/payment-failed?payment_id=${encodeURIComponent(payId)}&reason=${encodeURIComponent('Network error during payment verification.')}`;
+            } finally {
+              setIsProcessing(false);
             }
           },
           modal: {
@@ -87,13 +143,14 @@ export default function PaymentModal({ isOpen, onClose, selectedPlan, userEmail,
 
         const rzp = new window.Razorpay(options);
         rzp.open();
+        setIsProcessing(false);
       } else {
-        // Test / Fallback verification flow (for dev mode without live Razorpay keys)
+        // Fallback simulation for local dev
         setTimeout(async () => {
-          setProcessingStep('Verifying Payment Signature & Executing Route Split...');
+          setProcessingStep('Verifying Simulation & Delivering Access...');
           const verifyRes = await verifyRazorpayPayment({
             razorpay_order_id: orderRes.orderId,
-            razorpay_payment_id: `pay_mock_${Date.now()}`,
+            razorpay_payment_id: `pay_sim_${Date.now()}`,
             razorpay_signature: 'mock_signature',
             customerEmail: userEmail,
             planId: selectedPlan.id
@@ -101,11 +158,17 @@ export default function PaymentModal({ isOpen, onClose, selectedPlan, userEmail,
 
           setIsProcessing(false);
           if (verifyRes.success) {
-            onSuccess(verifyRes.inviteLink);
+            const payId = `pay_sim_${Date.now()}`;
+            const inviteUrl = verifyRes.inviteLink || verifyRes.driveUrl || selectedPlan.invite_link || '';
+            if (typeof onSuccess === 'function') {
+              onSuccess(inviteUrl);
+            }
+            const driveParam = inviteUrl ? `&driveUrl=${encodeURIComponent(inviteUrl)}` : '';
+            window.location.href = `/payment-success?payment_id=${encodeURIComponent(payId)}&email=${encodeURIComponent(userEmail.trim())}&amount=${selectedPlan.price}${driveParam}`;
           } else {
             setPaymentError(verifyRes.error || 'Payment verification failed!');
           }
-        }, 1200);
+        }, 1000);
       }
 
     } catch (err) {

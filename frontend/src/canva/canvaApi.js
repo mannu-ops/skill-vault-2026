@@ -101,19 +101,16 @@ export async function changeAdminPassword(username, oldPassword, newPassword) {
 }
 
 // 4. RAZORPAY / PAYMENTS API
-export async function createRazorpayOrder(planId, customerEmail) {
+export async function createRazorpayOrder(planId, customerEmail, customerPhone = '', customerName = '') {
   const data = await apiFetch('/payments/create-order', {
     method: 'POST',
-    body: JSON.stringify({ planId, customerEmail })
+    body: JSON.stringify({ planId, customerEmail, customerPhone, customerName })
   });
-  if (data && data.success) return { success: true, ...data };
+  if (data && data.success) return data;
 
   return {
-    success: true,
-    orderId: 'order_mock_' + Date.now(),
-    amount: 199,
-    currency: 'INR',
-    razorpayKeyId: 'rzp_test_mock'
+    success: false,
+    error: data?.error || 'Failed to create payment order'
   };
 }
 
@@ -122,7 +119,7 @@ export async function verifyRazorpayPayment(payload) {
     method: 'POST',
     body: JSON.stringify(payload)
   });
-  if (data && data.success) return { success: true, inviteLink: data.inviteLink };
+  if (data && data.success) return { success: true, ...data };
 
   return {
     success: false,

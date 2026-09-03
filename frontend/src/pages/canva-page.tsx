@@ -28,6 +28,7 @@ export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
   const [userEmail, setUserEmail] = useState('');
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [deliveredInviteUrl, setDeliveredInviteUrl] = useState('');
 
   // Fetch Plans for Storefront
   useEffect(() => {
@@ -54,7 +55,10 @@ export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
     setIsPaymentOpen(true);
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = (inviteLink?: string) => {
+    if (inviteLink) {
+      setDeliveredInviteUrl(inviteLink);
+    }
     setIsPaymentOpen(false);
     setIsSuccessOpen(true);
   };
@@ -121,6 +125,7 @@ export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
           isOpen={isSuccessOpen}
           userEmail={userEmail}
           selectedPlan={selectedPlan}
+          inviteUrl={deliveredInviteUrl}
           onClose={() => setIsSuccessOpen(false)}
         />
       )}

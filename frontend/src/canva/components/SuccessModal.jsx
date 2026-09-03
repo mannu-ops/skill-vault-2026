@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, Sparkles, Mail, Copy, Check, ExternalLink, ShieldCheck } from 'lucide-react';
 
-export default function SuccessModal({ isOpen, userEmail, selectedPlan, onClose }) {
+export default function SuccessModal({ isOpen, userEmail, selectedPlan, inviteUrl, onClose }) {
   const [copied, setCopied] = useState(false);
 
-  const inviteLink = selectedPlan?.inviteLink || `https://www.canva.com/brand/join?token=INVITE_${Math.random().toString(36).substring(2, 10).toUpperCase()}&team=VIP_PRO`;
+  const inviteLink = inviteUrl || selectedPlan?.invite_link || selectedPlan?.inviteLink || 'https://www.canva.com/brand/join?token=PRO_ANNUAL_INVITE';
 
   useEffect(() => {
     if (!isOpen) return;
