@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Sparkles, Mail, Copy, Check, ExternalLink, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Sparkles, Mail, Copy, Check, ExternalLink, ShieldCheck, X } from 'lucide-react';
 
 export default function SuccessModal({ isOpen, userEmail, selectedPlan, inviteUrl, onClose }) {
   const [copied, setCopied] = useState(false);
@@ -24,12 +24,12 @@ export default function SuccessModal({ isOpen, userEmail, selectedPlan, inviteUr
       canvas.height = window.innerHeight;
 
       const colors = ['#00F2FE', '#7D2AE8', '#FF007A', '#F59E0B', '#10B981', '#38BDF8'];
-      const particles = Array.from({ length: 90 }, () => ({
+      const particles = Array.from({ length: 70 }, () => ({
         x: canvas.width * (0.35 + Math.random() * 0.3),
         y: canvas.height * 0.45,
-        vx: (Math.random() - 0.5) * 16,
-        vy: -Math.random() * 15 - 5,
-        size: Math.random() * 8 + 4,
+        vx: (Math.random() - 0.5) * 14,
+        vy: -Math.random() * 13 - 4,
+        size: Math.random() * 7 + 4,
         color: colors[Math.floor(Math.random() * colors.length)],
         rotation: Math.random() * 360,
         vr: (Math.random() - 0.5) * 10,
@@ -45,9 +45,9 @@ export default function SuccessModal({ isOpen, userEmail, selectedPlan, inviteUr
           active++;
           p.x += p.vx;
           p.y += p.vy;
-          p.vy += 0.38; // gravity
+          p.vy += 0.38;
           p.rotation += p.vr;
-          p.alpha -= 0.009;
+          p.alpha -= 0.012;
 
           ctx.save();
           ctx.translate(p.x, p.y);
@@ -82,143 +82,103 @@ export default function SuccessModal({ isOpen, userEmail, selectedPlan, inviteUr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[#050711]/95 backdrop-blur-3xl overflow-y-auto animate-fade-in">
-      <div className="relative w-full max-w-2xl glass-panel rounded-2xl sm:rounded-3xl border border-emerald-500/40 shadow-[0_0_90px_rgba(16,185,129,0.3)] my-auto max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#050711]/90 backdrop-blur-md animate-fade-in">
+      <div className="relative w-full max-w-lg glass-panel rounded-2xl sm:rounded-3xl border border-emerald-500/40 shadow-[0_0_70px_rgba(16,185,129,0.3)] bg-[#0A0D18] text-slate-100 p-4 sm:p-6 my-auto">
         
-        {/* Celebration Header Banner */}
-        <div className="p-4 sm:p-8 bg-gradient-to-r from-emerald-950/80 via-slate-900 to-purple-950/80 text-center relative border-b border-white/10 space-y-2 sm:space-y-3">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mx-auto text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.5)]">
-            <CheckCircle2 className="w-7 h-7 sm:w-10 sm:h-10" />
+        {/* Top Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* Celebration Header */}
+        <div className="text-center space-y-1.5 sm:space-y-2 pb-3 border-b border-white/10">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center mx-auto text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+            <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
 
-          <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1">
-            <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Activation Successful
-          </span>
+          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            <Sparkles className="w-3 h-3 text-emerald-400" />
+            <span>Activation Successful</span>
+          </div>
 
-          <h2 className="font-heading font-black text-xl sm:text-2xl md:text-3xl text-white">
+          <h2 className="font-heading font-black text-lg sm:text-xl md:text-2xl text-white">
             Welcome to Canva Pro Team!
           </h2>
 
-          <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto px-1">
-            Payment verified! An official Canva team invitation link has been generated & dispatched to <strong className="text-cyan-300 break-all">{userEmail}</strong>.
+          <p className="text-xs text-slate-300">
+            Access link dispatched to <span className="text-cyan-300 font-semibold">{userEmail}</span>
           </p>
         </div>
 
-        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+        {/* Action Content */}
+        <div className="mt-3.5 sm:mt-4 space-y-3 sm:space-y-3.5">
           
-          {/* Main Call To Action Button */}
-          <div className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-gradient-to-b from-purple-900/40 to-slate-900 border border-purple-500/30 text-center space-y-2.5 sm:space-y-3 shadow-lg">
-            <p className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-purple-300">Option 1: Direct Instant Join</p>
-            
+          {/* Main Join Button */}
+          <a
+            href={inviteLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-2.5 sm:py-3 px-4 rounded-xl sm:rounded-2xl btn-futuristic font-heading font-extrabold text-xs sm:text-sm text-white inline-flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_30px_rgba(125,42,232,0.6)] transform-gpu active:scale-95 transition-all"
+          >
+            <span>🚀 Click to Join Canva Pro Team Now</span>
+            <ExternalLink className="w-4 h-4 shrink-0" />
+          </a>
+
+          {/* Copy Link Input Bar */}
+          <div className="flex items-center gap-2 p-1.5 sm:p-2 rounded-xl bg-slate-900/90 border border-white/10 text-xs">
+            <input
+              type="text"
+              readOnly
+              value={inviteLink}
+              className="bg-transparent text-slate-300 text-[11px] sm:text-xs px-2 flex-1 truncate outline-none font-mono selection:bg-purple-500/30"
+            />
+            <button
+              onClick={handleCopy}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-cyan-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-all active:scale-95"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copied ? 'Copied!' : 'Copy'}</span>
+            </button>
+          </div>
+
+          {/* Compact 3-Step Instructions */}
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center text-[10px] sm:text-[11px]">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-white/5 border border-white/5">
+              <span className="font-bold text-cyan-400 block">1. Click Link</span>
+              <span className="text-slate-400 text-[9px] sm:text-[10px]">Open invite above</span>
+            </div>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-white/5 border border-white/5">
+              <span className="font-bold text-purple-400 block">2. Log In</span>
+              <span className="text-slate-400 text-[9px] sm:text-[10px]">With Canva account</span>
+            </div>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-white/5 border border-white/5">
+              <span className="font-bold text-emerald-400 block">3. Join Team</span>
+              <span className="text-slate-400 text-[9px] sm:text-[10px]">Enjoy Pro features</span>
+            </div>
+          </div>
+
+          {/* Compact Support Footer */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px]">
+            <span className="text-amber-300 font-semibold flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" /> 24/7 Replacement Guarantee
+            </span>
             <a
-              href={inviteLink}
+              href="https://wa.me/917652072236?text=Hi%20SkillVault%20Admin,%20I%20need%20assistance%20with%20my%20Canva%20Pro%20activation"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-3 sm:py-3.5 md:py-4 px-3 sm:px-6 rounded-xl sm:rounded-2xl btn-futuristic font-heading font-extrabold text-xs sm:text-sm md:text-base text-white inline-flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_30px_rgba(125,42,232,0.6)]"
+              className="text-emerald-400 hover:text-emerald-300 font-bold underline"
             >
-              <span className="text-center">🚀 Click to Join Canva Pro Team Now</span>
-              <ExternalLink className="w-4 h-4 shrink-0" />
+              💬 WhatsApp Support
             </a>
-
-            <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 pt-1 text-xs text-slate-400">
-              <span>Or copy team invite link:</span>
-              <button
-                onClick={handleCopy}
-                className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-cyan-300 font-semibold inline-flex items-center gap-1 cursor-pointer"
-              >
-                {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Copied!' : 'Copy Link'}</span>
-              </button>
-            </div>
           </div>
 
-          {/* SIMULATED EMAIL INBOX PREVIEW */}
-          <div className="rounded-xl sm:rounded-2xl border border-cyan-500/30 overflow-hidden bg-slate-950/90 shadow-xl">
-            <div className="p-3 bg-slate-900 border-b border-white/10 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-xs text-cyan-300 font-bold truncate">
-                <Mail className="w-4 h-4 text-cyan-400 shrink-0" />
-                <span className="truncate">Simulated Email Inbox Notification</span>
-              </div>
-              <span className="text-[9px] sm:text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-mono shrink-0">
-                SENT
-              </span>
-            </div>
-
-            <div className="p-3.5 sm:p-5 space-y-2.5 sm:space-y-3 text-xs">
-              <div className="space-y-1 text-slate-400 pb-2.5 sm:pb-3 border-b border-white/5 break-words">
-                <p><strong>From:</strong> Canva Team Invitations &lt;invites@canva.com&gt;</p>
-                <p><strong>To:</strong> {userEmail}</p>
-                <p><strong>Subject:</strong> <span className="text-white font-semibold">🎉 You've been invited to join Canva Pro Team ({selectedPlan.name})</span></p>
-              </div>
-
-              <div className="p-3.5 sm:p-4 rounded-xl bg-slate-900/80 border border-white/5 space-y-2.5 sm:space-y-3">
-                <p className="text-slate-300">Hi there,</p>
-                <p className="text-slate-300 leading-relaxed">
-                  You have been granted <strong>Canva Pro Team permissions</strong> for plan <strong>{selectedPlan.name}</strong>. Click below to accept invitation:
-                </p>
-
-                <div className="py-1">
-                  <a
-                    href={inviteLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md text-center"
-                  >
-                    Accept Canva Team Invite →
-                  </a>
-                </div>
-
-                <p className="text-[10px] sm:text-[11px] text-slate-500">
-                  Note: Make sure to log into Canva with {userEmail} before clicking.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick 3-Step How To Use Guide */}
-          <div className="space-y-2">
-            <h4 className="font-heading font-bold text-xs sm:text-sm text-slate-200">How to activate on your Canva App/Web:</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 text-xs">
-              <div className="p-2.5 sm:p-3 rounded-xl bg-white/5 border border-white/10 space-y-0.5 sm:space-y-1">
-                <span className="font-bold text-cyan-400">1. Click Invite Link</span>
-                <p className="text-slate-400 text-[10px] sm:text-[11px]">Click the button above or link from your email.</p>
-              </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-white/5 border border-white/10 space-y-0.5 sm:space-y-1">
-                <span className="font-bold text-purple-400">2. Log In</span>
-                <p className="text-slate-400 text-[10px] sm:text-[11px]">Log in with your existing Canva email.</p>
-              </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-white/5 border border-white/10 space-y-0.5 sm:space-y-1">
-                <span className="font-bold text-emerald-400">3. Switch Team</span>
-                <p className="text-slate-400 text-[10px] sm:text-[11px]">Click "Join Team" and enjoy unlocked Pro tools!</p>
-              </div>
-            </div>
-          </div>
-
-          {/* 24/7 Replacement Guarantee Note */}
-          <div className="p-3 sm:p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1.5 text-xs">
-            <div className="flex items-center gap-1.5 text-amber-300 font-bold">
-              <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>24/7 Continuous Access & Replacement Guarantee</span>
-            </div>
-            <p className="text-slate-300 text-[10px] sm:text-[11px] leading-relaxed">
-              If you ever face any activation issues or link expiry in the future, simply contact our 24/7 dedicated support team or admin. We provide instant replacement links throughout your subscription.
-            </p>
-            <div className="pt-1">
-              <a
-                href="https://wa.me/917652072236?text=Hi%20SkillVault%20Admin,%20I%20need%20assistance%20with%20my%20Canva%20Pro%20activation"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-bold text-[11px] underline"
-              >
-                💬 WhatsApp 24/7 Support: +91 7652072236
-              </a>
-            </div>
-          </div>
-
-          {/* Close button */}
+          {/* Close Button */}
           <button
             onClick={onClose}
-            className="w-full py-2.5 sm:py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 font-bold text-xs text-slate-300 transition-all cursor-pointer"
+            className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 font-bold text-xs text-slate-300 transition-all cursor-pointer"
           >
             Close & Return to Home
           </button>
