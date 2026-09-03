@@ -113,23 +113,20 @@ export default function PaymentModal({ isOpen, onClose, selectedPlan, userEmail,
                   console.warn('Meta Pixel tracking error:', pixelErr);
                 }
 
-                // Call onSuccess callback if provided
+                // Call onSuccess callback to trigger dedicated Canva Pro Success Modal
                 if (typeof onSuccess === 'function') {
                   onSuccess(inviteUrl);
                 }
-
-                // Redirect to SkillVault Official Payment Success Page
-                const driveParam = inviteUrl ? `&driveUrl=${encodeURIComponent(inviteUrl)}` : '';
-                window.location.href = `/payment-success?payment_id=${encodeURIComponent(payId)}&email=${encodeURIComponent(userEmail.trim())}&amount=${planPrice}${driveParam}`;
+                if (typeof onClose === 'function') {
+                  onClose();
+                }
               } else {
                 const errorMsg = verifyRes.error || 'Payment verification failed on server.';
-                const payId = response.razorpay_payment_id || '';
-                window.location.href = `/payment-failed?payment_id=${encodeURIComponent(payId)}&reason=${encodeURIComponent(errorMsg)}`;
+                setPaymentError(errorMsg);
               }
             } catch (err) {
               console.error('Canva payment verification exception:', err);
-              const payId = response.razorpay_payment_id || '';
-              window.location.href = `/payment-failed?payment_id=${encodeURIComponent(payId)}&reason=${encodeURIComponent('Network error during payment verification.')}`;
+              setPaymentError('Network error during payment verification. Please contact support.');
             } finally {
               setIsProcessing(false);
             }
@@ -158,13 +155,13 @@ export default function PaymentModal({ isOpen, onClose, selectedPlan, userEmail,
 
           setIsProcessing(false);
           if (verifyRes.success) {
-            const payId = `pay_sim_${Date.now()}`;
             const inviteUrl = verifyRes.inviteLink || verifyRes.driveUrl || selectedPlan.invite_link || '';
             if (typeof onSuccess === 'function') {
               onSuccess(inviteUrl);
             }
-            const driveParam = inviteUrl ? `&driveUrl=${encodeURIComponent(inviteUrl)}` : '';
-            window.location.href = `/payment-success?payment_id=${encodeURIComponent(payId)}&email=${encodeURIComponent(userEmail.trim())}&amount=${selectedPlan.price}${driveParam}`;
+            if (typeof onClose === 'function') {
+              onClose();
+            }
           } else {
             setPaymentError(verifyRes.error || 'Payment verification failed!');
           }

@@ -196,7 +196,7 @@ export function PaymentSuccessModal({
                 className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-violet-600/25 transition-all cursor-pointer flex items-center justify-center gap-2 transform-gpu active:scale-95"
               >
                 <ShoppingBag className="w-4 h-4 shrink-0" />
-                Access your Course
+                {resolvedDriveUrl && resolvedDriveUrl.toLowerCase().includes('canva') ? '🚀 Join Canva Pro Team' : 'Access your Course'}
               </button>
 
               <button
