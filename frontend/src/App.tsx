@@ -2025,28 +2025,78 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
         </section>
 
         {/* WHY SKILL VAULT SECTION */}
-        <section id="why-us" className="border-t border-slate-800/70 py-20 sm:py-28 bg-[#0a0b12]">
-          <div className="site-shell">
-            <div className="mx-auto max-w-2xl text-center">
-              <p className="eyebrow">The Skill Vault Advantage</p>
-              <h2 className="mt-3 font-display text-3xl sm:text-5xl font-semibold tracking-tight text-slate-100">
-                Built for Developers Who Learn by Shipping
+        <section id="why-us" className="border-t border-slate-800/70 py-20 sm:py-28 bg-[#0a0b12] relative overflow-hidden">
+          {/* Subtle Ambient Background Glows */}
+          <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="site-shell relative z-10">
+            <div className="mx-auto max-w-3xl text-center">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-violet-500/10 border border-violet-500/25 text-violet-300 text-xs font-semibold uppercase tracking-wider mb-4 shadow-sm">
+                <Sparkles size={13} className="text-violet-400" />
+                The Skill Vault Advantage
+              </div>
+              <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-tight text-white">
+                Built for Creators, Editors & Digital Builders
               </h2>
+              <p className="mt-4 text-xs sm:text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
+                Supercharge your creative workflow with instant Google Drive asset vaults, official Canva Pro access, and premium bundles curated for massive growth.
+              </p>
             </div>
 
             <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { title: 'Project-First Learning', text: 'No endless slides. Build real products, APIs, and microservices.', icon: Terminal },
-                { title: 'Zero Fluff Modules', text: 'Curriculum designed directly around in-demand tech company roles.', icon: Braces },
-                { title: 'Lifetime Access', text: 'Instant access to all current and future updates to course material.', icon: BookOpen },
-                { title: 'Secure Instant Delivery', text: 'Razorpay integration with instant course access sent to your email.', icon: LockKeyhole },
+                {
+                  title: 'Curated Asset Vaults',
+                  tag: 'Production-Ready',
+                  text: 'Gigabytes of video editing packs, graphics, sound effects, AI prompts, and source toolkits ready for commercial projects.',
+                  icon: Layers,
+                  gradient: 'from-violet-600 to-indigo-600',
+                  borderGlow: 'hover:border-violet-500/40 hover:shadow-[0_0_30px_rgba(139,92,246,0.2)]'
+                },
+                {
+                  title: 'Instant Automated Access',
+                  tag: 'Zero Wait Time',
+                  text: 'Instant 1-click Google Drive unlock on your screen right after Razorpay payment, with direct backup links delivered to your email.',
+                  icon: Zap,
+                  gradient: 'from-cyan-500 to-blue-600',
+                  borderGlow: 'hover:border-cyan-500/40 hover:shadow-[0_0_30px_rgba(6,182,212,0.2)]'
+                },
+                {
+                  title: 'Canva Pro Activations',
+                  tag: 'Magic Studio Unlocked',
+                  text: 'Instant official team invitations to unlock 100M+ Canva Pro templates, premium fonts, Brand Kits, and AI tools at a fraction of cost.',
+                  icon: Sparkles,
+                  gradient: 'from-fuchsia-600 to-pink-500',
+                  borderGlow: 'hover:border-pink-500/40 hover:shadow-[0_0_30px_rgba(236,72,153,0.2)]'
+                },
+                {
+                  title: 'Lifetime Access & Updates',
+                  tag: 'Pay Once, Keep Forever',
+                  text: 'Permanent cloud folder access with free future updates and dedicated WhatsApp customer support whenever you need help.',
+                  icon: ShieldCheck,
+                  gradient: 'from-emerald-500 to-teal-600',
+                  borderGlow: 'hover:border-emerald-500/40 hover:shadow-[0_0_30px_rgba(16,185,129,0.2)]'
+                },
               ].map((item) => (
-                <div key={item.title} className="rounded-xl border border-slate-800 bg-[#0d0f19] p-6">
-                  <div className="mb-4 grid size-10 place-items-center rounded-lg border border-violet-400/20 bg-violet-400/10 text-violet-300">
-                    <item.icon size={18} />
+                <div
+                  key={item.title}
+                  className={`group relative rounded-2xl border border-slate-800/80 bg-gradient-to-b from-[#111322] to-[#0b0c16] p-6 transition-all duration-300 hover:-translate-y-1.5 ${item.borderGlow}`}
+                >
+                  <div className="flex items-center justify-between mb-5">
+                    <div className={`grid size-12 place-items-center rounded-xl bg-gradient-to-tr ${item.gradient} text-white shadow-lg`}>
+                      <item.icon size={22} />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-400 group-hover:text-white group-hover:border-white/20 transition-colors">
+                      {item.tag}
+                    </span>
                   </div>
-                  <h3 className="font-display text-base font-semibold text-slate-200">{item.title}</h3>
-                  <p className="mt-2 text-xs leading-relaxed text-slate-400">{item.text}</p>
+                  <h3 className="font-display text-base font-bold text-white group-hover:text-cyan-300 transition-colors">
+                    {item.title}
+                  </h3>
+                  <p className="mt-2.5 text-xs leading-relaxed text-slate-400">
+                    {item.text}
+                  </p>
                 </div>
               ))}
             </div>
