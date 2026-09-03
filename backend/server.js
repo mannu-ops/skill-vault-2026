@@ -2756,7 +2756,14 @@ app.post('/api/checkout/webhook', async (req, res) => {
     }
   }
 
-  return res.json({ status: 'ok' });
+// 4. HEALTH CHECK & KEEP-ALIVE ENDPOINTS
+app.get(['/api/health', '/health', '/api/ping'], (req, res) => {
+  return res.status(200).json({
+    status: 'ok',
+    uptime: Math.round(process.uptime()),
+    timestamp: new Date().toISOString(),
+    message: '🚀 Skill Vault Server is active, awake, and healthy.'
+  });
 });
 
 // 404 UNHANDLED ROUTE HANDLER
@@ -2791,19 +2798,19 @@ app.listen(PORT, async () => {
   await initBaileysWhatsApp();
 
   // Keep-alive self ping mechanism to prevent Render Free Tier sleeping
-  const SERVER_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
-  const PING_INTERVAL = 10 * 60 * 1000; // 10 minutes
+  const SERVER_URL = process.env.RENDER_EXTERNAL_URL || process.env.SERVER_URL || `http://localhost:${PORT}`;
+  const PING_INTERVAL = 10 * 60 * 1000; // Ping every 10 minutes (Render sleeps after 15 mins)
 
   setInterval(async () => {
     try {
       const response = await fetch(`${SERVER_URL}/api/health`);
       if (response.ok) {
-        console.log(`⏰ [Keep-Alive] Self-ping successful to ${SERVER_URL}/api/health`);
+        console.log(`⏰ [Keep-Alive] Self-ping successful to ${SERVER_URL}/api/health (Server Uptime: ${Math.round(process.uptime())}s)`);
       }
     } catch (err) {
-      console.warn('⚠️ [Keep-Alive] Self-ping error:', err.message);
+      console.warn('⚠️ [Keep-Alive] Self-ping warning:', err.message);
     }
   }, PING_INTERVAL);
-  console.log(`⏰ Keep-Alive ping service activated (pinging every 10 mins).`);
+  console.log(`⏰ Keep-Alive ping service activated (pinging ${SERVER_URL}/api/health every 10 mins).`);
 });
 
