@@ -303,6 +303,7 @@ export async function initDb() {
       `ALTER TABLE canva_activations ALTER COLUMN id TYPE VARCHAR(255);`,
       `ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS plan_name VARCHAR(255) DEFAULT 'Canva Pro Access';`,
       `ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS email VARCHAR(255);`,
+      `ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS phone VARCHAR(50);`,
       `ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS amount NUMERIC DEFAULT 199;`,
       `ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS payment_method VARCHAR(100) DEFAULT 'UPI QR';`,
       `ALTER TABLE canva_activations ADD COLUMN IF NOT EXISTS invite_link TEXT;`,

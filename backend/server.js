@@ -2040,6 +2040,77 @@ Skill Vault Team`;
   return { success: true, simulated: true, clickToChatUrl, message: whatsappMessage };
 }
 
+// GENERIC RAW WHATSAPP MESSAGE SENDER (Used for Canva Pro & custom templates)
+export async function sendRawWhatsAppMessage({ toPhone, message }) {
+  if (!toPhone) return { success: false, reason: 'No phone number provided' };
+
+  let cleanPhone = String(toPhone).replace(/[^0-9]/g, '');
+  if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.replace(/^0+/, '');
+  if (cleanPhone.length === 10) cleanPhone = `91${cleanPhone}`;
+
+  // 1. Direct Baileys WASocket Delivery
+  if (baileysConnected && baileysSock) {
+    try {
+      const recipientJid = `${cleanPhone}@s.whatsapp.net`;
+      await baileysSock.sendMessage(recipientJid, { text: message });
+      console.log(`\n💬 [BAILEYS CANVA SUCCESS]: Canva WhatsApp message delivered to ${cleanPhone}`);
+      return { success: true, provider: 'baileys-built-in', recipient: cleanPhone };
+    } catch (bErr) {
+      console.error('❌ [BAILEYS CANVA SEND ERROR]:', bErr.message);
+    }
+  }
+
+  // 2. HTTP Gateway Fallback
+  const waApiUrl = process.env.WHATSAPP_API_URL || 'http://localhost:8080/api/send-message';
+  const waApiKey = process.env.WHATSAPP_API_KEY || process.env.WHATSAPP_TOKEN;
+
+  if (process.env.WHATSAPP_ENABLED === 'true' && waApiUrl) {
+    try {
+      const payload = {
+        to: `${cleanPhone}@c.us`,
+        chatId: `${cleanPhone}@c.us`,
+        phone: cleanPhone,
+        number: cleanPhone,
+        message: message,
+        body: message,
+        content: message
+      };
+
+      const headers = { 'Content-Type': 'application/json' };
+      if (waApiKey && waApiKey.trim() !== '') {
+        headers['Authorization'] = `Bearer ${waApiKey.trim()}`;
+        headers['api-key'] = waApiKey.trim();
+        headers['token'] = waApiKey.trim();
+      }
+
+      const waRes = await fetch(waApiUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+
+      const resData = await waRes.json().catch(() => ({}));
+      if (waRes.ok) {
+        console.log(`\n💬 [WHATSAPP API SUCCESS]: Canva notification sent to ${cleanPhone}`);
+        return { success: true, provider: 'whatsapp-http-gateway', data: resData };
+      } else {
+        console.error(`\n❌ [WHATSAPP API ERROR]:`, resData);
+      }
+    } catch (err) {
+      console.error(`\n❌ [WHATSAPP FETCH ERROR]:`, err.message);
+    }
+  }
+
+  const clickToChatUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+  console.log(`\n💬 [WHATSAPP NOTICE]: Direct Canva click-to-chat URL for ${cleanPhone}:\n${clickToChatUrl}`);
+  return { success: true, simulated: true, clickToChatUrl, message };
+}
+
+// Connect Canva Router with the WhatsApp sender
+if (canvaRouter && typeof canvaRouter.setWhatsAppSender === 'function') {
+  canvaRouter.setWhatsAppSender(sendRawWhatsAppMessage);
+}
+
 // DIAGNOSTIC ENDPOINT TO TEST WHATSAPP DELIVERY
 app.get('/api/test-whatsapp', async (req, res) => {
   const phone = req.query.phone || req.query.to || '919876543210';

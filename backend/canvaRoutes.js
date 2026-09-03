@@ -1,11 +1,17 @@
 import 'dotenv/config';
-import { Router } from 'express';
+import express, { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { query, isDbConnected, inMemoryDb } from './db.js';
 
 const router = Router();
+
+let whatsAppSender = null;
+router.setWhatsAppSender = (fn) => {
+  whatsAppSender = fn;
+};
+
 const JWT_SECRET = process.env.JWT_SECRET || 'skillvault_secret_jwt_key_2026_production';
 
 // Dynamic Razorpay Configuration helper
@@ -132,6 +138,7 @@ const formatPlan = (p, includeSecret = false) => ({
 const formatActivation = (a) => ({
   id: a.id,
   email: a.email || a.user_email || 'customer@example.com',
+  phone: a.phone || a.user_phone || '',
   planName: a.plan_name || a.planName || (a.course_id ? String(a.course_id).replace('🎨 Canva Pro: ', '') : 'Canva Pro Access'),
   amount: Number(a.amount ?? a.amount_paid_inr ?? 199),
   paymentMethod: a.payment_method || a.paymentMethod || 'Razorpay UPI',
@@ -683,6 +690,83 @@ https://www.theskillvault.store
   }
 }
 
+// ----------------------------------------------------
+// Automated WhatsApp Delivery Service for Canva Pro
+// ----------------------------------------------------
+async function sendCanvaPurchaseWhatsApp({ toPhone, customerName, customerEmail, planName, inviteLink, paymentId, amount }) {
+  if (!toPhone) {
+    console.log('⚠️ [CANVA WA NOTICE]: No customer phone provided for WhatsApp delivery.');
+    return { success: false, reason: 'No phone number provided' };
+  }
+
+  const message = `🎉 *Skill Vault - Canva Pro Activated!*
+
+Hello *${customerName || 'Canva Member'}*,
+
+Thank you for choosing Skill Vault! Your *${planName}* has been successfully activated.
+
+💳 *Payment ID:* ${paymentId}
+💰 *Amount Paid:* ₹${amount}
+
+🔗 *Your Canva Pro Team Invite Link:*
+${inviteLink}
+
+👉 *How to Join:*
+1. Click the invite link above (or copy and paste into your browser).
+2. Sign in with your Canva email: *${customerEmail || 'your email'}*.
+3. Click "Join Team" — All Pro templates, Magic Studio AI & Brand Kits will unlock immediately!
+
+If you need any assistance, reply directly to this WhatsApp message.
+
+Best regards,
+*The Skill Vault Team*
+https://www.theskillvault.store`;
+
+  if (typeof whatsAppSender === 'function') {
+    try {
+      const waRes = await whatsAppSender({ toPhone, message });
+      console.log(`✅ [CANVA WA SENT VIA SERVER]: WhatsApp notification sent to ${toPhone}`);
+      return waRes;
+    } catch (waErr) {
+      console.error('❌ [CANVA WA SENDER ERROR]:', waErr.message);
+    }
+  }
+
+  // Fallback to HTTP Gateway or click-to-chat if server sender not available
+  let cleanPhone = String(toPhone).replace(/[^0-9]/g, '');
+  if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.replace(/^0+/, '');
+  if (cleanPhone.length === 10) cleanPhone = `91${cleanPhone}`;
+
+  const waApiUrl = process.env.WHATSAPP_API_URL || 'http://localhost:8080/api/send-message';
+  const waApiKey = process.env.WHATSAPP_API_KEY || process.env.WHATSAPP_TOKEN;
+
+  if (process.env.WHATSAPP_ENABLED === 'true' && waApiUrl) {
+    try {
+      const waRes = await fetch(waApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(waApiKey ? { 'Authorization': `Bearer ${waApiKey.trim()}` } : {})
+        },
+        body: JSON.stringify({
+          phone: cleanPhone,
+          message: message
+        })
+      });
+      if (waRes.ok) {
+        console.log(`✅ [CANVA WA SENT VIA GATEWAY]: Message delivered to ${cleanPhone}`);
+        return { success: true };
+      }
+    } catch (err) {
+      console.error('❌ [CANVA WA GATEWAY ERROR]:', err.message);
+    }
+  }
+
+  const clickToChatUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+  console.log(`💬 [CANVA WA CLICK-TO-CHAT]: ${clickToChatUrl}`);
+  return { success: true, simulated: true, clickToChatUrl };
+}
+
 const verifyPaymentHandler = async (req, res) => {
   const { 
     customerEmail, 
@@ -757,22 +841,24 @@ const verifyPaymentHandler = async (req, res) => {
     if (isDbConnected()) {
       try {
         await query(`
-          INSERT INTO canva_activations (id, email, plan_name, amount, payment_method, invite_link)
-          VALUES ($1, $2, $3, $4, $5, $6)
+          INSERT INTO canva_activations (id, email, phone, plan_name, amount, payment_method, invite_link)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
           ON CONFLICT (id) DO UPDATE SET
             email = EXCLUDED.email,
+            phone = EXCLUDED.phone,
             plan_name = EXCLUDED.plan_name,
             amount = EXCLUDED.amount,
             invite_link = EXCLUDED.invite_link
         `, [
           activationId,
           customerEmail || 'customer@example.com',
+          customerPhone || '',
           planName,
           planPrice,
           'Razorpay UPI',
           inviteLink
         ]);
-        console.log(`✅ [CANVA DB] Recorded activation ${activationId} for ${customerEmail}`);
+        console.log(`✅ [CANVA DB] Recorded activation ${activationId} for ${customerEmail} (Phone: ${customerPhone || 'N/A'})`);
       } catch (actErr) {
         console.error('Insert canva_activations error:', actErr.message);
         // Safe fallback for minimal columns
@@ -814,6 +900,7 @@ const verifyPaymentHandler = async (req, res) => {
     mockActivations.unshift({
       id: activationId,
       email: customerEmail || 'customer@example.com',
+      phone: customerPhone || '',
       planName: planName,
       plan_name: planName,
       amount: planPrice,
@@ -846,6 +933,19 @@ const verifyPaymentHandler = async (req, res) => {
       paymentId: finalPaymentId,
       amount: planPrice
     }).catch(err => console.error('Background Canva confirmation email error:', err.message));
+
+    // 6. Send automated instant WhatsApp confirmation with Team Invite Link
+    if (customerPhone) {
+      sendCanvaPurchaseWhatsApp({
+        toPhone: customerPhone,
+        customerName: effectiveName,
+        customerEmail,
+        planName,
+        inviteLink,
+        paymentId: finalPaymentId,
+        amount: planPrice
+      }).catch(err => console.error('Background Canva WhatsApp error:', err.message));
+    }
 
     return res.json({
       success: true,

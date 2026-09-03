@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Plus, Edit, Trash2, Crown, Users, TrendingUp, DollarSign,
   Search, Copy, Check, Sparkles, ExternalLink, X, RefreshCw, Layers, Link as LinkIcon, Key,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Phone
 } from 'lucide-react';
 import {
   createPlan, updatePlan, deletePlan, fetchPlans,
@@ -208,8 +208,9 @@ export default function AdminPanel({
   const filteredActivations = activations.filter(item => {
     const email = (item.email || item.user_email || '').toLowerCase();
     const plan = (item.planName || item.plan_name || '').toLowerCase();
+    const phone = (item.phone || '').toLowerCase();
     const search = searchTerm.toLowerCase();
-    return email.includes(search) || plan.includes(search);
+    return email.includes(search) || plan.includes(search) || phone.includes(search);
   });
 
   // Open modal for Creating plan
@@ -614,7 +615,15 @@ export default function AdminPanel({
                   .slice((activationsPage - 1) * itemsPerPage, activationsPage * itemsPerPage)
                   .map((item) => (
                     <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                      <td className="p-4 font-bold text-white">{item.email}</td>
+                      <td className="p-4">
+                        <div className="font-bold text-white">{item.email}</div>
+                        {item.phone && (
+                          <div className="text-[11px] text-emerald-400 flex items-center gap-1 font-mono mt-0.5">
+                            <Phone className="w-3 h-3 shrink-0" />
+                            <span>{item.phone}</span>
+                          </div>
+                        )}
+                      </td>
                       <td className="p-4 text-cyan-300 font-semibold">{item.planName}</td>
                       <td className="p-4 font-heading font-black text-emerald-400 text-sm">₹{item.amount}</td>
                       <td className="p-4 text-slate-400 font-mono text-[11px]">{item.timestamp}</td>

@@ -26,6 +26,7 @@ export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
 
   const [userEmail, setUserEmail] = useState('');
+  const [userPhone, setUserPhone] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState('');
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
@@ -67,15 +68,16 @@ export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
   };
 
   // Direct 1-Click Razorpay Trigger: No intermediate popups!
-  const handleActivateClick = async (email: string) => {
+  const handleActivateClick = async (email: string, phone: string = '') => {
     if (!selectedPlan) return;
     setUserEmail(email);
+    setUserPhone(phone);
     setIsProcessing(true);
     setPaymentError('');
 
     try {
       // 1. Create order on backend
-      const orderRes = await createRazorpayOrder(selectedPlan.id, email);
+      const orderRes = await createRazorpayOrder(selectedPlan.id, email, phone);
       if (!orderRes.success || !orderRes.orderId) {
         setIsProcessing(false);
         setPaymentError(orderRes.error || 'Payment gateway is temporarily unavailable. Please try again.');
@@ -104,6 +106,7 @@ export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
           prefill: {
             name: email ? email.split('@')[0] : 'Canva Customer',
             email: email.trim(),
+            contact: phone ? phone.trim() : undefined,
           },
           theme: {
             color: '#7D2AE8',
@@ -117,6 +120,7 @@ export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 customerEmail: email.trim(),
+                customerPhone: (phone || response.razorpay_contact || '').trim(),
                 customerName: email ? email.split('@')[0] : 'Canva Customer',
                 planId: selectedPlan.id,
                 eventId,
@@ -173,6 +177,7 @@ export function CanvaPage({ cart, auth }: { cart?: any; auth?: any } = {}) {
             razorpay_payment_id: `pay_sim_${Date.now()}`,
             razorpay_signature: 'mock_signature',
             customerEmail: email,
+            customerPhone: phone,
             planId: selectedPlan.id,
           });
           setIsProcessing(false);
