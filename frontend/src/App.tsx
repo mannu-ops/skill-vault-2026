@@ -1883,6 +1883,7 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
                       <motion.div
                         key={course.id}
                         variants={listItemAnimation}
+                        className="h-full flex flex-col"
                       >
                         <AnimatedCard
                           hover="lift"
@@ -1892,23 +1893,28 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
                             if ((e.target as HTMLElement).closest('button, a')) return;
                             setLocation(`/course/${course.id}`);
                           }}
-                          className={`group relative flex flex-col justify-between rounded-2xl border border-slate-800/90 bg-[#0c0e17] p-5 card-hover-effect pop-in ${theme.borderHover} hover:shadow-2xl hover:shadow-violet-950/30 cursor-pointer`}
+                          className={`group relative flex flex-col justify-between h-full rounded-2xl border border-slate-800/90 bg-[#0c0e17] p-5 card-hover-effect pop-in ${theme.borderHover} hover:shadow-2xl hover:shadow-violet-950/30 cursor-pointer`}
                         >
-                          <div>
+                          <div className="flex flex-col flex-1">
                             {/* Full Width Top Image */}
-                            {course.imageUrl && (
-                              <div className="-mx-5 -mt-5 mb-4 overflow-hidden border-b border-slate-800/90 bg-[#07080e] rounded-t-2xl aspect-video flex items-center justify-center">
+                            <div className="-mx-5 -mt-5 mb-4 overflow-hidden border-b border-slate-800/90 bg-[#07080e] rounded-t-2xl aspect-video flex items-center justify-center shrink-0">
+                              {course.imageUrl ? (
                                 <img
                                   src={getImageThumbnail(course.imageUrl, 600)}
                                   alt={course.title}
                                   className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
                                   loading="lazy"
                                 />
-                              </div>
-                            )}
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950 text-slate-600">
+                                  <IconComponent className="w-10 h-10 mb-1 opacity-40 text-violet-400" />
+                                  <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500">{course.category}</span>
+                                </div>
+                              )}
+                            </div>
 
                             {/* Top Badges */}
-                            <div className="flex items-center justify-between gap-2 mb-3">
+                            <div className="flex items-center justify-between gap-2 mb-3 min-h-[26px]">
                               <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${theme.badge}`}>
                                 <IconComponent size={13} /> {course.category}
                               </span>
@@ -1918,18 +1924,21 @@ function PlatformCatalog({ cart: propCart, auth: propAuth }: { cart?: any; auth?
                                 </span>
                               )}
                             </div>
-
-                            {/* Title & Subtitle */}
-                            <h3 className="font-display text-xl font-semibold text-slate-100 group-hover:text-violet-200 transition leading-snug">
-                              {course.title}
-                            </h3>
-                            <p className="mt-1.5 text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                              {course.subtitle}
-                            </p>
+                            {/* Title & Subtitle - Strict Fixed Heights & Overflow Hidden */}
+                            <div className="h-14 overflow-hidden mb-1 flex items-start">
+                              <h3 className="font-display text-base sm:text-lg font-semibold text-slate-100 group-hover:text-violet-200 transition leading-snug line-clamp-2" title={course.title}>
+                                {course.title}
+                              </h3>
+                            </div>
+                            <div className="h-10 overflow-hidden">
+                              <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed" title={course.subtitle}>
+                                {course.subtitle}
+                              </p>
+                            </div>
                           </div>
 
                           {/* Footer Info & Actions */}
-                          <div className="mt-4 border-t border-slate-800/80 pt-4">
+                          <div className="mt-auto border-t border-slate-800/80 pt-4">
                             <div className="flex items-center justify-between mb-4">
                               <div className="flex items-baseline gap-1.5">
                                 <span className="font-display text-2xl font-bold text-slate-100">₹{course.price}</span>

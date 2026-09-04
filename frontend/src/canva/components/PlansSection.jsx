@@ -57,7 +57,7 @@ export default function PlansSection({ plans, onSelectPlan, loading }) {
               return (
                 <div
                   key={plan.id || plan.name}
-                  className={`relative rounded-3xl flex flex-col justify-between transition-all duration-300 ${
+                  className={`relative rounded-3xl flex flex-col justify-between transition-all duration-300 h-full ${
                     isPopular
                       ? 'animated-border glass-card bg-slate-900/80 shadow-2xl shadow-cyan-500/20 transform md:-translate-y-3'
                       : 'glass-card glass-card-hover bg-slate-900/40 border border-white/10'
@@ -71,7 +71,7 @@ export default function PlansSection({ plans, onSelectPlan, loading }) {
                     </div>
                   )}
 
-                  <div>
+                  <div className="flex flex-col flex-1">
                     {/* Top Row: Plan Name & Badge */}
                     <div className="flex items-center justify-between mb-4 pt-2">
                       <h3 className="text-xl font-extrabold text-white tracking-tight">
@@ -111,7 +111,7 @@ export default function PlansSection({ plans, onSelectPlan, loading }) {
                     </div>
 
                     {/* Features List */}
-                    <div className="space-y-3.5 mb-8">
+                    <div className="space-y-3.5 mb-8 flex-1">
                       <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Included Features:</p>
                       {(Array.isArray(plan.features) ? plan.features : typeof plan.features === 'string' ? plan.features.split('\n') : []).map((feature, fIdx) => (
                         <div key={fIdx} className="flex items-start space-x-3">
@@ -137,7 +137,7 @@ export default function PlansSection({ plans, onSelectPlan, loading }) {
                   {/* Select Plan Button */}
                   <button
                     onClick={() => onSelectPlan(plan)}
-                    className={`w-full py-4 px-6 rounded-2xl font-bold text-sm transition-all duration-300 flex items-center justify-center space-x-2 group ${
+                    className={`w-full py-4 px-6 rounded-2xl font-bold text-sm transition-all duration-300 flex items-center justify-center space-x-2 group mt-auto ${
                       isPopular
                         ? 'bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-xl shadow-cyan-500/30 hover:shadow-cyan-500/50'
                         : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
